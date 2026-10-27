@@ -1,16 +1,16 @@
-import { useEffect, useState, type ReactElement } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, type ReactElement } from 'react';
 import type { Item, LatLon, Place, Market } from '../lib/model';
 import { dShort, dLong, fkm, hm, isoDay, addDays, dayStart, DAYS, DAYS_LONG, km, weekendOf } from '../lib/model';
 import { placeNow, placeDay, placeWeekend, marketStatus, week, isHoliday, openOn, type Status } from '../lib/hours';
 import { simulate, bestOrder, routeUrl } from '../lib/plan';
 import type { Filters } from '../lib/filter';
 import { searchSpots, type Spot } from '../lib/pdok';
-import { Ic, Tile, St, Conf, Banner, kindLabel, isUnsure } from './ui';
+import { Ic, Tile, St, Conf, Banner, kindLabel, isUnsure, EASE, reduced, pop } from './ui';
 
 export interface Ctx {
   now: Date; f: Filters; origin: LatLon; originLabel: string | null; locDenied: boolean; welcome: boolean; spot: boolean; me: LatLon | null;
   pickSpot: (s: Spot) => void; pickPlace: () => void; favs: string[]; planStops: string[]; planDay: string;
-  setF: (p: Partial<Filters>) => void; open: (id: string) => void; toggleStop: (id: string) => void; toggleFav: (id: string) => void;
+  setF: (p: Partial<Filters>) => void; open: (id: string, from?: HTMLElement | null) => void; toggleStop: (id: string) => void; toggleFav: (id: string) => void;
   locate: (quiet?: boolean) => void; back: () => void; openPlan: () => void;
 }
 
@@ -27,7 +27,7 @@ export function Row({ it, d, c }: { it: Item; d: number; c: Ctx }) {
   const st = statusFor(it, c.f, c.now), inPlan = c.planStops.includes(it.id), cancel = it.t === 'm' && it.status === 'cancel';
   return (
     <li className="rowli" data-key={it.id}>
-      <button className="row" onClick={() => c.open(it.id)} aria-label={`${it.name}, ${st.txt}, ${fkm(d)} kilometer`}>
+      <button className="row" onClick={e => c.open(it.id, e.currentTarget.querySelector<HTMLElement>('.r-name'))} aria-label={`${it.name}, ${st.txt}, ${fkm(d)} kilometer`}>
         <Tile it={it} />
         <span className="r-main">
           <span className={`r-name${cancel ? ' strike' : ''}`}>{it.name}</span>
@@ -36,7 +36,7 @@ export function Row({ it, d, c }: { it: Item; d: number; c: Ctx }) {
         </span>
         <span className="r-km">{fkm(d)} km</span>
       </button>
-      <button className="add" onClick={() => c.toggleStop(it.id)} aria-pressed={inPlan} disabled={cancel} aria-label={`${inPlan ? 'Haal uit' : 'Zet in'} mijn dagplan`}><span><Ic n={inPlan ? 'check' : 'plus'} /></span></button>
+      <button className="add" onClick={e => { if (!inPlan) pop(e.currentTarget); c.toggleStop(it.id); }} aria-pressed={inPlan} disabled={cancel} aria-label={`${inPlan ? 'Haal uit' : 'Zet in'} mijn dagplan`}><span><Ic n={inPlan ? 'check' : 'plus'} /></span></button>
     </li>
   );
 }
@@ -52,6 +52,22 @@ function useSpots(q: string): Spot[] {
   return q.trim().length < 2 ? [] : hits;
 }
 
+/** FLIP: regels glijden naar hun nieuwe plek (280 ms), nieuwe regels faden in (220 ms). */
+function useFlip(dep: unknown) {
+  const ref = useRef<HTMLUListElement>(null), prev = useRef<Map<string, number> | null>(null);
+  useLayoutEffect(() => {
+    const ul = ref.current, next = new Map<string, number>(), animate = prev.current && !reduced();
+    ul?.querySelectorAll<HTMLElement>('[data-key]').forEach(el => {
+      const k = el.dataset.key!, top = el.offsetTop, was = prev.current?.get(k); next.set(k, top);
+      if (!animate) return;
+      if (was == null) el.animate([{ opacity: 0, transform: 'translateY(6px)' }, { opacity: 1, transform: 'none' }], { duration: 220, easing: EASE });
+      else if (Math.abs(was - top) > 1) el.animate([{ transform: `translateY(${was - top}px)` }, { transform: 'none' }], { duration: 280, easing: EASE });
+    });
+    prev.current = ul ? next : null;
+  }, [dep]);
+  return ref;
+}
+
 function Welcome({ c }: { c: Ctx }) {
   return (
     <div className="lv-head" data-peek data-drag><div className="welcome">
@@ -65,7 +81,7 @@ function Welcome({ c }: { c: Ctx }) {
 }
 
 export function ListView({ c, list, total, limit, more, counts, nPlaces }: { c: Ctx; list: { it: Item; d: number }[]; total: number; limit: number; more: () => void; counts: { kNow: number; kToday: number; mWk: number }; nPlaces: number }) {
-  const { f, now } = c, today = isoDay(now), weekend = weekendOf(now).includes(today), spots = useSpots(f.q);
+  const { f, now } = c, today = isoDay(now), weekend = weekendOf(now).includes(today), spots = useSpots(f.q), flip = useFlip(list);
   if (c.welcome) return <Welcome c={c} />;
   const near = c.originLabel ? `rond ${c.originLabel}` : 'bij jou in de buurt';
   const title = f.time === 'now' ? `Nu ${near}` : f.time === 'weekend' ? `Dit weekend ${near}` : f.time === 'today' ? `Vandaag ${near}` : dLong(f.date ?? today);
@@ -101,7 +117,7 @@ export function ListView({ c, list, total, limit, more, counts, nPlaces }: { c: 
     </div>
     <div className="rows-wrap">
       {spots.length > 0 && <div className="sresults"><h4>Kijk rond in</h4>{spots.map(s => <button key={s.label + s.sub} className="sres" onClick={() => c.pickSpot(s)}><span className="ic"><Ic n="pin" /></span><span><b>{s.label}</b><span>{s.sub}</span></span><Ic n="chev" /></button>)}{list.length > 0 && <h4>Winkels en markten</h4>}</div>}
-      {list.length ? <ul className="rows" aria-label="Resultaten">{list.slice(0, limit).map(x => <Row key={x.it.id} it={x.it} d={x.d} c={c} />)}</ul>
+      {list.length ? <ul className="rows" aria-label="Resultaten" ref={flip}>{list.slice(0, limit).map(x => <Row key={x.it.id} it={x.it} d={x.d} c={c} />)}</ul>
         : spots.length ? null : <div className="empty"><h3>{f.q ? `Niets gevonden voor “${f.q}”` : 'Geen resultaten met deze filters'}</h3><p>{f.q ? 'Zoek op de naam van een winkel of een plaats.' : 'Kijk naar het hele weekend, of zet een filter uit.'}</p>
           <div className="btns">{f.q && <button className="btn sm" onClick={() => c.setF({ q: '' })}>Wis zoekopdracht</button>}<button className="btn sm primary" onClick={() => c.setF({ time: 'weekend', gratis: false, overdekt: false })}>Dit weekend</button></div></div>}
       {total > limit && <button className="more" onClick={more}>Toon meer ({total - limit})</button>}
@@ -123,7 +139,7 @@ export function DetailView({ it, c, backLabel }: { it: Item; c: Ctx; backLabel: 
       <button className={`btn${unconf && !inPlan ? '' : ' primary'}`} aria-pressed={inPlan} disabled={cancel} onClick={() => c.toggleStop(it.id)}>
         {cancel ? 'Afgelast' : <><Ic n={inPlan ? 'check' : 'plus'} />{inPlan ? 'In mijn dagplan' : unconf ? 'Toch toevoegen' : 'In mijn dagplan'}</>}</button>
       <a className="heart" href={route} target="_blank" rel="noopener" aria-label="Route in Google Maps"><Ic n="route" /></a>
-      <button className="heart" aria-pressed={fav} onClick={() => c.toggleFav(it.id)} aria-label="Bewaar in favorieten"><Ic n="heart" /></button>
+      <button className="heart" aria-pressed={fav} onClick={e => { if (!fav) pop(e.currentTarget); c.toggleFav(it.id); }} aria-label="Bewaar in favorieten"><Ic n="heart" /></button>
     </div>);
   if (it.t === 'k') return <PlaceDetail p={it} c={c} top={top} d={d} actions={actions(false, !it.h)} />;
   return <MarketDetail m={it} c={c} top={top} d={d} actions={actions(it.status === 'cancel', it.status === 'unconf')} />;

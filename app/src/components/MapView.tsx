@@ -6,7 +6,7 @@ let maplibregl: typeof ML;
 import Supercluster from 'supercluster';
 import type { Item, LatLon } from '../lib/model';
 import { DEFAULT_CENTER } from '../lib/model';
-import { isUnsure, isTw, kindIcon } from './ui';
+import { isUnsure, isTw, kindIcon, EASE, reduced } from './ui';
 
 const STYLE = 'https://tiles.openfreemap.org/styles/positron';
 
@@ -46,8 +46,9 @@ const icon = (n: string) => `<svg class="i" aria-hidden="true"><use href="#i-${n
 
 export default function MapView(p: MapProps) {
   const box = useRef<HTMLDivElement>(null), mapRef = useRef<ML.Map | null>(null);
-  const marks = useRef(new Map<string, { m: ML.Marker; el: HTMLDivElement }>());
-  const meMark = useRef<ML.Marker | null>(null);
+  const marks = useRef(new Map<string, { m: ML.Marker; el: HTMLDivElement; at: [number, number]; leaves?: string[] }>());
+  const shownIndex = useRef<unknown>(null);
+  const meMark = useRef<ML.Marker | null>(null), routeShown = useRef(false);
   const [ready, setReady] = useState(false), [tick, setTick] = useState(0);
   const cb = useRef(p); cb.current = p;
 
@@ -85,13 +86,13 @@ export default function MapView(p: MapProps) {
     const map = mapRef.current; if (!map || !ready) return;
     const b = map.getBounds(), z = Math.round(map.getZoom());
     const byId = new Map(p.items.map(it => [it.id, it]));
-    const want = new Map<string, { lnglat: [number, number]; html: string; cls: string; onClick: () => void; label: string }>();
+    const want = new Map<string, { lnglat: [number, number]; html: string; cls: string; onClick: () => void; label: string; leaves?: string[] }>();
     for (const f of index.getClusters([b.getWest(), b.getSouth(), b.getEast(), b.getNorth()], z)) {
       const [lon, lat] = f.geometry.coordinates as [number, number], pr = f.properties as unknown as { cluster?: boolean; cluster_id: number; point_count: number; id: string };
       if (pr.cluster) {
         const leaves = index.getLeaves(pr.cluster_id, 500), nk = leaves.filter(l => l.properties.t === 'k').length, n = pr.point_count;
         const bg = nk && nk < n ? `conic-gradient(var(--kring) 0 ${Math.round(nk / n * 360)}deg,var(--markt-ink) 0)` : nk ? 'var(--kring)' : 'var(--markt-ink)';
-        want.set(`c${pr.cluster_id}`, { lnglat: [lon, lat], cls: 'mk', label: `${n} locaties, tik om in te zoomen`, html: `<button class="cluster" style="background:${bg}" aria-label="${n} locaties: ${nk} kringlopen, ${n - nk} markten. Tik om in te zoomen.">${n > 99 ? '99+' : n}</button>`, onClick: () => map.easeTo({ center: [lon, lat], zoom: Math.min(index.getClusterExpansionZoom(pr.cluster_id), 17) }) });
+        want.set(`c${pr.cluster_id}`, { lnglat: [lon, lat], cls: 'mk', leaves: leaves.map(l => l.properties.id), label: `${n} locaties, tik om in te zoomen`, html: `<button class="cluster" style="background:${bg}" aria-label="${n} locaties: ${nk} kringlopen, ${n - nk} markten. Tik om in te zoomen.">${n > 99 ? '99+' : n}</button>`, onClick: () => map.easeTo({ center: [lon, lat], zoom: Math.min(index.getClusterExpansionZoom(pr.cluster_id), 17) }) });
       } else { const it = byId.get(pr.id); if (it) want.set(it.id, pinFor(it)); }
     }
     for (const id of [p.sel, ...p.planIds]) { const it = id && byId.get(id); if (it) want.set(it.id, pinFor(it)); }
@@ -100,14 +101,30 @@ export default function MapView(p: MapProps) {
       return { lnglat: [it.lon, it.lat] as [number, number], cls: `mk${sel ? ' zsel' : ''}`, label: it.name, onClick: () => cb.current.onSelect(it.id),
         html: `<button class="pin ${it.t}${isTw(it) ? ' tw' : ''} ${cb.current.pinClass(it)}${it.t === 'k' && isUnsure(it) ? ' unknown' : ''}${sel ? ' sel' : ''}${n >= 0 ? ' numbered' : ''}${p.planIds.length && n < 0 ? ' dim' : ''}" aria-label="${it.name.replace(/"/g, '&quot;')}"><span class="pin-b">${icon(kindIcon(it))}</span><span class="pin-dot"></span><span class="pin-n">${n + 1}</span><span class="pin-lbl"></span></button>` };
     }
-    const cur = marks.current;
-    for (const [id, v] of cur) if (!want.has(id)) { v.m.remove(); cur.delete(id); }
+    // Bewegingen: nieuwe data → pins vallen in (28 ms na elkaar, samen ≤ 0,5 s); groepje splitst → pins schuiven
+    // vanuit het midden (450 ms); wat verdwijnt schaalt weg (180 ms).
+    const still = reduced(), drop = shownIndex.current !== index; shownIndex.current = index;
+    const cur = marks.current, from = new Map<string, [number, number]>();
+    for (const [id, v] of cur) if (!want.has(id)) {
+      v.leaves?.forEach(l => from.set(l, v.at)); cur.delete(id);
+      const inner = v.el.firstElementChild as HTMLElement | null;
+      if (still || !inner) { v.m.remove(); continue; }
+      v.el.style.pointerEvents = 'none';
+      inner.animate([{ opacity: 1, transform: 'scale(1)' }, { opacity: 0, transform: 'scale(.4)' }], { duration: 180, easing: EASE, fill: 'forwards' }).finished.finally(() => v.m.remove());
+    }
+    let n = 0;
     for (const [id, w] of want) {
-      let v = cur.get(id);
-      if (!v) { const el = document.createElement('div'); v = { el, m: new maplibregl.Marker({ element: el }).setLngLat(w.lnglat).addTo(map) }; cur.set(id, v); }
+      let v = cur.get(id), fresh = false;
+      if (!v) { const el = document.createElement('div'); v = { el, at: w.lnglat, m: new maplibregl.Marker({ element: el }).setLngLat(w.lnglat).addTo(map) }; cur.set(id, v); fresh = true; }
       v.el.className = w.cls; if (v.el.dataset.h !== w.html) { v.el.innerHTML = w.html; v.el.dataset.h = w.html; const l = v.el.querySelector('.pin-lbl'); if (l) l.textContent = w.label; }
       v.el.onclick = e => { e.stopPropagation(); w.onClick(); };
-      v.m.setLngLat(w.lnglat);
+      v.m.setLngLat(w.lnglat); v.at = w.lnglat; v.leaves = w.leaves;
+      const inner = v.el.firstElementChild as HTMLElement | null;
+      if (!fresh || still || !inner) continue;
+      const src = from.get(id) ?? (w.leaves && w.leaves.map(l => from.get(l)).find(Boolean));
+      if (src && !drop) { const a = map.project(src), b = map.project(w.lnglat); inner.animate([{ transform: `translate(${a.x - b.x}px,${a.y - b.y}px)` }, { transform: 'none' }], { duration: 450, easing: EASE }); }
+      else if (drop && inner.classList.contains('pin')) { inner.classList.add('drop'); inner.style.setProperty('--i', String(Math.min(n++, 18))); }
+      else inner.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 180, easing: EASE });
     }
   }, [ready, tick, index, p.items, p.sel, p.planIds, p.pinClass]);
 
@@ -128,7 +145,19 @@ export default function MapView(p: MapProps) {
   useEffect(() => {
     const map = mapRef.current; if (!map || !ready) return;
     const src = map.getSource('route') as ML.GeoJSONSource | undefined; if (!src) return;
-    src.setData({ type: 'FeatureCollection', features: p.route.length > 1 ? [{ type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: p.route.map(q => [q.lon, q.lat]) } }] : [] });
+    const pts = p.route.map(q => [q.lon, q.lat]), set = (c: number[][]) => src.setData({ type: 'FeatureCollection', features: c.length > 1 ? [{ type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: c } }] : [] });
+    // De lijn tekent zich van stop naar stop (700 ms), alleen als hij nieuw verschijnt; daarna springt hij mee.
+    const draw = pts.length > 1 && !routeShown.current && !reduced(); routeShown.current = pts.length > 1;
+    if (!draw) { set(pts); return; }
+    const seg = pts.slice(1).map((q, i) => Math.hypot(q[0] - pts[i][0], q[1] - pts[i][1])), total = seg.reduce((a, b) => a + b, 0) || 1, t0 = performance.now();
+    let raf = 0;
+    const frame = (t: number) => {
+      const k = Math.min(1, (t - t0) / 700), e = 1 - Math.pow(1 - k, 4); let left = e * total; const out = [pts[0]];
+      for (let i = 0; i < seg.length && left > 0; i++) { const f = Math.min(1, left / (seg[i] || 1)); out.push([pts[i][0] + (pts[i + 1][0] - pts[i][0]) * f, pts[i][1] + (pts[i + 1][1] - pts[i][1]) * f]); left -= seg[i]; }
+      set(out); if (k < 1) raf = requestAnimationFrame(frame);
+    };
+    raf = requestAnimationFrame(frame);
+    return () => { cancelAnimationFrame(raf); set(pts); };
   }, [ready, p.route]);
 
   return <div className="map" ref={box} role="region" aria-label="Kaart" />;

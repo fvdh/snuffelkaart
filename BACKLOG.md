@@ -18,7 +18,7 @@ Klein en uitvoerbaar. Elke taak: wat, klaar als, test. Status: ☐ open · ◐ b
 ## Ronde 2 · Voorstel
 | # | Taak | Klaar als |
 |---|---|---|
-| 10 | ☐ Bewegingen uit het ontwerp | lijst herordent (FLIP), pins vallen in, groepjes splitsen geanimeerd, bon print, lijst → detail met View Transition |
+| 10 | ☑ Bewegingen uit het ontwerp | lijst herordent (FLIP), pins vallen in, groepjes splitsen geanimeerd, bon print, lijst → detail met View Transition |
 | 11 | ☑ Zoeken op plaats/postcode (PDOK) | “Utrecht” of “3811” verplaatst de kaart en het afstandspunt |
 | 12 | ☑ Eerste keer openen + locatie | welkomstpaneel, locatie pas na tik, geweigerd-staat |
 | 13 | ☑ Valse treffers OSM opschonen | regels voor tweedehands/vintage, handmatige uitzonderingenlijst |

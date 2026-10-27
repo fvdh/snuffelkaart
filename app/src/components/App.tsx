@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { flushSync } from 'react-dom';
 import type { Item, LatLon, Place } from '../lib/model';
 import { DEFAULT_CENTER, isoDay, weekendOf, DAYS_LONG, dayStart, hm } from '../lib/model';
 import { placeNow, openOn, setWindow } from '../lib/hours';
@@ -8,7 +9,7 @@ import { sampleMarkets } from '../lib/markets';
 import type { Spot } from '../lib/pdok';
 import MapView from './MapView';
 import { ListView, DetailView, PlanView, type Ctx } from './Views';
-import { Ic } from './ui';
+import { Ic, reduced } from './ui';
 
 /** "Nu", met ?nu=2026-10-31T09:10 om tijdsbewust gedrag te testen. */
 function useNow(): Date {
@@ -37,7 +38,7 @@ export default function App() {
 
   const [f, setFState] = useState<Filters>(() => ({ type: 'all', time: defaultTime(now), date: null, gratis: false, overdekt: false, q: '' }));
   const [view, setView] = useState<View>('list'), [prev, setPrev] = useState<View>('list'), [sel, setSel] = useState<string | null>(null);
-  const [snap, setSnap] = useState<Snap>('half'), [limit, setLimit] = useState(40);
+  const [dir, setDir] = useState<'fwd' | 'back' | null>(null), [snap, setSnap] = useState<Snap>('half'), [limit, setLimit] = useState(40);
   // Locatie pas na een tik (A10) en nooit opgeslagen; een gekozen plaats wel.
   const [me, setMe] = useState<LatLon | null>(null), [spot, setSpot] = useLocal<Spot | null>('snuffel-plek', null);
   const [locDenied, setLocDenied] = useState(false), [welcomed, setWelcomed] = useLocal('snuffel-welkom', false);
@@ -61,8 +62,16 @@ export default function App() {
   }, [places, markets, now]);
 
   const setF = useCallback((p: Partial<Filters>) => { setFState(o => ({ ...o, ...p })); setLimit(40); if (view !== 'list') { setView('list'); setSel(null); } }, [view]);
-  const open = (id: string) => { const it = byId.get(id); if (!it) return; if (view !== 'detail') setPrev(view); setSel(id); setView('detail'); if (snap === 'collapsed') setSnap('half'); setFocus({ lat: it.lat, lon: it.lon, key: Date.now() }); scrollTop(); };
-  const back = () => { setView(view === 'detail' ? prev : 'list'); if (view === 'detail') setSel(null); setPrev('list'); scrollTop(); };
+  const go = (id: string) => { const it = byId.get(id); if (!it) return; setDir('fwd'); if (view !== 'detail') setPrev(view); setSel(id); setView('detail'); if (snap === 'collapsed') setSnap('half'); setFocus({ lat: it.lat, lon: it.lon, key: Date.now() }); scrollTop(); };
+  // Lijst → detail: de naam vliegt naar de titel (View Transition, 300 ms). Zonder ondersteuning: gewoon openen.
+  const open = (id: string, from?: HTMLElement | null) => {
+    if (!from || !document.startViewTransition || reduced()) return go(id);
+    const title = () => sheet.current?.querySelector<HTMLElement>('.view h2');
+    from.style.viewTransitionName = 'vt-title';
+    const t = document.startViewTransition(() => { from.style.viewTransitionName = ''; flushSync(() => go(id)); const h = title(); if (h) h.style.viewTransitionName = 'vt-title'; });
+    t.finished.catch(() => {}).finally(() => { const h = title(); if (h) h.style.viewTransitionName = ''; });
+  };
+  const back = () => { setDir('back'); setView(view === 'detail' ? prev : 'list'); if (view === 'detail') setSel(null); setPrev('list'); scrollTop(); };
   const toggleFav = (id: string) => { const on = !favs.includes(id); setFavs(on ? [...favs, id] : favs.filter(x => x !== id)); setToast(on ? 'Bewaard op dit apparaat.' : 'Niet meer bewaard.'); };
   const toggleStop = (id: string) => {
     const plan = planRef.current, it = byId.get(id)!, has = plan.stops.includes(id);
@@ -87,7 +96,7 @@ export default function App() {
   useEffect(() => { navigator.permissions?.query({ name: 'geolocation' }).then(s => s.state === 'granted' && locate(true)).catch(() => {}); }, []);
   const pickSpot = (s: Spot) => { setSpot(s); setMe(null); setWelcomed(true); setFState(o => ({ ...o, q: '' })); setFocus({ lat: s.lat, lon: s.lon, key: Date.now() }); scrollTop(); };
   const pickPlace = () => { setWelcomed(true); setSnap('full'); requestAnimationFrame(() => sheet.current?.querySelector<HTMLInputElement>('input[type=search]')?.focus()); };
-  const openPlan = () => { setPrev(view); setView('plan'); setSnap(desktop ? 'half' : 'half'); scrollTop(); };
+  const openPlan = () => { setDir('fwd'); setPrev(view); setView('plan'); setSnap(desktop ? 'half' : 'half'); scrollTop(); };
   useEffect(() => { if (view === 'plan') setFit({ pts: [origin, ...plan.stops.map(id => byId.get(id)).filter(Boolean) as Item[]], key: Date.now() }); }, [view, plan.stops.join(), plan.day]);
 
   const c: Ctx = { now, f, origin, originLabel, locDenied, welcome: !welcomed && !spot && !me, spot: !!spot, pickSpot, pickPlace, me, favs, planStops: plan.stops, planDay: plan.day, setF, open, toggleStop, toggleFav, locate, back, openPlan };
@@ -142,7 +151,7 @@ export default function App() {
         onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp}>
         <button className="handle" aria-label="Paneel groter of kleiner" onClick={e => { if (e.detail === 0) setSnap(snap === 'collapsed' ? 'half' : snap === 'half' ? 'full' : 'collapsed'); }} />
         <div className="sheet-scroll" ref={scroller} style={{ ['--hid' as string]: desktop ? '0px' : `${top - 12}px`, ['--barpad' as string]: barOn ? '74px' : '0px' }}>
-          <div className="view" key={view + (sel ?? '')}>
+          <div className={`view${dir === 'fwd' ? ' enter' : dir === 'back' ? ' enter-back' : ''}`} key={view + (sel ?? '')}>
             {err ? <div className="empty"><h3>De gegevens laden niet</h3><p>Controleer je verbinding en probeer het opnieuw.</p><div className="btns"><button className="btn sm primary" onClick={() => location.reload()}>Opnieuw laden</button></div></div>
               : !places ? <div aria-busy="true" aria-label="Laden" style={{ paddingTop: 16 }}>{Array.from({ length: 6 }, (_, i) => <div key={i} className="skrow"><div className="sk" style={{ width: 40, height: 40, borderRadius: 11 }} /><div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}><div className="sk" style={{ height: 13, width: '70%' }} /><div className="sk" style={{ height: 11, width: '45%' }} /></div><div className="sk" style={{ width: 32, height: 32, borderRadius: '50%' }} /></div>)}</div>
               : view === 'detail' && selItem ? <DetailView it={selItem} c={c} backLabel={prev === 'plan' ? `Mijn ${DAYS_LONG[dayStart(plan.day).getDay()]}` : 'Lijst'} />
@@ -152,7 +161,7 @@ export default function App() {
         </div>
       </div>
       <button className={`planbar${barOn ? '' : ' off'}`} onClick={openPlan} aria-label={`Open mijn dagplan: ${plan.stops.length} stops`}>
-        <span className="pb-n tnum">{plan.stops.length}</span>
+        <span className="pb-n tnum" key={plan.stops.length}>{plan.stops.length}</span>
         <span className="pb-t"><b>Mijn {DAYS_LONG[dayStart(plan.day).getDay()]}</b><span>{sim.bad ? <><i className="pb-warn" style={{ background: 'var(--bad)' }} />{sim.bad} klopt niet · </> : sim.warn ? <><i className="pb-warn" />{sim.warn} aandachtspunt{sim.warn > 1 ? 'en' : ''} · </> : null}{plan.stops.length} stop{plan.stops.length > 1 ? 's' : ''} · klaar ±{hm(sim.end)}</span></span>
         <Ic n="chev" />
       </button>

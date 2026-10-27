@@ -35,3 +35,9 @@ Keuzes en waarom. Nieuwste onderaan. "Freek" = besloten door Freek; anders voorl
 - **Goede doelen** = `shop=charity` of een bekende keten (Dorcas, Terre des Hommes, Leger des Heils…).
 - **Weggelaten**: alleen winkels met nieuwe spullen (wereldwinkels, Unicef). Dumpstores, vintage, opkopers e.d. blijven (Freek), als **tweedehandswinkel**: eigen pruimkleur en kleerhanger-icoon, plus een uitleg in het detail.
 - **Handmatige uitzonderingen** per OSM-id in `FIXES` (`scripts/fetch-osm.mjs`), met reden. Voorkeur: de fout in OSM zelf verbeteren, dan profiteert iedereen.
+
+## 2026-10-27 · Bewegingen (taak 10)
+- **Nog steeds geen Motion-library**: Web Animations API + CSS-keyframes uit het ontwerp dekken alles (FLIP, pins, groepjes, route). JS-animaties checken zelf `prefers-reduced-motion` (`reduced()` in `ui.tsx`); CSS-animaties doet de mediaquery.
+- **Lijst → detail met View Transition** (alleen de naam vliegt); browsers zonder ondersteuning openen gewoon, met de schuifanimatie van de view.
+- **Pins vallen alleen in bij nieuwe gegevens** (filter, eerste keer laden), niet bij pannen: anders blijft de kaart onrustig bewegen.
+- **Route tekent zich alleen als hij verschijnt** (dagplan openen), niet bij elke wijziging van de stops.

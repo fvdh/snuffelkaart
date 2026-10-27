@@ -42,3 +42,7 @@ a.btn.primary{color:var(--on-ink)}
 
 /* eerste keer openen */
 .brand-mark{width:40px;height:40px;border-radius:12px;background:var(--ink);color:var(--on-ink);display:grid;place-items:center}
+
+/* lijst → detail: de naam vliegt naar de titel */
+::view-transition-group(vt-title){animation-duration:.3s;animation-timing-function:cubic-bezier(0.22,1,0.36,1)}
+::view-transition-old(root),::view-transition-new(root){animation-duration:.2s}

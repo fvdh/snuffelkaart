@@ -10,6 +10,11 @@ export const isUnsure = (it: Item) => (it.t === 'm' ? it.status === 'unconf' : !
 /** Tweedehandswinkel: geen standaard kringloop, eigen icoon en tint. */
 export const isTw = (it: Item) => it.t === 'k' && it.kind === 'tweedehands';
 export const kindIcon = (it: Item) => it.t === 'm' ? 'kraam' : isTw(it) ? 'hanger' : 'tag';
+/** Bewegingen uit het ontwerp (DESIGN.md). CSS-animaties volgen prefers-reduced-motion al; dit is voor JS-animaties. */
+export const EASE = 'cubic-bezier(0.22,1,0.36,1)';
+export const reduced = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+/** Laat een knop even wippen (+ stop, hartje): klasse eraf, reflow, klasse erop. */
+export const pop = (el: HTMLElement) => { if (reduced()) return; el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop'); };
 export const kindLabel = (it: Item) => (it.t === 'm' ? it.kind : it.kind === 'goede-doelen' ? 'Goede-doelenwinkel' : it.kind === 'tweedehands' ? 'Tweedehandswinkel' : 'Kringloop');
 
 export function Tile({ it, small }: { it: Item; small?: boolean }) {
