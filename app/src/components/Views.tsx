@@ -122,11 +122,12 @@ export function ListView({ c, list, total, limit, more, counts, nPlaces }: { c: 
           <div className="btns">{f.q && <button className="btn sm" onClick={() => c.setF({ q: '' })}>Wis zoekopdracht</button>}<button className="btn sm primary" onClick={() => c.setF({ time: 'weekend', gratis: false, overdekt: false })}>Dit weekend</button></div></div>}
       {total > limit && <button className="more" onClick={more}>Toon meer ({total - limit})</button>}
       {f.time === 'now' && f.type !== 'k' && !f.q && <button className="hint" onClick={() => c.setF({ time: 'weekend' })}><span>{counts.mWk} markten dit weekend<small>Markten zijn er vooral op zaterdag en zondag</small></span><Ic n="chev" /></button>}
-      <p className="src" style={{ marginTop: 18 }}><Ic n="info" /><span>{nPlaces} winkels uit © OpenStreetMap-bijdragers, proefregio Utrecht en Gelderland. De markten zijn nog <b>verzonnen voorbeelden</b>.</span></p>
+      <p className="src" style={{ marginTop: 18 }}><Ic n="info" /><span>{nPlaces} winkels uit © OpenStreetMap-bijdragers en © Overture Maps Foundation, proefregio Utrecht en Gelderland. De markten zijn nog <b>verzonnen voorbeelden</b>.</span></p>
     </div>
   </>);
 }
 
+const webUrl = (w: string) => (w.startsWith('http') ? w : `https://${w}`);
 const osmUrl = (id: string) => { const m = /^osm-([nwr])(\d+)$/.exec(id); return m ? `https://www.openstreetmap.org/${{ n: 'node', w: 'way', r: 'relation' }[m[1] as 'n' | 'w' | 'r']}/${m[2]}` : null; };
 const monthsAgo = (iso: string, now: Date) => (now.getTime() - new Date(iso).getTime()) / (30.4 * 864e5);
 
@@ -155,19 +156,21 @@ function PlaceDetail({ p, c, top, d, actions }: { p: Place; c: Ctx; top: ReactEl
       <p className="dv-status"><St s={now} pulse /><span className="ds">·</span><span className="tnum">{fkm(d)} km</span>{p.place && <><span className="ds">·</span><span>{p.place}</span></>}</p>
       {actions}
     </header>
-    {p.kind === 'tweedehands' && <Banner icon="info">Dit lijkt een <b>tweedehandswinkel</b> of vintagezaak, geen kringloop. Prijzen en aanbod kunnen anders zijn.</Banner>}
+    {p.kind === 'tweedehands' && <Banner icon="info"><b>Geen standaard kringloop.</b> {p.sub ? `${kindLabel(p)}: ` : ''}tweedehands, maar prijzen en aanbod kunnen anders zijn dan bij een kringloop.</Banner>}
     {w ? <section className="dv-sec"><h3>Openingstijden</h3>
       <dl className="hours">{w.map(x => <div key={x.iso} style={{ display: 'contents' }}><dt className={x.iso === today ? 'today' : ''}>{x.label}</dt><dd className={`${x.iso === today ? 'today' : ''}${x.txt.startsWith('Dicht') ? ' shut' : ''}`}>{x.txt}</dd></div>)}</dl>
-      <p className={`src${stale ? ' stale' : ''}`}><Ic n={stale ? 'alert' : 'clock'} /><span>{p.checked ? (stale ? `Laatst gecontroleerd op ${p.checked}, dat is al even geleden. Bel even voordat je gaat.` : `Laatst gecontroleerd op ${p.checked}`) : 'Controledatum onbekend'} · bron: OpenStreetMap<br />Rond feestdagen kunnen tijden afwijken.</span></p></section>
-      : <section className="dv-sec"><h3>Openingstijden</h3><div className="unknown-box"><p><b>We weten de openingstijden nog niet.</b> Deze winkel staat op OpenStreetMap, maar zonder tijden. Bel even voordat je gaat, dan weet jij het zeker.</p>
-        <div className="btns">{p.phone && <a className="btn sm" href={`tel:${p.phone.replace(/\s/g, '')}`}><Ic n="phone" />{p.phone}</a>}{osm && <a className="btn sm primary" href={osm} target="_blank" rel="noopener"><Ic n="edit" />Tijden aanvullen op OSM</a>}</div></div>
+      <p className={`src${stale ? ' stale' : ''}`}><Ic n={stale ? 'alert' : 'clock'} /><span>{p.checked ? (stale ? `Laatst gecontroleerd op ${p.checked}, dat is al even geleden. Bel even voordat je gaat.` : `Laatst gecontroleerd op ${p.checked}`) : 'Controledatum onbekend'} · bron: {p.src === 'osm' ? 'OpenStreetMap' : 'Overture Maps'}<br />Rond feestdagen kunnen tijden afwijken.</span></p></section>
+      : <section className="dv-sec"><h3>Openingstijden</h3><div className="unknown-box"><p><b>We weten de openingstijden nog niet.</b> {p.src === 'osm' ? 'Deze winkel staat op OpenStreetMap, maar zonder tijden.' : 'Deze winkel komt uit Overture Maps en is nog niet door ons gecontroleerd. Misschien bestaat hij niet meer.'} Bel even of kijk op de website voordat je gaat.</p>
+        <div className="btns">{p.phone && <a className="btn sm" href={`tel:${p.phone.replace(/\s/g, '')}`}><Ic n="phone" />{p.phone}</a>}{!p.phone && p.website && <a className="btn sm" href={webUrl(p.website)} target="_blank" rel="noopener"><Ic n="globe" />Website</a>}{osm && <a className="btn sm primary" href={osm} target="_blank" rel="noopener"><Ic n="edit" />Tijden aanvullen op OSM</a>}</div></div>
         <p className="src"><Ic n="info" /><span>In “Nu open” tonen we deze winkel niet, omdat we dat niet kunnen beloven.</span></p></section>}
     <section className="dv-sec">
       {p.addr && <div className="inforow"><Ic n="pin" /><span>{p.addr}</span></div>}
       {p.phone && <div className="inforow"><Ic n="phone" /><span className="tnum">{p.phone}</span></div>}
-      {p.website && <div className="inforow"><Ic n="globe" /><a href={p.website.startsWith('http') ? p.website : `https://${p.website}`} target="_blank" rel="noopener">{p.website.replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '')}</a></div>}
+      {p.website && <div className="inforow"><Ic n="globe" /><a href={webUrl(p.website)} target="_blank" rel="noopener">{p.website.replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '')}</a></div>}
     </section>
-    <footer className="dv-foot">{osm && <a className="report-btn" href={osm} target="_blank" rel="noopener"><Ic n="flag" />Klopt er iets niet? Pas het aan op OpenStreetMap</a>}</footer>
+    <footer className="dv-foot">{osm ? <a className="report-btn" href={osm} target="_blank" rel="noopener"><Ic n="flag" />Klopt er iets niet? Pas het aan op OpenStreetMap</a>
+      : <><p className="src"><Ic n="info" /><span>Bron: © Overture Maps Foundation (CDLA Permissive 2.0). Nog niet gecontroleerd.</span></p>
+        <a className="report-btn" href={`https://www.openstreetmap.org/edit#map=19/${p.lat}/${p.lon}`} target="_blank" rel="noopener"><Ic n="edit" />Ken je deze winkel? Zet hem op OpenStreetMap</a></>}</footer>
   </article>);
 }
 

@@ -41,3 +41,12 @@ Keuzes en waarom. Nieuwste onderaan. "Freek" = besloten door Freek; anders voorl
 - **Lijst → detail met View Transition** (alleen de naam vliegt); browsers zonder ondersteuning openen gewoon, met de schuifanimatie van de view.
 - **Pins vallen alleen in bij nieuwe gegevens** (filter, eerste keer laden), niet bij pannen: anders blijft de kaart onrustig bewegen.
 - **Route tekent zich alleen als hij verschijnt** (dagplan openen), niet bij elke wijziging van de stops.
+
+## 2026-10-27 · Overture als tweede bron (§5.1)
+- **Aanleiding**: in Nunspeet stonden 2 van de 3 kringlopen niet in OSM (alleen als kaal adrespunt). Overture had ze alle drie.
+- **Freek: zoveel mogelijk data.** Alle tweedehandscategorieën uit Overture (ook antiek, kleding, schroot, pandjeshuis, vaste vlooienmarkt) plus alles met "kringloop" in de naam. De nadere soort staat erbij (`sub`).
+- **OSM heeft voorrang**; Overture vult aan. Ontdubbelen: < 100 m, of < 400 m met een gedeeld naamwoord. Binnen Overture wint de hoogste betrouwbaarheid. Permanent gesloten eruit.
+- **Eerlijk in de app**: Overture-winkels hebben geen openingstijden (gestippeld, nooit bij "Nu open"), tonen bron + "nog niet gecontroleerd" en een link om ze op OSM te zetten.
+- **Licentie**: Overture Places = CDLA Permissive 2.0, bronvermelding, geen share-alike. Overture-records blijven herkenbaar gescheiden (`src: 'overture'`, id `ov-…`), zodat de ODbL-afweging (§12) per bron kan.
+- **DuckDB** (`@duckdb/node-api`, dev) leest de Overture-parquet direct van S3, gefilterd op de rechthoek: ±10 s.
+- **Foursquare OS Places** nog niet getest: vraagt een Hugging Face-account (Freek).

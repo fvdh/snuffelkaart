@@ -4,7 +4,9 @@ export type Confirm = 'org' | 'chk' | 'unconf' | 'cancel';
 export interface Place {
   id: string; t: 'k'; kind: Kind; name: string; lat: number; lon: number;
   addr: string | null; place: string | null; h: [number, number][][] | null; checked: string | null;
-  website: string | null; phone: string | null; src: 'osm';
+  website: string | null; phone: string | null; src: 'osm' | 'overture';
+  /** Overture: nadere soort van een tweedehandswinkel, en hun betrouwbaarheidsscore. */
+  sub?: 'antiek' | 'kleding' | 'schroot' | 'pandjeshuis' | 'vlooienmarkt'; conf?: number;
 }
 
 export interface Market {

@@ -25,6 +25,9 @@ Klein en uitvoerbaar. Elke taak: wat, klaar als, test. Status: ☐ open · ◐ b
 | 14 | ☐ Eerste echte organisator-uitlezer (§5.2) | één organisatorsite → markten met status “gecontroleerd”, test met opgeslagen pagina |
 | 15 | ☐ Preview-deploy (Cloudflare Pages) | privé-preview-URL; account: Freek |
 | 16 | ☐ Testronde op de echte app | testscript draaien met 3 personen |
+| 17 | ☑ Overture als tweede bron | ontbrekende kringlopen (Nunspeet) staan erin, ontdubbeld, met bron |
+| 18 | ☐ Foursquare OS Places als derde bron | account Hugging Face (Freek); zelfde ontdubbeling |
+| 19 | ☐ Openingstijden voor Overture-winkels | van de eigen website van de winkel (met bronlabel), §5.1 |
 
 ## Later
 - Melden ("Klopt er iets niet?"), stadspagina's, PWA/offline, "Hoe we controleren", aanmelden organisatoren.

@@ -1,4 +1,5 @@
-// Haalt kringloopwinkels uit OpenStreetMap (proefregio Utrecht + Gelderland) en schrijft public/data/places.json.
+// Haalt kringloopwinkels uit OpenStreetMap (proefregio Utrecht + Gelderland), voegt Overture toe (data-raw/overture.json,
+// zie fetch-overture.mjs) en schrijft public/data/places.json.
 // Gebruik: npm run data:osm            (haalt opnieuw op via Overpass)
 //          npm run data:osm -- --cached (gebruikt data-raw/osm.json)
 // ponytail: Overpass met een rechthoek; de echte wekelijkse import gaat via het Geofabrik-extract + osmium (§5.1).
@@ -90,15 +91,57 @@ places = places.filter(p => {
   return true;
 });
 
+// ---------- Overture erbij (§5.1): alleen wat OSM nog niet heeft ----------
+// ponytail: ontdubbelen op afstand + naam. Twee echt verschillende winkels binnen 100 m worden er één; een beheerqueue lost dat later op.
+const OV = new URL('../data-raw/overture.json', import.meta.url);
+const SUB = { antique_store: 'antiek', second_hand_clothing_store: 'kleding', junkyard: 'schroot', pawn_shop: 'pandjeshuis', flea_market: 'vlooienmarkt' };
+const STOP = new Set(['kringloop', 'kringloopwinkel', 'kringloopcentrum', 'kringwinkel', 'winkel', 'stichting', 'foundation', 'tweedehands', 'shop', 'store', 'centrum', 'the', 'van', 'het', 'den', 'voor', 'and', 'en']);
+const words = s => new Set(s.toLowerCase().normalize('NFD').replace(/[^a-z0-9 ]/g, ' ').split(' ').filter(w => w.length > 2 && !STOP.has(w)));
+const sameName = (a, b) => { const B = words(b); return [...words(a)].some(w => B.has(w)); };
+const metres = (a, b) => Math.hypot((a.lon - b.lon) * 111320 * Math.cos(a.lat * Math.PI / 180), (a.lat - b.lat) * 110540);
+const isDup = (o, p) => { const d = metres(o, p); return d < 100 || (d < 400 && sameName(o.name, p.name)); };
+const nice = s => s && s === s.toUpperCase() ? s.toLowerCase().replace(/(^|[\s-])\p{L}/gu, c => c.toUpperCase()) : s;
+/** Overture geeft 31642158684; wij tonen 0642158684. Buitenlandse nummers krijgen een +. */
+const telNL = t => { if (!t) return null; const d = t.replace(/[^\d]/g, ''); return /^31\d{9}$/.test(d) ? '0' + d.slice(2) : /^0\d{9}$/.test(d) ? d : '+' + d; };
+const ovStat = { enriched: 0, rows: 0, region: 0, closed: 0, dup: 0, notSecondHand: 0, added: 0, release: null };
+if (fs.existsSync(OV)) {
+  const ov = JSON.parse(fs.readFileSync(OV, 'utf8')); ovStat.release = ov.release; ovStat.rows = ov.rows.length;
+  const osmPlaces = [...places];
+  for (const o of ov.rows.sort((a, b) => b.conf - a.conf)) { // hoogste betrouwbaarheid wint bij dubbelingen binnen Overture
+    if (!o.name || !Number.isFinite(o.lat)) continue;
+    if (!inside([o.lon, o.lat], regionPolys)) { ovStat.region++; continue; }
+    if (o.status === 'permanently_closed') { ovStat.closed++; continue; }
+    if (NOT_SECOND_HAND.test(o.name)) { ovStat.notSecondHand++; continue; }
+    const twin = places.find(p => isDup(o, p));
+    if (twin) { // zelfde winkel: lege velden aanvullen uit Overture, OSM houdt voorrang
+      ovStat.dup++;
+      const fill = { website: o.website || null, phone: telNL(o.phone) };
+      let hit = false; for (const k in fill) if (!twin[k] && fill[k]) { twin[k] = fill[k]; (twin.from ??= {})[k] = 'overture'; hit = true; }
+      if (hit) ovStat.enriched++;
+      continue;
+    }
+    const city = nice(o.city) || null;
+    places.push({
+      id: `ov-${o.id}`, t: 'k', kind: kindOf({ name: o.name }), sub: SUB[o.cat] ?? undefined, name: o.name.trim(), lat: +o.lat.toFixed(6), lon: +o.lon.toFixed(6),
+      addr: [nice(o.street), [o.postcode, city].filter(Boolean).join(' ')].filter(Boolean).join(', ') || null, place: city,
+      h: null, checked: null, website: o.website || null, phone: telNL(o.phone), conf: o.conf, src: 'overture',
+    });
+    ovStat.added++;
+  }
+  ovStat.osmOnly = osmPlaces.filter(p => !ov.rows.some(o => metres(o, p) < 150)).length;
+}
+
 fs.mkdirSync(new URL('../public/data/', import.meta.url), { recursive: true });
-fs.writeFileSync(OUT, JSON.stringify({ generated: new Date().toISOString(), source: '© OpenStreetMap-bijdragers (ODbL)', bbox: BBOX, from: FROM, days: DAYS_AHEAD, holidays: holidays(FROM), places }));
+fs.writeFileSync(OUT, JSON.stringify({ generated: new Date().toISOString(), source: '© OpenStreetMap-bijdragers (ODbL); Overture Maps Foundation (CDLA Permissive 2.0)', overture: ovStat.release, bbox: BBOX, from: FROM, days: DAYS_AHEAD, holidays: holidays(FROM), places }));
 
 const n = places.length, pct = x => `${Math.round(100 * x / n)}%`;
 const count = f => places.filter(f).length;
 const unnamed = raw.elements.filter(e => !e.tags?.name).length;
-console.log(`\nKringlopen proefregio: ${n} (van ${raw.elements.length} OSM-objecten, ${unnamed} zonder naam)`);
+console.log(`\nWinkels proefregio: ${n} (van ${raw.elements.length} OSM-objecten, ${unnamed} zonder naam)`);
 console.log(`  openingstijden leesbaar: ${count(p => p.h)} (${pct(count(p => p.h))}), onleesbaar: ${count(p => p.ohRaw)}, geen: ${count(p => !p.h && !p.ohRaw)}`);
 console.log(`  met controledatum: ${count(p => p.checked)}  adres: ${pct(count(p => p.addr))}  website: ${pct(count(p => p.website))}  telefoon: ${pct(count(p => p.phone))}`);
 console.log(`  weggelaten: buiten regio ${dropped.region}, geen tweedehands ${dropped.notSecondHand}, handmatig ${dropped.manual}`);
 console.log(`  soort: kringloop ${count(p => p.kind === 'kringloop')}, goede doelen ${count(p => p.kind === 'goede-doelen')}, tweedehands (soort onbekend of geen kringloop) ${count(p => p.kind === 'tweedehands')}`);
+if (ovStat.release) console.log(`  Overture ${ovStat.release}: ${ovStat.rows} plekken → ${ovStat.added} toegevoegd (dubbel met OSM/Overture ${ovStat.dup}, waarvan ${ovStat.enriched} OSM-winkels aangevuld met website/telefoon, buiten regio ${ovStat.region}, gesloten ${ovStat.closed}, geen tweedehands ${ovStat.notSecondHand}); alleen in OSM: ${ovStat.osmOnly}`);
+console.log(`  bron: OSM ${count(p => p.src === 'osm')}, Overture ${count(p => p.src === 'overture')}`);
 console.log(`  geschreven: ${OUT.pathname} (${(fs.statSync(OUT).size / 1024).toFixed(0)} kB)\n`);

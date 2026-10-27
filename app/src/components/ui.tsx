@@ -15,7 +15,8 @@ export const EASE = 'cubic-bezier(0.22,1,0.36,1)';
 export const reduced = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
 /** Laat een knop even wippen (+ stop, hartje): klasse eraf, reflow, klasse erop. */
 export const pop = (el: HTMLElement) => { if (reduced()) return; el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop'); };
-export const kindLabel = (it: Item) => (it.t === 'm' ? it.kind : it.kind === 'goede-doelen' ? 'Goede-doelenwinkel' : it.kind === 'tweedehands' ? 'Tweedehandswinkel' : 'Kringloop');
+const SUB = { antiek: 'Antiek en brocante', kleding: 'Tweedehands kleding', schroot: 'Sloop en restpartijen', pandjeshuis: 'Pandjeshuis', vlooienmarkt: 'Vlooienmarkt (vaste plek)' };
+export const kindLabel = (it: Item) => (it.t === 'm' ? it.kind : it.kind === 'goede-doelen' ? 'Goede-doelenwinkel' : it.kind === 'tweedehands' ? (it.sub ? SUB[it.sub] : 'Tweedehandswinkel') : 'Kringloop');
 
 export function Tile({ it, small }: { it: Item; small?: boolean }) {
   const cls = `tile ${it.t}${isUnsure(it) ? ' unconf' : ''}${it.t === 'm' && it.status === 'cancel' ? ' cancel' : ''}${isTw(it) ? ' tw' : ''}`;
