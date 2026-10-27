@@ -3,7 +3,7 @@ import { flushSync } from 'react-dom';
 import type { Item, LatLon, Market, Place } from '../lib/model';
 import { DEFAULT_CENTER, isoDay, weekendOf, DAYS_LONG, dayStart, hm, dShort } from '../lib/model';
 import { placeNow, openOn, setWindow } from '../lib/hours';
-import { visible, defaultTime, type Filters } from '../lib/filter';
+import { visible, type Filters } from '../lib/filter';
 import { simulate } from '../lib/plan';
 import type { Spot } from '../lib/pdok';
 import MapView from './MapView';
@@ -50,7 +50,7 @@ export default function App() {
   const items: Item[] = useMemo(() => [...(places ?? []), ...markets], [places, markets]);
   const byId = useMemo(() => new Map(items.map(i => [i.id, i])), [items]);
 
-  const [f, setFState] = useState<Filters>(() => ({ type: 'all', time: defaultTime(now), date: null, gratis: false, overdekt: false, q: '' }));
+  const [f, setFState] = useState<Filters>(() => ({ type: 'all', time: 'all', date: null, gratis: false, overdekt: false, q: '' }));
   const [view, setView] = useState<View>('list'), [prev, setPrev] = useState<View>('list'), [sel, setSel] = useState<string | null>(null);
   const [dir, setDir] = useState<'fwd' | 'back' | null>(null), [snap, setSnap] = useState<Snap>('half'), [limit, setLimit] = useState(40);
   // Locatie pas na een tik (A10) en nooit opgeslagen; een gekozen plaats wel.

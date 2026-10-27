@@ -18,7 +18,7 @@ export interface Ctx {
 export function statusFor(it: Item, f: Filters, now: Date): Status {
   if (it.t === 'm') return marketStatus(it, now);
   const today = isoDay(now);
-  if (f.time === 'now' || f.time === 'today' || (f.time === 'date' && f.date === today) || (f.time === 'weekend' && weekendOf(now).includes(today))) return placeNow(it, now);
+  if (f.time === 'all' || f.time === 'now' || f.time === 'today' || (f.time === 'date' && f.date === today) || (f.time === 'weekend' && weekendOf(now).includes(today))) return placeNow(it, now);
   if (f.time === 'weekend') return placeWeekend(it, weekendOf(now));
   return placeDay(it, f.date ?? today);
 }
@@ -84,7 +84,7 @@ export function ListView({ c, list, total, limit, more, counts, nPlaces }: { c: 
   const { f, now } = c, today = isoDay(now), weekend = weekendOf(now).includes(today), spots = useSpots(f.q), flip = useFlip(list);
   if (c.welcome) return <Welcome c={c} />;
   const near = c.originLabel ? `rond ${c.originLabel}` : 'bij jou in de buurt';
-  const title = f.time === 'now' ? `Nu ${near}` : f.time === 'weekend' ? `Dit weekend ${near}` : f.time === 'today' ? `Vandaag ${near}` : dLong(f.date ?? today);
+  const title = f.time === 'all' ? `Snuffelen ${near}` : f.time === 'now' ? `Nu ${near}` : f.time === 'weekend' ? `Dit weekend ${near}` : f.time === 'today' ? `Vandaag ${near}` : dLong(f.date ?? today);
   const P = (b: boolean) => ({ 'aria-pressed': b });
   return (<>
     <div className="lv-head" data-peek data-drag>
@@ -101,10 +101,10 @@ export function ListView({ c, list, total, limit, more, counts, nPlaces }: { c: 
           <button {...P(f.type === 'k')} onClick={() => c.setF({ type: 'k' })}><i className="tk" />Kringlopen</button>
           <button {...P(f.type === 'm')} onClick={() => c.setF({ type: 'm' })}><i className="tm" />Markten</button></div>
         <span className="sep" />
-        <button className="chip" {...P(f.time === 'now')} onClick={() => c.setF({ time: 'now' })}><span className="gdot" />Nu open</button>
-        <button className="chip" {...P(f.time === 'today')} onClick={() => c.setF({ time: 'today' })}>Vandaag</button>
-        <button className="chip" {...P(f.time === 'weekend')} onClick={() => c.setF({ time: 'weekend' })}>Dit weekend</button>
-        <button className="chip" {...P(f.time === 'date')} onClick={() => c.setF(f.time === 'date' ? { time: weekend ? 'weekend' : 'now' } : { time: 'date', date: f.date ?? addDays(today, 1) })}><Ic n="cal" />{f.time === 'date' && f.date ? dShort(f.date) : 'Kies datum'}</button>
+        <button className="chip" {...P(f.time === 'now')} onClick={() => c.setF({ time: f.time === 'now' ? 'all' : 'now' })}><span className="gdot" />Nu open</button>
+        <button className="chip" {...P(f.time === 'today')} onClick={() => c.setF({ time: f.time === 'today' ? 'all' : 'today' })}>Vandaag</button>
+        <button className="chip" {...P(f.time === 'weekend')} onClick={() => c.setF({ time: f.time === 'weekend' ? 'all' : 'weekend' })}>Dit weekend</button>
+        <button className="chip" {...P(f.time === 'date')} onClick={() => c.setF(f.time === 'date' ? { time: 'all' } : { time: 'date', date: f.date ?? addDays(today, 1) })}><Ic n="cal" />{f.time === 'date' && f.date ? dShort(f.date) : 'Kies datum'}</button>
         <span className="sep" />
         <button className="chip" {...P(f.gratis)} onClick={() => c.setF({ gratis: !f.gratis })}>Gratis entree</button>
         <button className="chip" {...P(f.overdekt)} onClick={() => c.setF({ overdekt: !f.overdekt })}><Ic n="umbrella" />Overdekt</button>
@@ -119,8 +119,8 @@ export function ListView({ c, list, total, limit, more, counts, nPlaces }: { c: 
     <div className="rows-wrap">
       {spots.length > 0 && <div className="sresults"><h4>Kijk rond in</h4>{spots.map(s => <button key={s.label + s.sub} className="sres" onClick={() => c.pickSpot(s)}><span className="ic"><Ic n="pin" /></span><span><b>{s.label}</b><span>{s.sub}</span></span><Ic n="chev" /></button>)}{list.length > 0 && <h4>Winkels en markten</h4>}</div>}
       {list.length ? <ul className="rows" aria-label="Resultaten" ref={flip}>{list.slice(0, limit).map(x => <Row key={x.it.id} it={x.it} d={x.d} c={c} />)}</ul>
-        : spots.length ? null : <div className="empty"><h3>{f.q ? `Niets gevonden voor “${f.q}”` : 'Geen resultaten met deze filters'}</h3><p>{f.q ? 'Zoek op de naam van een winkel of een plaats.' : 'Kijk naar het hele weekend, of zet een filter uit.'}</p>
-          <div className="btns">{f.q && <button className="btn sm" onClick={() => c.setF({ q: '' })}>Wis zoekopdracht</button>}<button className="btn sm primary" onClick={() => c.setF({ time: 'weekend', gratis: false, overdekt: false })}>Dit weekend</button></div></div>}
+        : spots.length ? null : <div className="empty"><h3>{f.q ? `Niets gevonden voor “${f.q}”` : 'Geen resultaten met deze filters'}</h3><p>{f.q ? 'Zoek op de naam van een winkel of een plaats.' : f.time === 'all' ? 'Zet een filter uit.' : 'Zet het tijdfilter uit om alles te zien.'}</p>
+          <div className="btns">{f.q && <button className="btn sm" onClick={() => c.setF({ q: '' })}>Wis zoekopdracht</button>}<button className="btn sm primary" onClick={() => c.setF({ time: 'all', gratis: false, overdekt: false })}>Toon alles</button></div></div>}
       {total > limit && <button className="more" onClick={more}>Toon meer ({total - limit})</button>}
       {f.time === 'now' && f.type !== 'k' && !f.q && <button className="hint" onClick={() => c.setF({ time: 'weekend' })}><span>{counts.mWk} markten dit weekend<small>Markten zijn er vooral op zaterdag en zondag</small></span><Ic n="chev" /></button>}
       <p className="src" style={{ marginTop: 18 }}><Ic n="info" /><span>{nPlaces} winkels uit © OpenStreetMap-bijdragers en © Overture Maps Foundation, heel Nederland. Markten uit de eigen agenda van organisatoren; bij elke markt staat welke.</span></p>

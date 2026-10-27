@@ -230,7 +230,7 @@ Het systeem wijst expliciet af wat de huidige kringloop- en markt-apps zijn: rom
 - Zekerheid is altijd zichtbaar: bevestigingsstatus en controledatum.
 - Eén lettertype (Figtree) voor de app; DM Mono alleen op de bon.
 - Beweging vertelt wat er veranderd is: 150–450 ms, zachte uitloop, nooit stuiteren.
-- Tijdsbewust: doordeweeks "Nu open" voorop, in het weekend "Dit weekend".
+- Tijdsbewust in de status, niet in het filter: standaard alles ("Snuffelen rond …"), elke regel toont open/dicht of de marktdag. Tijdchips zijn aan/uit; nog eens tikken = weer alles.
 
 ## 2. Colors: Kassa-inkt en Goudsbloem
 

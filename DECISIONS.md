@@ -80,3 +80,9 @@ Keuzes en waarom. Nieuwste onderaan. "Freek" = besloten door Freek; anders voorl
 - **PWA**: manifest, eigen icoon (prijskaartje op kassa-inkt), service worker alleen in de gebouwde site. App en gegevens werken offline met de laatst geladen stand ("Je bent offline. Je ziet de gegevens van …"); kaarttegels die je zag blijven bewaard (max 1500). Getest met de server uit. "Zet op beginscherm" bij het dagplan (Android: echte installatievraag; iPhone: uitleg via Deel).
 - **Testtijd zichtbaar**: met `?nu=` staat rechtsboven "Testtijd: … · naar nu".
 - **Groepjes** tonen nu kringloop / tweedehands / markt in hun eigen kleur.
+
+## Standaard alles zien, tijd als filter (2026-10-27)
+
+- **Wat**: de lijst en kaart starten met alle winkels en markten. "Nu open", "Vandaag", "Dit weekend" en "Kies datum" zijn aan/uit-chips; nog eens tikken zet het filter uit. Elke regel blijft zeggen of een winkel nu open is (of wanneer hij opengaat) en op welke dag een markt is.
+- **Waarom**: Freek: "je moet ook gewoon alle winkels / markten kunnen zien". Het tijdsbewuste startpunt (doordeweeks "Nu open") verborg 's avonds bijna alles.
+- **Pins bij uitzoomen**: markers hielden hun positie niet omdat `className` de klasse `maplibregl-marker` (position:absolute) wiste. Nu `classList`.

@@ -11,7 +11,7 @@ Tweedehands-jagers in Nederland (eerst markten in de proefregio Gelderland + Utr
 Vaak dezelfde mensen voor kringlopen én rommelmarkten.
 
 ## Product Purpose
-Eén kaart met kringloopwinkels (open of dicht) en rommel-, vlooien-, kofferbak- en indoormarkten, met "Nu open" en "Dit weekend" als vertrekpunt, en een dagplan ("Mijn zaterdag") dat stops in een slimme volgorde zet en opent in Google of Apple Maps. Succes: binnen 2 minuten een plan met minstens 3 stops die op de gekozen dag kloppen, en mensen komen terug.
+Eén kaart met kringloopwinkels (open of dicht) en rommel-, vlooien-, kofferbak- en indoormarkten, met alles zichtbaar en "Nu open", "Vandaag" en "Dit weekend" als filter, en een dagplan ("Mijn zaterdag") dat stops in een slimme volgorde zet en opent in Google of Apple Maps. Succes: binnen 2 minuten een plan met minstens 3 stops die op de gekozen dag kloppen, en mensen komen terug.
 
 ## Brand Personality
 Nuchter, warm, betrouwbaar. Als een goede kaart-app: rustig en snel, vriendelijk in toon. Persoonlijkheid zit in details (iconen, copy, kleine animaties), niet in het oppervlak. Spreekt gewoon Nederlands, je-vorm, geen marketingtaal.
@@ -24,7 +24,7 @@ Nuchter, warm, betrouwbaar. Als een goede kaart-app: rustig en snel, vriendelijk
 1. **Eerlijk over zekerheid.** Elke markt en winkel laat zien hoe zeker de info is en van wanneer. Liever "nog niet bevestigd" dan een lege rit.
 2. **Eén vraag per scherm.** Elke regel toont drie dingen: type, open/dicht of datum, afstand. De rest staat één tik verder.
 3. **Voelt direct.** Filteren, zoeken en wisselen gebeurt lokaal en zonder wachten; skeletons in plaats van spinners; beweging 150–250 ms.
-4. **Het moment telt.** De app weet welke dag en tijd het is: doordeweeks "Nu open" voorop, in het weekend "Dit weekend".
+4. **Het moment telt.** De app weet welke dag en tijd het is: elke regel zegt of het nu open is of wanneer de markt is. "Nu open", "Vandaag" en "Dit weekend" zijn filters die je aan en uit zet; standaard zie je alles (Freek, 2026-10-27).
 5. **De kaart is het thuisscherm.** Apple Maps-gevoel: kaart eerst op mobiel, lijst en kaart naast elkaar op desktop.
 
 ## Accessibility & Inclusion

@@ -3,7 +3,7 @@ import type { Place } from './model';
 import { weekendOf, DEFAULT_CENTER } from './model';
 import { placeNow, placeDay, isHoliday, week, setWindow, intervals } from './hours';
 import { simulate, bestOrder, routeUrl } from './plan';
-import { matches, defaultTime } from './filter';
+import { matches } from './filter';
 import { sampleMarkets } from './markets';
 import { parsePdok } from './pdok';
 // dezelfde code als de import gebruikt
@@ -49,9 +49,7 @@ describe('filters', () => {
   it('zoeken negeert hoofdletters en accenten', () => {
     expect(matches(P('Mo-Su 00:00-24:00', { name: 'Kringloop Één' }), { ...f, q: 'een' }, TUE)).toBe(true);
   });
-  it('tijdsbewust startpunt', () => {
-    expect(defaultTime(TUE)).toBe('now');
-    expect(defaultTime(SAT)).toBe('weekend');
+  it('weekend van een dag', () => {
     expect(weekendOf(TUE)).toEqual(['2026-10-31', '2026-11-01']);
     expect(weekendOf(new Date('2026-11-01T10:00:00'))).toEqual(['2026-10-31', '2026-11-01']);
   });
