@@ -97,5 +97,5 @@ Keuzes en waarom. Nieuwste onderaan. "Freek" = besloten door Freek; anders voorl
 ## Licentieanalyse M0 (2026-10-27)
 
 - **Analyse**: `LICENTIES.md`, per datastroom wat de licentie is, waar het landt en wat we moeten doen.
-- **Voorstel D4: OSM-afgeleide data accepteren onder ODbL** (beslist Freek). Het openbare `places.json` is voor het OSM-deel een afgeleide database; velden die we bij OSM-winkels aanvullen (Overture-website/telefoon, websitetijden) gaan daarin mee. Markten vallen er niet onder (geen OSM, plek via PDOK).
+- **D4: OSM-afgeleide data accepteren onder ODbL** (Freek). Vermelding met downloadlink in de app; `public/data/LICENTIE.txt` naast het bestand. Het openbare `places.json` is voor het OSM-deel een afgeleide database; velden die we bij OSM-winkels aanvullen (Overture-website/telefoon, websitetijden) gaan daarin mee. Markten vallen er niet onder (geen OSM, plek via PDOK).
 - **Organisatorsites**: databankenrecht beschermt verzamelen, niet maken (HvJ 2004), maar websitevoorwaarden kunnen hergebruik toch beperken (HvJ *Ryanair* 2015). Daarom blijft de voorwaardencheck per site nodig.

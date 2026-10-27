@@ -1,0 +1,9 @@
+places.json (winkels) wordt beschikbaar gesteld onder de Open Database License (ODbL) v1.0:
+https://opendatacommons.org/licenses/odbl/1-0/
+
+Bronnen: © OpenStreetMap-bijdragers (ODbL, https://www.openstreetmap.org/copyright)
+en © Overture Maps Foundation (CDLA Permissive 2.0, https://cdla.dev/permissive-2-0/).
+Openingstijden met "hs": "web" zijn gelezen van de eigen website van de winkel.
+
+markets.json (markten) valt hier niet onder: feiten uit de eigen agenda van organisatoren,
+met bron per markt. Niet bedoeld voor hergebruik als verzameling.

@@ -6,7 +6,7 @@ Stand 2026-10-27, op basis van wat de code nu echt doet. Inschatting, geen jurid
 
 | Stroom | Licentie / grondslag | Waar het landt | Wat we moeten doen | Status |
 |---|---|---|---|---|
-| OSM-winkels (Overpass, later Geofabrik) | ODbL 1.0 | `places.json` (`src: 'osm'`) | Bronvermelding; afgeleide database op verzoek onder ODbL (zie onder) | Vermelding staat in de app; ODbL-melding bij het bestand ontbreekt |
+| OSM-winkels (Overpass, later Geofabrik) | ODbL 1.0 | `places.json` (`src: 'osm'`) | Bronvermelding; afgeleide database op verzoek onder ODbL (zie onder) | In orde (vermelding + ODbL-melding, D4) |
 | Overture Places | CDLA Permissive 2.0 | `places.json` (`src: 'overture'`, id `ov-…`) en website/telefoon bij OSM-winkels | Bronvermelding; geen share-alike | In orde |
 | Foursquare OS Places (#18) | Apache 2.0 | nog niet | Bronvermelding + licentietekst meeleveren | n.v.t. |
 | Openingstijden van de eigen winkelsite | Feiten, geen databank van een ander | `places.json` (`hs: 'web'`) | Bron + datum tonen (doen we); robots.txt (doen we) | In orde |
@@ -34,8 +34,8 @@ Stand 2026-10-27, op basis van wat de code nu echt doet. Inschatting, geen jurid
 
 ## Te doen
 
-1. **D4 (Freek):** OSM-afgeleide data accepteren onder ODbL, of OSM en de rest strikt scheiden. **Voorstel: accepteren.** Scheiden kost veel (twee bestanden, geen aanvulling van OSM-winkels) en beschermt alleen de kringlooplijst, die toch al openbaar is.
-2. Bij accepteren: in de app en naast `places.json` vermelden dat de winkelgegevens onder ODbL vallen, met link naar de licentie (ODbL §4.3). Klein.
+1. ☑ **D4 (Freek, 2026-10-27): accepteren.** Scheiden kost veel (twee bestanden, geen aanvulling van OSM-winkels) en beschermt alleen de kringlooplijst, die toch al openbaar is.
+2. ☑ ODbL-vermelding (§4.3): in de app bij de bronnen, met downloadlink, en `public/data/LICENTIE.txt` naast het bestand.
 3. OSMF Collective Database Guideline nalezen voor het ontdubbelen van Overture tegen OSM (twijfelpunt hierboven).
 4. Kaartvermelding op 375 px controleren tegen de OSMF Attribution Guideline.
 5. Bij Foursquare (#18): Apache-licentietekst en vermelding toevoegen.
