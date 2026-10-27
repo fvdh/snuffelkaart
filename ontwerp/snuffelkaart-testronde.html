@@ -1,0 +1,451 @@
+<meta charset="utf-8">
+<title>Snuffelkaart testronde</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400..800&display=swap">
+<style>
+/* Layout: draaiboek in leesvolgorde; elke stap = wat je zegt + waar je op let + het observatieformulier. Uitkomst onderaan. */
+:root{
+  --font:"Figtree",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+  --bg:oklch(0.972 0.004 85);--surface:oklch(0.995 0.002 85);--surface-2:oklch(0.955 0.005 85);
+  --line:oklch(0.89 0.006 85);--line-strong:oklch(0.80 0.008 85);
+  --fg:oklch(0.24 0.012 260);--fg-2:oklch(0.43 0.012 260);--fg-3:oklch(0.55 0.010 260);
+  --ink:oklch(0.25 0.015 262);--on-ink:oklch(0.985 0.003 85);
+  --kring:oklch(0.47 0.15 262);--kring-soft:oklch(0.93 0.035 262);
+  --open:oklch(0.62 0.16 150);--open-ink:oklch(0.47 0.13 150);--open-soft:oklch(0.95 0.04 150);
+  --warn:oklch(0.72 0.15 75);--warn-ink:oklch(0.50 0.12 65);--warn-soft:oklch(0.96 0.045 85);
+  --bad:oklch(0.56 0.19 27);--bad-ink:oklch(0.50 0.18 27);--bad-soft:oklch(0.96 0.025 25);
+  --focus:oklch(0.55 0.17 262);
+  --ease:cubic-bezier(0.22,1,0.36,1);
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:oklch(0.19 0.008 260);--surface:oklch(0.235 0.009 260);--surface-2:oklch(0.27 0.01 260);
+  --line:oklch(0.32 0.01 260);--line-strong:oklch(0.42 0.012 260);
+  --fg:oklch(0.95 0.004 85);--fg-2:oklch(0.80 0.006 85);--fg-3:oklch(0.68 0.008 85);
+  --ink:oklch(0.93 0.006 85);--on-ink:oklch(0.21 0.01 260);
+  --kring:oklch(0.72 0.12 262);--kring-soft:oklch(0.32 0.06 262);
+  --open:oklch(0.72 0.16 150);--open-ink:oklch(0.78 0.14 150);--open-soft:oklch(0.30 0.05 150);
+  --warn:oklch(0.80 0.14 80);--warn-ink:oklch(0.84 0.12 80);--warn-soft:oklch(0.31 0.05 75);
+  --bad:oklch(0.68 0.17 27);--bad-ink:oklch(0.76 0.15 27);--bad-soft:oklch(0.31 0.06 27);
+  --focus:oklch(0.75 0.13 262);color-scheme:dark;
+}}
+:root[data-theme="dark"]{
+  --bg:oklch(0.19 0.008 260);--surface:oklch(0.235 0.009 260);--surface-2:oklch(0.27 0.01 260);
+  --line:oklch(0.32 0.01 260);--line-strong:oklch(0.42 0.012 260);
+  --fg:oklch(0.95 0.004 85);--fg-2:oklch(0.80 0.006 85);--fg-3:oklch(0.68 0.008 85);
+  --ink:oklch(0.93 0.006 85);--on-ink:oklch(0.21 0.01 260);
+  --kring:oklch(0.72 0.12 262);--kring-soft:oklch(0.32 0.06 262);
+  --open:oklch(0.72 0.16 150);--open-ink:oklch(0.78 0.14 150);--open-soft:oklch(0.30 0.05 150);
+  --warn:oklch(0.80 0.14 80);--warn-ink:oklch(0.84 0.12 80);--warn-soft:oklch(0.31 0.05 75);
+  --bad:oklch(0.68 0.17 27);--bad-ink:oklch(0.76 0.15 27);--bad-soft:oklch(0.31 0.06 27);
+  --focus:oklch(0.75 0.13 262);color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--font);font-size:1rem;line-height:1.5;margin:0}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px;border-radius:6px}
+h1,h2,h3{margin:0;line-height:1.2;text-wrap:balance}
+p{margin:0}
+.tnum{font-variant-numeric:tabular-nums}
+.wrap{max-width:860px;margin:0 auto;padding-inline:clamp(16px,4vw,32px);padding-block:0 96px}
+.top{display:flex;align-items:center;gap:10px;padding-block:20px;font-weight:750}
+.mark{width:28px;height:28px;border-radius:8px;background:var(--ink);color:var(--on-ink);display:grid;place-items:center}
+.mark svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.top small{font-weight:500;color:var(--fg-3);font-size:.8125rem}
+h1{font-size:clamp(1.875rem,4vw,2.5rem);font-weight:760;letter-spacing:-.02em;margin-top:24px}
+.lede{font-size:1.125rem;color:var(--fg-2);margin-top:12px;max-width:62ch}
+.facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-top:24px}
+.fact{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.fact b{display:block;font-size:.8125rem;color:var(--fg-3);font-weight:600}
+.fact span{font-weight:650}
+.linkrow{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:20px;padding:14px;border-radius:14px;background:var(--surface-2)}
+.linkrow code{font-family:ui-monospace,Menlo,monospace;font-size:.8125rem;background:var(--surface);padding:6px 8px;border-radius:8px;border:1px solid var(--line);overflow-wrap:anywhere;flex:1;min-width:0}
+.linkrow p{width:100%;font-size:.875rem;color:var(--fg-2)}
+.btn{height:40px;border-radius:10px;border:1px solid var(--line-strong);background:var(--surface);padding:0 14px;font-weight:650;font-size:.875rem;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.btn.primary{background:var(--ink);border-color:var(--ink);color:var(--on-ink)}
+.btn:active{transform:scale(.97)}
+a{color:inherit}
+
+/* sticky deelnemerbalk */
+.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:10;background:color-mix(in oklch,var(--bg) 92%,transparent);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border-bottom:1px solid var(--line);margin-top:32px;margin-inline:calc(-1 * clamp(16px,4vw,32px));padding:10px clamp(16px,4vw,32px);display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.bar .lbl{font-size:.8125rem;color:var(--fg-3);font-weight:600}
+.pp{display:flex;gap:4px;flex-wrap:wrap}
+.pp button{height:36px;min-width:44px;border-radius:10px;border:1px solid var(--line-strong);background:var(--surface);font-weight:700;font-size:.875rem;padding:0 10px}
+.pp button[aria-pressed="true"]{background:var(--ink);color:var(--on-ink);border-color:var(--ink)}
+.pp button .d{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--open);margin-left:5px;vertical-align:2px}
+.save{margin-left:auto;font-size:.8125rem;color:var(--fg-3);display:flex;align-items:center;gap:6px}
+.save i{width:7px;height:7px;border-radius:50%;background:var(--fg-3)}
+.save.ok i{background:var(--open)}.save.busy i{background:var(--warn)}.save.err{color:var(--bad-ink)}.save.err i{background:var(--bad)}
+.notice{margin-top:16px;padding:12px 14px;border-radius:12px;background:var(--warn-soft);font-size:.875rem}
+
+section{padding-top:48px;scroll-margin-top:72px}
+.sh{display:flex;align-items:baseline;gap:12px;margin-bottom:6px}
+.sh .t{font-size:.8125rem;font-weight:700;color:var(--fg-3);font-variant-numeric:tabular-nums;white-space:nowrap}
+h2{font-size:1.375rem;font-weight:720;letter-spacing:-.01em}
+.sub{color:var(--fg-2);max-width:66ch}
+.check{list-style:none;padding:0;margin:14px 0 0;display:flex;flex-direction:column;gap:2px}
+.check label{display:flex;gap:10px;align-items:flex-start;padding:6px 0;cursor:pointer}
+.check input{width:18px;height:18px;margin:3px 0 0;accent-color:var(--ink);flex:none}
+
+.step{margin-top:36px;padding-top:28px;border-top:1px solid var(--line)}
+.say{margin-top:14px;padding:14px 16px;border-radius:14px;background:var(--surface);border:1px solid var(--line);font-size:1.0625rem;line-height:1.55}
+.say::before{content:"Zeg";display:block;font-size:.75rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--fg-3);margin-bottom:4px}
+.say em{font-style:normal;color:var(--fg-2)}
+.watch{margin-top:14px}
+.watch h4,.obs h4{font-size:.75rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--fg-3);margin:0 0 6px}
+.watch ul{margin:0;padding-left:18px;color:var(--fg-2);display:flex;flex-direction:column;gap:3px}
+.watch b{color:var(--fg)}
+.obs{margin-top:16px;padding:16px;border-radius:14px;background:var(--surface-2);display:flex;flex-direction:column;gap:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center}
+.seg{display:inline-flex;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:3px;gap:2px;flex-wrap:wrap}
+.seg label{position:relative;cursor:pointer}
+.seg input{position:absolute;opacity:0;inset:0;margin:0;cursor:pointer}
+.seg span{display:block;padding:7px 12px;border-radius:9px;font-size:.875rem;font-weight:600;color:var(--fg-2)}
+.seg input:focus-visible+span{outline:2px solid var(--focus)}
+.seg input:checked+span{background:var(--ink);color:var(--on-ink)}
+.seg.res input[value="ok"]:checked+span{background:var(--open-ink);color:var(--on-ink)}
+.seg.res input[value="hulp"]:checked+span{background:var(--warn);color:oklch(0.25 0.03 60)}
+.seg.res input[value="nee"]:checked+span{background:var(--bad);color:oklch(0.99 0 0)}
+.fld{display:flex;flex-direction:column;gap:4px;min-width:0}
+.fld>span{font-size:.8125rem;font-weight:600;color:var(--fg-2)}
+textarea,input[type=text],input[type=number],select{border:1px solid var(--line-strong);background:var(--surface);border-radius:10px;padding:8px 10px;font-size:.9375rem;width:100%}
+textarea{min-height:64px;resize:vertical;line-height:1.45}
+input[type=number]{width:90px}
+textarea:focus,input:focus,select:focus{outline:none;border-color:var(--focus);box-shadow:0 0 0 3px color-mix(in oklch,var(--focus) 22%,transparent)}
+.cb{display:inline-flex;align-items:center;gap:8px;font-size:.9375rem;cursor:pointer}
+.cb input{width:18px;height:18px;accent-color:var(--ink);margin:0}
+.stepper{display:inline-flex;align-items:center;gap:6px}
+.stepper button{width:34px;height:34px;border-radius:9px;border:1px solid var(--line-strong);background:var(--surface);font-weight:700}
+.stepper b{min-width:22px;text-align:center}
+.watchtime{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.clock{font-size:2rem;font-weight:760;letter-spacing:-.02em;font-variant-numeric:tabular-nums;min-width:96px}
+.clock.over{color:var(--bad-ink)}.clock.good{color:var(--open-ink)}
+.probs{display:flex;flex-direction:column;gap:8px}
+.probs ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:4px}
+.probs li{display:flex;gap:8px;align-items:flex-start;font-size:.9375rem;background:var(--surface);border-radius:10px;padding:8px 10px}
+.probs li span{flex:1;min-width:0}
+.probs li button{border:0;background:none;color:var(--fg-3);padding:0 4px;font-size:1rem}
+.sev{font-size:.6875rem;font-weight:800;letter-spacing:.04em;text-transform:uppercase;padding:2px 7px;border-radius:999px;white-space:nowrap;margin-top:2px}
+.sev.klein{background:var(--surface-2);color:var(--fg-2)}.sev.middel{background:var(--warn-soft);color:var(--warn-ink)}.sev.groot{background:var(--bad-soft);color:var(--bad-ink)}
+.addprob{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:6px}
+.addprob select{width:auto}
+.scale{display:flex;gap:6px}
+.scale label{position:relative}
+.scale input{position:absolute;opacity:0;inset:0;margin:0;cursor:pointer}
+.scale span{display:grid;place-items:center;width:44px;height:44px;border-radius:12px;border:1px solid var(--line-strong);background:var(--surface);font-weight:750;cursor:pointer}
+.scale input:checked+span{background:var(--ink);color:var(--on-ink);border-color:var(--ink)}
+.scale input:focus-visible+span{outline:2px solid var(--focus);outline-offset:2px}
+.scaleends{display:flex;justify-content:space-between;font-size:.75rem;color:var(--fg-3);max-width:250px}
+.prompts{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.prompts span{font-size:.875rem;padding:5px 10px;border-radius:999px;background:var(--surface);border:1px solid var(--line);color:var(--fg-2)}
+
+/* uitkomst */
+.crit{display:grid;gap:10px;margin-top:16px}
+.cr{display:grid;grid-template-columns:28px 1fr auto;gap:12px;align-items:center;padding:12px 14px;border-radius:12px;background:var(--surface);border:1px solid var(--line)}
+.cr .ic{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font-weight:800;font-size:.8125rem;background:var(--surface-2);color:var(--fg-3)}
+.cr.pass .ic{background:var(--open-soft);color:var(--open-ink)}.cr.fail .ic{background:var(--bad-soft);color:var(--bad-ink)}
+.cr b{font-weight:650}.cr small{display:block;color:var(--fg-2);font-size:.8125rem}
+.cr .v{font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
+.tbl{overflow-x:auto;margin-top:20px}
+table{border-collapse:collapse;width:100%;min-width:560px;font-size:.9375rem;font-variant-numeric:tabular-nums}
+th,td{text-align:left;padding:9px 12px 9px 0;border-bottom:1px solid var(--line)}
+th{font-size:.75rem;color:var(--fg-3);font-weight:700;letter-spacing:.04em;text-transform:uppercase}
+td .pill{font-size:.75rem;font-weight:700;padding:2px 8px;border-radius:999px}
+.pill.ok{background:var(--open-soft);color:var(--open-ink)}.pill.hulp{background:var(--warn-soft);color:var(--warn-ink)}.pill.nee{background:var(--bad-soft);color:var(--bad-ink)}.pill.leeg{color:var(--fg-3)}
+.allprobs{list-style:none;padding:0;margin:14px 0 0;display:flex;flex-direction:column;gap:6px}
+.allprobs li{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px;align-items:start;padding:10px 12px;border-radius:10px;background:var(--surface);border:1px solid var(--line);font-size:.9375rem}
+.allprobs small{color:var(--fg-3);white-space:nowrap}
+.empty{color:var(--fg-3);font-size:.9375rem;margin-top:10px}
+.next{margin-top:24px;padding:16px;border-radius:14px;background:var(--kring-soft);font-size:.9375rem}
+@media (max-width:560px){.addprob{grid-template-columns:1fr 1fr}.addprob input{grid-column:1/-1}}
+</style>
+
+<div class="wrap">
+  <div class="top"><span class="mark"><svg viewBox="0 0 24 24"><path d="M3.5 12.2V4.5a1 1 0 0 1 1-1h7.7l8.3 8.3a1.5 1.5 0 0 1 0 2.1l-6.6 6.6a1.5 1.5 0 0 1-2.1 0z"/><circle cx="8.2" cy="8.2" r="1.6"/></svg></span>Snuffelkaart <small>testronde M1</small></div>
+
+  <h1>Testronde met 3 personen</h1>
+  <p class="lede">Het draaiboek voor de sessies, met het observatieformulier erin. Je leest van boven naar beneden en vult per stap in wat je ziet. Alles wordt per tester opgeslagen; onderaan zie je de uitkomst tegen de M1-criteria.</p>
+  <div class="facts">
+    <div class="fact"><b>Duur</b><span>±20 minuten per tester</span></div>
+    <div class="fact"><b>Wie</b><span>3 snuffelaars, geen collega's</span></div>
+    <div class="fact"><b>Waar</b><span>Op hun eigen telefoon, jij kijkt mee</span></div>
+    <div class="fact"><b>Bewijs M1</b><span>Score ≥ 4 van 5 en de dag gepland</span></div>
+  </div>
+  <div class="linkrow">
+    <p>Stuur de tester deze link. Hij opent alleen de app, zonder takenlijst of uitleg:</p>
+    <code id="testlink">https://claude.ai/artifact/4xXf1Zym6F3xkcgB579Ta4#test</code>
+    <button class="btn" id="copy" type="button">Kopieer</button>
+  </div>
+
+  <div class="bar" role="region" aria-label="Tester kiezen">
+    <span class="lbl">Tester</span>
+    <div class="pp" id="pp"></div>
+    <span class="save" id="save" role="status" aria-live="polite"><i></i><span>Laden…</span></span>
+  </div>
+  <div id="dbnote" hidden class="notice">Opslaan werkt alleen als je deze pagina op claude.ai opent en ingelogd bent. Wat je nu invult, blijft alleen in deze browser.</div>
+
+  <form id="f" autocomplete="off">
+  <section id="voor">
+    <div class="sh"><span class="t">Vooraf</span></div>
+    <h2>Voor je begint</h2>
+    <ul class="check">
+      <li><label><input type="checkbox" data-k="prep.mensen">Drie testers geregeld: liefst één fanatieke snuffelaar, één die af en toe gaat, en één die weinig met apps doet. Minstens één iPhone en één Android.</label></li>
+      <li><label><input type="checkbox" data-k="prep.link">Link getest op je eigen telefoon. Hij moet openen bij “Nu bij jou in de buurt”.</label></li>
+      <li><label><input type="checkbox" data-k="prep.rol">Je rol is meekijken, niet helpen. Leg niets uit wat het scherm niet uitlegt.</label></li>
+      <li><label><input type="checkbox" data-k="prep.tijd">Deze pagina open op je laptop of tablet, en 20 minuten zonder storing.</label></li>
+    </ul>
+  </section>
+
+  <section id="s1" class="step">
+    <div class="sh"><span class="t">2 min</span></div>
+    <h2>1. Welkom en context</h2>
+    <p class="say">Fijn dat je meedoet. We testen een app, niet jou: als iets niet lukt, ligt het aan de app, en dat is precies wat ik wil weten. Denk hardop: zeg wat je ziet, zoekt en verwacht. Ik help je bewust niet, maar ik mag wel vragen wat je denkt. Ik noteer geen naam. <em>Oké?</em></p>
+    <div class="obs">
+      <div class="row">
+        <div class="fld"><span>Hoe vaak ga je naar een kringloop of rommelmarkt?</span>
+          <div class="seg"><label><input type="radio" name="freq" value="wekelijks" data-k="ctx.freq"><span>Elke week</span></label><label><input type="radio" name="freq" value="maandelijks" data-k="ctx.freq"><span>Elke maand</span></label><label><input type="radio" name="freq" value="soms" data-k="ctx.freq"><span>Paar keer per jaar</span></label><label><input type="radio" name="freq" value="zelden" data-k="ctx.freq"><span>Zelden</span></label></div></div>
+        <div class="fld"><span>Telefoon</span>
+          <div class="seg"><label><input type="radio" name="dev" value="iPhone" data-k="ctx.dev"><span>iPhone</span></label><label><input type="radio" name="dev" value="Android" data-k="ctx.dev"><span>Android</span></label></div></div>
+      </div>
+      <label class="fld"><span>Hoe plan je zo'n dag nu? Welke sites of apps gebruik je?</span><textarea data-k="ctx.nu" placeholder="Bijvoorbeeld: Google Maps, Facebookgroep, gewoon gaan…"></textarea></label>
+    </div>
+  </section>
+
+  <section id="s2" class="step">
+    <div class="sh"><span class="t">1 min</span></div>
+    <h2>2. Eerste indruk (5 seconden)</h2>
+    <p class="say">Open de link die ik je stuurde. Kijk vijf seconden naar het scherm en leg je telefoon dan even weg. <em>(Tel tot vijf.)</em> Wat is dit, denk je? Wat kun je ermee?</p>
+    <div class="watch"><h4>Waar let je op</h4><ul><li>Noemt de tester <b>kringlopen én markten</b>? En iets met <b>“nu open”</b> of plannen?</li><li>Zegt de tester dat het <b>een kaart</b> is, of eerder <b>een lijst</b>?</li></ul></div>
+    <div class="obs">
+      <div class="seg res"><label><input type="radio" name="r0" value="ok" data-k="t0.res"><span>Begrepen</span></label><label><input type="radio" name="r0" value="hulp" data-k="t0.res"><span>Half</span></label><label><input type="radio" name="r0" value="nee" data-k="t0.res"><span>Niet begrepen</span></label></div>
+      <label class="fld"><span>Letterlijk wat de tester zei</span><textarea data-k="t0.notes"></textarea></label>
+    </div>
+  </section>
+
+  <section id="s3" class="step">
+    <div class="sh"><span class="t">2 min</span></div>
+    <h2>3. Opwarmen: nu open</h2>
+    <p class="say">Stel: het is dinsdagmiddag en je hebt nog zin om even naar een kringloop te gaan, het liefst eentje met boeken. Naar welke ga je?</p>
+    <div class="watch"><h4>Waar let je op</h4><ul>
+      <li>Goed antwoord: <b>Kringloop De Wenteltrap</b> (open tot 17:00, heeft boeken). Snuffelschuur Hoogland heeft ook boeken, maar sluit over 10 minuten: de vraag is of de tester dat ziet.</li>
+      <li>De val: <b>Boekenkringloop Ezelsoor</b> is dinsdag dicht. Kiest de tester die, dan wordt “dicht” niet goed gelezen.</li>
+      <li>Kijkt de tester in de lijst of op de kaart? Opent hij het detail om specialiteiten te zien?</li></ul></div>
+    <div class="obs">
+      <div class="seg res"><label><input type="radio" name="r1" value="ok" data-k="t1.res"><span>Gelukt</span></label><label><input type="radio" name="r1" value="hulp" data-k="t1.res"><span>Met hulp</span></label><label><input type="radio" name="r1" value="nee" data-k="t1.res"><span>Niet gelukt</span></label></div>
+      <label class="fld"><span>Notities</span><textarea data-k="t1.notes"></textarea></label>
+      <div class="probs" data-task="t1"></div>
+    </div>
+  </section>
+
+  <section id="s4" class="step">
+    <div class="sh"><span class="t">3 min · de hoofdtaak</span></div>
+    <h2>4. Plan je zaterdag</h2>
+    <p class="say">Je wilt deze zaterdag gaan snuffelen. Maak een plan met <b>minstens drie plekken</b> die zaterdag open zijn, en open de route in je kaarten-app. Zeg het als je klaar bent. <em>(Start de klok zodra je uitgesproken bent.)</em></p>
+    <div class="watch"><h4>Waar let je op</h4><ul>
+      <li>Vindt de tester <b>“Dit weekend”</b> (chip of teller)? Of blijft hij in “Nu open” hangen?</li>
+      <li>Snapt hij de <b>+</b>, en ziet hij de donkere <b>dagplanbalk</b> verschijnen?</li>
+      <li>Reageert hij op <b>rood en oranje</b> op de bon? Gebruikt hij “Slimste volgorde”?</li>
+      <li>Een <b>vastloper</b> = langer dan 20 seconden zoeken zonder vooruitgang. Tel ze.</li>
+      <li>Stop na 3 minuten, ook als het niet af is. Noteer dan “niet gelukt”.</li></ul>
+      <div class="prompts" aria-label="Neutrale vragen als de tester stilvalt"><span>Wat zoek je?</span><span>Wat verwacht je dat er gebeurt?</span><span>Wat zie je nu?</span></div></div>
+    <div class="obs">
+      <div class="watchtime"><span class="clock" id="clock">0:00</span><button type="button" class="btn primary" id="sw">Start</button><button type="button" class="btn" id="swreset">Opnieuw</button><span class="sub" style="font-size:.875rem">Doel: binnen 2:00</span></div>
+      <div class="row">
+        <label class="fld"><span>Aantal stops</span><input type="number" min="0" max="8" data-k="t2.stops"></label>
+        <label class="cb"><input type="checkbox" data-k="t2.klopt">Alle stops kloppen (niets rood)</label>
+        <label class="cb"><input type="checkbox" data-k="t2.route">Route geopend</label>
+        <div class="fld"><span>Vastlopers</span><span class="stepper"><button type="button" data-step="t2.stuck" data-d="-1" aria-label="Eén minder">−</button><b class="tnum" data-show="t2.stuck">0</b><button type="button" data-step="t2.stuck" data-d="1" aria-label="Eén meer">+</button></span></div>
+      </div>
+      <div class="seg res"><label><input type="radio" name="r2" value="ok" data-k="t2.res"><span>Gelukt</span></label><label><input type="radio" name="r2" value="hulp" data-k="t2.res"><span>Met hulp</span></label><label><input type="radio" name="r2" value="nee" data-k="t2.res"><span>Niet gelukt</span></label></div>
+      <div class="row">
+        <label class="cb"><input type="checkbox" data-k="t2.weekend">Vond “Dit weekend” zelf</label>
+        <label class="cb"><input type="checkbox" data-k="t2.slim">Gebruikte “Slimste volgorde”</label>
+        <label class="cb"><input type="checkbox" data-k="t2.bon">Reageerde op rood/oranje op de bon</label>
+      </div>
+      <label class="fld"><span>Notities en uitspraken</span><textarea data-k="t2.notes"></textarea></label>
+      <div class="probs" data-task="t2"></div>
+    </div>
+  </section>
+
+  <section id="s5" class="step">
+    <div class="sh"><span class="t">2 min</span></div>
+    <h2>5. Vertrouwen: de afgelaste braderie</h2>
+    <p class="say">Een vriendin tipte de <b>Braderie Soest-Zuid</b> van deze zaterdag. Zou je erheen gaan?</p>
+    <div class="watch"><h4>Waar let je op</h4><ul><li>Ziet de tester <b>uit zichzelf</b> dat hij is afgelast: doorgestreept, grijze pin, rode tekst?</li><li>Zegt hij iets als “goed dat ik dat zie”? Dat is het vertrouwen dat we zoeken.</li></ul></div>
+    <div class="obs">
+      <div class="seg res"><label><input type="radio" name="r3" value="ok" data-k="t3.res"><span>Zag het meteen</span></label><label><input type="radio" name="r3" value="hulp" data-k="t3.res"><span>Na zoeken</span></label><label><input type="radio" name="r3" value="nee" data-k="t3.res"><span>Zag het niet</span></label></div>
+      <label class="fld"><span>Notities</span><textarea data-k="t3.notes"></textarea></label>
+      <div class="probs" data-task="t3"></div>
+    </div>
+  </section>
+
+  <section id="s6" class="step">
+    <div class="sh"><span class="t">2 min</span></div>
+    <h2>6. Vertrouwen: nog niet bevestigd</h2>
+    <p class="say">Op zondag staat er ook een <b>Kofferbakmarkt in Leusden</b>. Hoe zeker weet je dat die doorgaat? Wat zou je doen?</p>
+    <div class="watch"><h4>Waar let je op</h4><ul><li>Begrijpt de tester <b>“nog niet bevestigd”</b>: afgeleid uit “elke 1e zondag”, niet door de organisator gemeld?</li><li>Valt de <b>gestippelde rand</b> op, en wat denkt de tester dat die betekent?</li><li>Zegt hij dat hij het zou nachecken? Dan werkt het label.</li></ul></div>
+    <div class="obs">
+      <div class="seg res"><label><input type="radio" name="r4" value="ok" data-k="t4.res"><span>Begrepen</span></label><label><input type="radio" name="r4" value="hulp" data-k="t4.res"><span>Half</span></label><label><input type="radio" name="r4" value="nee" data-k="t4.res"><span>Niet begrepen</span></label></div>
+      <label class="fld"><span>Wat betekent het volgens de tester? (letterlijk)</span><textarea data-k="t4.notes"></textarea></label>
+      <div class="probs" data-task="t4"></div>
+    </div>
+  </section>
+
+  <section id="s7" class="step">
+    <div class="sh"><span class="t">Als er tijd is · 2 min</span></div>
+    <h2>7. Iets melden</h2>
+    <p class="say">Stel dat je bij een winkel staat en de openingstijden in de app kloppen niet. Laat dat de makers weten.</p>
+    <div class="watch"><h4>Waar let je op</h4><ul><li>Vindt de tester <b>“Klopt er iets niet?”</b> onderaan het detail? Of zoekt hij boven in het menu?</li></ul></div>
+    <div class="obs">
+      <div class="seg res"><label><input type="radio" name="r5" value="ok" data-k="t5.res"><span>Gelukt</span></label><label><input type="radio" name="r5" value="hulp" data-k="t5.res"><span>Met hulp</span></label><label><input type="radio" name="r5" value="nee" data-k="t5.res"><span>Niet gelukt</span></label><label><input type="radio" name="r5" value="skip" data-k="t5.res"><span>Overgeslagen</span></label></div>
+      <label class="fld"><span>Notities</span><textarea data-k="t5.notes"></textarea></label>
+      <div class="probs" data-task="t5"></div>
+    </div>
+  </section>
+
+  <section id="s8" class="step">
+    <div class="sh"><span class="t">4 min</span></div>
+    <h2>8. Afsluiten</h2>
+    <p class="say">Nog drie vragen, en dan ben je klaar. Op een schaal van 1 tot 5:</p>
+    <div class="obs">
+      <div class="fld"><span>Hoe <b>prettig</b> was het om te gebruiken?</span><div class="scale" role="radiogroup" aria-label="Prettig, 1 tot 5"></div><div class="scaleends"><span>1 helemaal niet</span><span>5 heel prettig</span></div></div>
+      <div class="fld"><span>Hoe <b>overzichtelijk</b> vond je het?</span><div class="scale" role="radiogroup" aria-label="Overzichtelijk, 1 tot 5"></div><div class="scaleends"><span>1 rommelig</span><span>5 heel overzichtelijk</span></div></div>
+      <div class="fld"><span>Zou je dit gebruiken voor je volgende snuffeldag?</span>
+        <div class="seg"><label><input type="radio" name="use" value="ja" data-k="end.use"><span>Ja</span></label><label><input type="radio" name="use" value="misschien" data-k="end.use"><span>Misschien</span></label><label><input type="radio" name="use" value="nee" data-k="end.use"><span>Nee</span></label></div></div>
+      <label class="fld"><span>Wat vond je het fijnst?</span><textarea data-k="end.best"></textarea></label>
+      <label class="fld"><span>Wat stoorde je, of wat miste je?</span><textarea data-k="end.worst"></textarea></label>
+      <label class="fld"><span>Mooiste uitspraak van de sessie</span><textarea data-k="end.quote"></textarea></label>
+    </div>
+    <p class="say" style="margin-top:14px">Dank je wel, dit helpt echt. <em>(Vraag of je ze mag laten weten als de app er is.)</em></p>
+  </section>
+  </form>
+
+  <section id="uitkomst">
+    <div class="sh"><span class="t">Na de sessies</span></div>
+    <h2>Uitkomst</h2>
+    <p class="sub">Bijgewerkt terwijl je invult. Het bewijs voor M1 is dat de testers het prototype prettig en overzichtelijk vinden (§9). De taaktest uit §2 telt hier als vroege meting; officieel hoort die bij M3, met 5 testers.</p>
+    <div class="crit" id="crit"></div>
+    <div class="tbl"><table><thead><tr><th>Tester</th><th>Indruk</th><th>Nu open</th><th>Zaterdag</th><th>Tijd</th><th>Stops</th><th>Vast</th><th>Afgelast</th><th>Onbev.</th><th>Prettig</th><th>Overz.</th></tr></thead><tbody id="tb"></tbody></table></div>
+    <h3 style="margin-top:28px;font-size:1.0625rem;font-weight:700">Gevonden problemen</h3>
+    <p class="sub" style="font-size:.9375rem">Alle problemen van alle testers, de ernstigste eerst. Komt iets bij meer testers terug, dan is het de eerste kandidaat voor de volgende ontwerpronde.</p>
+    <ul class="allprobs" id="allprobs"></ul>
+    <p class="next">Klaar met de drie sessies? Zeg in Claude Code: <b>“analyseer de testronde”</b>. Ik lees de resultaten van deze pagina uit en maak een voorstel voor de volgende ontwerpronde.</p>
+  </section>
+</div>
+
+<script>
+/* ===== schalen en probleemlijsten invullen ===== */
+document.querySelectorAll('.scale').forEach((el,i)=>{const k=i===0?'end.prettig':'end.overz';el.innerHTML=[1,2,3,4,5].map(n=>`<label><input type="radio" name="${k}" value="${n}" data-k="${k}" aria-label="${n}"><span>${n}</span></label>`).join('')});
+document.querySelectorAll('.probs').forEach(el=>{const t=el.dataset.task;el.innerHTML=`<h4 style="font-size:.75rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--fg-3);margin:0">Problemen bij deze stap</h4><ul data-list="${t}"></ul><div class="addprob"><input type="text" placeholder="Wat ging er mis?" aria-label="Nieuw probleem" data-new="${t}"><select aria-label="Ernst" data-sev="${t}"><option value="klein">Klein</option><option value="middel" selected>Middel</option><option value="groot">Groot</option></select><button type="button" class="btn" data-add="${t}">Voeg toe</button></div>`});
+
+/* ===== staat ===== */
+const IDS=['p1','p2','p3','p4','p5'];
+const TASKS={t1:'Nu open',t2:'Zaterdag plannen',t3:'Afgelast',t4:'Nog niet bevestigd',t5:'Melden'};
+let S={};IDS.forEach(id=>S[id]={});
+let cur='p1',db=null,timers={},sw={run:false,start:0,acc:0,iv:null};
+const get=(o,p)=>p.split('.').reduce((a,k)=>a==null?undefined:a[k],o);
+const set=(o,p,v)=>{const ks=p.split('.');let a=o;ks.slice(0,-1).forEach(k=>{a=a[k]=a[k]&&typeof a[k]==='object'?a[k]:{}});a[ks.at(-1)]=v};
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const fmt=s=>s==null?'–':`${Math.floor(s/60)}:${String(Math.round(s%60)).padStart(2,'0')}`;
+const filled=id=>Object.keys(S[id]).some(k=>k!=='prep');
+
+function saveState(t,cls){const el=document.getElementById('save');el.className='save '+(cls||'');el.querySelector('span').textContent=t}
+function local(){try{localStorage.setItem('snuffel-testronde',JSON.stringify(S))}catch(_){}}
+function persist(id){
+  local();
+  if(!db){saveState('Alleen in deze browser','err');return}
+  clearTimeout(timers[id]);saveState('Opslaan…','busy');
+  timers[id]=setTimeout(async()=>{
+    try{await db.collection('sessies').doc(id).set({...S[id],code:id.toUpperCase(),bijgewerkt:new Date().toISOString()});saveState('Opgeslagen','ok')}
+    catch(e){if(e&&e.code==='unavailable'){setTimeout(()=>persist(id),1500)}else saveState(e&&e.code==='invalid_argument'?'Geen schrijfrechten':'Niet opgeslagen','err')}
+  },700);
+}
+
+/* ===== formulier <-> staat ===== */
+function fill(){
+  const s=S[cur];
+  document.querySelectorAll('[data-k]').forEach(el=>{const v=get(s,el.dataset.k);
+    if(el.type==='radio')el.checked=v!=null&&String(v)===el.value;
+    else if(el.type==='checkbox')el.checked=!!v;
+    else el.value=v??''});
+  document.querySelectorAll('[data-show]').forEach(el=>el.textContent=get(s,el.dataset.show)??0);
+  document.querySelectorAll('[data-list]').forEach(ul=>{const t=ul.dataset.list,list=(s.probs||[]).map((p,i)=>({...p,i})).filter(p=>p.t===t);
+    ul.innerHTML=list.map(p=>`<li><span class="sev ${p.sev}">${p.sev}</span><span>${esc(p.txt)}</span><button type="button" data-del="${p.i}" aria-label="Verwijder">×</button></li>`).join('')});
+  swStop(true);sw.acc=(get(s,'t2.sec')||0)*1000;tick();
+}
+function onField(el){
+  const k=el.dataset.k,v=el.type==='checkbox'?el.checked:el.type==='number'?(el.value===''?null:+el.value):el.type==='radio'?(/^\d+$/.test(el.value)?+el.value:el.value):el.value;
+  set(S[cur],k,v);persist(cur);renderPP();summary();
+}
+const F=document.getElementById('f');
+F.addEventListener('change',e=>{if(e.target.dataset.k)onField(e.target)});
+F.addEventListener('input',e=>{if(e.target.dataset.k&&(e.target.tagName==='TEXTAREA'||e.target.type==='text'||e.target.type==='number'))onField(e.target)});
+F.addEventListener('submit',e=>e.preventDefault());
+F.addEventListener('click',e=>{
+  const st=e.target.closest('[data-step]');
+  if(st){const k=st.dataset.step,n=Math.max(0,(get(S[cur],k)||0)+(+st.dataset.d));set(S[cur],k,n);document.querySelector(`[data-show="${k}"]`).textContent=n;persist(cur);summary()}
+  const add=e.target.closest('[data-add]');
+  if(add){const t=add.dataset.add,inp=F.querySelector(`[data-new="${t}"]`),txt=inp.value.trim();if(!txt){inp.focus();return}
+    (S[cur].probs=S[cur].probs||[]).push({t,sev:F.querySelector(`[data-sev="${t}"]`).value,txt});inp.value='';persist(cur);fill();summary();inp.focus()}
+  const del=e.target.closest('[data-del]');
+  if(del){S[cur].probs.splice(+del.dataset.del,1);persist(cur);fill();summary()}
+});
+F.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.dataset.new){e.preventDefault();F.querySelector(`[data-add="${e.target.dataset.new}"]`).click()}});
+
+/* ===== stopwatch taak 4 ===== */
+const clock=document.getElementById('clock'),swb=document.getElementById('sw');
+function tick(){const ms=sw.acc+(sw.run?Date.now()-sw.start:0),s=ms/1000;clock.textContent=fmt(Math.floor(s));clock.className='clock'+(s>120?' over':(!sw.run&&s>0?' good':''))}
+function swStop(silent){if(!sw.run)return;sw.acc+=Date.now()-sw.start;sw.run=false;clearInterval(sw.iv);swb.textContent='Start';if(!silent){set(S[cur],'t2.sec',Math.round(sw.acc/1000));persist(cur);summary()}tick()}
+swb.addEventListener('click',()=>{if(sw.run){swStop()}else{sw.run=true;sw.start=Date.now();sw.iv=setInterval(tick,250);swb.textContent='Stop';tick()}});
+document.getElementById('swreset').addEventListener('click',()=>{swStop(true);sw.acc=0;set(S[cur],'t2.sec',null);persist(cur);tick();summary()});
+
+/* ===== deelnemers ===== */
+function renderPP(){
+  const shown=IDS.filter((id,i)=>i<3||filled(id)||id===cur);
+  const next=IDS.find(id=>!shown.includes(id));
+  document.getElementById('pp').innerHTML=shown.map(id=>`<button type="button" data-p="${id}" aria-pressed="${id===cur}">${id.toUpperCase()}${filled(id)?'<i class="d" aria-label=", ingevuld"></i>':''}</button>`).join('')+(next?`<button type="button" data-p="${next}" aria-label="Extra tester toevoegen">+</button>`:'');
+}
+document.getElementById('pp').addEventListener('click',e=>{const b=e.target.closest('[data-p]');if(!b)return;swStop();cur=b.dataset.p;renderPP();fill()});
+
+/* ===== uitkomst ===== */
+const PILL={ok:'ok',hulp:'hulp',nee:'nee',skip:'leeg'};
+const LBL={ok:'✓',hulp:'hulp',nee:'✗',skip:'–'};
+const pill=v=>v?`<span class="pill ${PILL[v]}">${LBL[v]}</span>`:'<span class="pill leeg">–</span>';
+function summary(){
+  const done=IDS.filter(filled);
+  document.getElementById('tb').innerHTML=done.length?done.map(id=>{const s=S[id],t2=s.t2||{};
+    return `<tr><td><b>${id.toUpperCase()}</b></td><td>${pill(s.t0&&s.t0.res)}</td><td>${pill(s.t1&&s.t1.res)}</td><td>${pill(t2.res)}</td><td>${fmt(t2.sec)}</td><td>${t2.stops??'–'}</td><td>${t2.stuck??0}</td><td>${pill(s.t3&&s.t3.res)}</td><td>${pill(s.t4&&s.t4.res)}</td><td>${s.end&&s.end.prettig||'–'}</td><td>${s.end&&s.end.overz||'–'}</td></tr>`}).join('')
+    :`<tr><td colspan="11" class="empty">Nog geen sessies ingevuld. Kies een tester bovenin en begin bij stap 1.</td></tr>`;
+  const scored=done.filter(id=>S[id].end&&S[id].end.prettig&&S[id].end.overz);
+  const happy=scored.filter(id=>S[id].end.prettig>=4&&S[id].end.overz>=4).length;
+  const avg=k=>scored.length?(scored.reduce((a,id)=>a+S[id].end[k],0)/scored.length):null;
+  const planned=done.filter(id=>{const t=S[id].t2||{};return t.sec!=null&&t.sec<=120&&(t.stops||0)>=3&&t.klopt&&t.route});
+  const t2done=done.filter(id=>S[id].t2&&(S[id].t2.res||S[id].t2.sec!=null));
+  const stuck=done.reduce((a,id)=>a+((S[id].t2&&S[id].t2.stuck)||0),0);
+  const C=[
+    {b:'3 testers vinden het prettig én overzichtelijk',s:'Beide scores ≥ 4 van 5 (bewijs M1, §9)',v:`${happy} van ${Math.max(3,scored.length)}`,st:scored.length<3?'':happy>=3?'pass':'fail'},
+    {b:'Gemiddelde “prettig en overzichtelijk” ≥ 4',s:'Doel uit §2',v:scored.length?`${avg('prettig').toFixed(1).replace('.',',')} / ${avg('overz').toFixed(1).replace('.',',')}`:'–',st:scored.length<3?'':avg('prettig')>=4&&avg('overz')>=4?'pass':'fail'},
+    {b:'Zaterdag gepland binnen 2 minuten',s:'≥ 3 stops die kloppen, route geopend (§2; officieel in M3)',v:`${planned.length} van ${Math.max(3,t2done.length)}`,st:t2done.length<3?'':planned.length===t2done.length?'pass':'fail'},
+    {b:'Geen vastlopers in de kernreis',s:'Langer dan 20 seconden zonder vooruitgang (§2)',v:`${stuck}`,st:t2done.length<3?'':stuck===0?'pass':'fail'}];
+  document.getElementById('crit').innerHTML=C.map(c=>`<div class="cr ${c.st}"><span class="ic">${c.st==='pass'?'✓':c.st==='fail'?'!':'·'}</span><div><b>${c.b}</b><small>${c.s}</small></div><span class="v">${c.v}</span></div>`).join('');
+  const rank={groot:0,middel:1,klein:2};
+  const all=done.flatMap(id=>(S[id].probs||[]).map(p=>({...p,id}))).sort((a,b)=>rank[a.sev]-rank[b.sev]);
+  document.getElementById('allprobs').innerHTML=all.length?all.map(p=>`<li><span class="sev ${p.sev}">${p.sev}</span><span>${esc(p.txt)}</span><small>${p.id.toUpperCase()} · ${TASKS[p.t]||p.t}</small></li>`).join(''):'<li class="empty" style="background:none;border:0;padding:0">Nog geen problemen genoteerd.</li>';
+}
+
+/* ===== kopieerknop ===== */
+document.getElementById('copy').addEventListener('click',e=>{const t=document.getElementById('testlink').textContent;
+  navigator.clipboard.writeText(t).then(()=>{e.target.textContent='Gekopieerd'},()=>{const r=document.createRange();r.selectNodeContents(document.getElementById('testlink'));getSelection().removeAllRanges();getSelection().addRange(r);e.target.textContent='Geselecteerd'})});
+
+/* ===== start ===== */
+try{const l=JSON.parse(localStorage.getItem('snuffel-testronde')||'null');if(l)IDS.forEach(id=>{if(l[id])S[id]=l[id]})}catch(_){}
+renderPP();fill();summary();saveState('Verbinden…','busy');
+(async()=>{
+  db=window.claude&&window.claude.use?await window.claude.use('db'):null;
+  if(!db){document.getElementById('dbnote').hidden=false;saveState('Alleen in deze browser','err');return}
+  try{const snap=await db.collection('sessies').get();snap.docs.forEach(d=>{if(IDS.includes(d.id)){const v=JSON.parse(JSON.stringify(d.data()));delete v.code;delete v.bijgewerkt;S[d.id]=v}});
+    renderPP();fill();summary();saveState(snap.size?'Opgeslagen':'Klaar om in te vullen','ok')}
+  catch(e){saveState('Laden mislukt, probeer te herladen','err')}
+})();
+</script>

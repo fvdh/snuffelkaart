@@ -1,0 +1,41 @@
+/* App-layout bovenop design.css: het "telefoon"-frame van het prototype wordt het hele scherm. */
+html,body{height:100%;margin:0;overflow:hidden;overscroll-behavior:none}
+body{background:var(--m-land)}
+.shell{position:fixed;inset:0;overflow:hidden;isolation:isolate;font-size:16px}
+.shell .map{position:absolute;inset:0}
+.shell .sheet{top:calc(env(safe-area-inset-top,0px) + 12px)}
+.shell .map-ctrl,.shell .map-attr{top:calc(env(safe-area-inset-top,0px) + 12px)}
+.shell .planbar{bottom:calc(env(safe-area-inset-bottom,0px) + 16px)}
+.shell .toast{top:calc(env(safe-area-inset-top,0px) + 12px)}
+
+/* markers: MapLibre zet de positie (transform) op .mk; de pin zelf staat statisch daarbinnen */
+.mk{width:0;height:0}
+.mk .pin,.mk .cluster{position:relative;left:auto;top:auto;transform:none;transition:opacity .2s var(--ease)}
+.mk .pin{margin:-16px 0 0 -16px}
+.mk .cluster{margin:-19px 0 0 -19px}
+.mk.zsel{z-index:5}
+.maplibregl-ctrl-attrib{font-family:var(--font);font-size:.6875rem}
+.maplibregl-ctrl-attrib a{color:var(--fg-2)}
+.maplibregl-ctrl-top-left{top:env(safe-area-inset-top,0px)}
+.maplibregl-ctrl-attrib.maplibregl-compact{background:color-mix(in oklch,var(--surface) 85%,transparent)}
+.me-mk{width:18px;height:18px;border-radius:50%;background:var(--ink);border:3px solid var(--surface);box-shadow:0 0 0 8px oklch(0.5 0.05 262 / .16),var(--shadow)}
+
+.sample{display:inline-flex;align-items:center;gap:4px;font-size:.6875rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;padding:2px 7px;border-radius:999px;background:var(--surface-2);color:var(--fg-3)}
+.more{width:100%;margin:12px 0 0;height:44px;border-radius:12px;border:1px dashed var(--line-strong);background:none;font-weight:600;color:var(--fg-2)}
+a.btn{text-decoration:none;color:inherit}
+a.btn.primary{color:var(--on-ink)}
+.hours dd a,.inforow a{color:inherit}
+.loading{position:absolute;inset:0;display:grid;place-items:center;color:var(--fg-3);font-size:.9375rem}
+
+/* desktop: lijst links (400px), kaart rechts; de sheet wordt een vast paneel */
+@media (min-width: 980px){
+  .shell .sheet{left:0;right:auto;width:400px;top:0;bottom:0;transform:none!important;border-radius:0;box-shadow:none;border-right:1px solid var(--line);z-index:12}
+  .shell .sheet-scroll{padding-bottom:calc(var(--barpad,0px) + 24px)}
+  .shell .handle{display:none}
+  .shell .lv-head{padding-top:16px}
+  .shell .dv-head,.shell .pv-head{padding-top:8px}
+  .shell .map{left:400px}
+  .shell .planbar{left:416px;right:auto;width:340px}
+  .shell .toast{left:416px;right:auto;width:360px}
+  [data-drag]{cursor:default}
+}

@@ -1,0 +1,80 @@
+import { describe, it, expect, beforeEach } from 'vitest';
+import type { Place } from './model';
+import { weekendOf, DEFAULT_CENTER } from './model';
+import { placeNow, placeDay, isHoliday, week, setWindow, intervals } from './hours';
+import { simulate, bestOrder, routeUrl } from './plan';
+import { matches, defaultTime } from './filter';
+import { sampleMarkets } from './markets';
+// dezelfde code als de import gebruikt
+import { precompute, holidays } from '../../scripts/hours-precompute.mjs';
+
+/** Een winkel met tijden zoals de import ze vooruitrekent, vanaf `from`. */
+let FROM = '2026-10-26';
+const win = (from: string) => { FROM = from; setWindow(from, holidays(from)); };
+const P = (oh: string | null, extra: Partial<Place> = {}): Place => ({ id: 'p', t: 'k', kind: 'kringloop', name: 'Test', lat: 52.156, lon: 5.388, addr: null, place: 'Amersfoort', h: oh ? (precompute(oh, FROM) as [number, number][][]) : null, checked: null, website: null, phone: null, src: 'osm', ...extra });
+const TUE = new Date('2026-10-27T14:20:00'); // dinsdag
+const SAT = new Date('2026-10-31T09:10:00');
+beforeEach(() => win('2026-10-26'));
+
+describe('openingstijden (vooruitgerekend)', () => {
+  it('open, sluit bijna, opent later, dicht, onbekend', () => {
+    expect(placeNow(P('Tu-Sa 10:00-17:00'), TUE)).toMatchObject({ cls: 'open', txt: 'Open · sluit 17:00' });
+    expect(placeNow(P('Tu 10:00-14:30'), TUE)).toMatchObject({ cls: 'warn', txt: 'Sluit over 10 min' });
+    expect(placeNow(P('Sa 10:00-16:00'), SAT)).toMatchObject({ cls: 'later', txt: 'Opent om 10:00' });
+    expect(placeNow(P('Th-Sa 11:00-16:00'), TUE).txt).toBe('Dicht · opent do 11:00');
+    expect(placeNow(P(null), TUE).cls).toBe('unknown');
+  });
+  it('dagoverzicht, venstergrens', () => {
+    expect(placeDay(P('Mo-Sa 10:00-17:30'), '2026-10-31').txt).toBe('Za 10–17:30');
+    expect(intervals(P('Mo-Su 10:00-17:00'), '2026-12-31')).toBeNull(); // buiten het venster van 21 dagen
+    expect(placeNow(P('Mo-Su 00:00-24:00'), TUE)).toMatchObject({ cls: 'open', txt: 'Open' }); // dag en nacht open
+  });
+  it('feestdagen: Koningsdag en Kerst', () => {
+    win('2027-04-20');
+    expect(isHoliday('2027-04-27')).toBe(true);
+    expect(placeDay(P('Tu-Sa 10:00-17:00; PH off'), '2027-04-27').txt).toBe('Di dicht');
+    win('2026-12-21');
+    expect(week(P('Mo-Sa 10:00-17:00; PH off'), '2026-12-25')!.find(d => d.iso === '2026-12-25')!.txt).toBe('Dicht (feestdag)');
+    expect(isHoliday('2026-10-27')).toBe(false);
+  });
+});
+
+describe('filters', () => {
+  const f = { type: 'all' as const, time: 'now' as const, date: null, gratis: false, overdekt: false, q: '' };
+  it('onbekende tijden nooit bij Nu open, wel in het weekend', () => {
+    expect(matches(P(null), f, TUE)).toBe(false);
+    expect(matches(P(null), { ...f, time: 'weekend' }, TUE)).toBe(true);
+  });
+  it('zoeken negeert hoofdletters en accenten', () => {
+    expect(matches(P('Mo-Su 00:00-24:00', { name: 'Kringloop Één' }), { ...f, q: 'een' }, TUE)).toBe(true);
+  });
+  it('tijdsbewust startpunt', () => {
+    expect(defaultTime(TUE)).toBe('now');
+    expect(defaultTime(SAT)).toBe('weekend');
+    expect(weekendOf(TUE)).toEqual(['2026-10-31', '2026-11-01']);
+    expect(weekendOf(new Date('2026-11-01T10:00:00'))).toEqual(['2026-10-31', '2026-11-01']);
+  });
+});
+
+describe('dagplan', () => {
+  const markets = sampleMarkets(TUE), m = (id: string) => markets.find(x => x.id === id)!;
+  it('afgelast en verkeerde dag zijn fout, onbekend en onbevestigd zijn aandachtspunt', () => {
+    const s = simulate([m('m4'), m('m1'), P(null, { id: 'u' }), m('m3')], '2026-10-31', 570, DEFAULT_CENTER);
+    expect(s.stops.map(x => x.issue?.lv)).toEqual(['bad', 'bad', 'warn', 'bad']);
+    const zo = simulate([m('m3')], '2026-11-01', 570, DEFAULT_CENTER);
+    expect(zo.stops[0].issue).toMatchObject({ lv: 'warn', txt: expect.stringContaining('Nog niet bevestigd') });
+  });
+  it('slimste volgorde lost een te vroege aankomst op', () => {
+    const shop = P('Tu-Sa 10:00-16:00', { id: 'shop' }), order = [shop, m('m2')];
+    expect(simulate(order, '2026-10-31', 570, DEFAULT_CENTER).warn).toBe(1);
+    const best = bestOrder(order, '2026-10-31', 570, DEFAULT_CENTER);
+    expect(best.map(x => x.id)).toEqual(['m2', 'shop']);
+    expect(simulate(best, '2026-10-31', 570, DEFAULT_CENTER).warn).toBe(0);
+  });
+  it('route-links bevatten alle stops', () => {
+    const shop = P('Tu-Sa 10:00-16:00', { id: 'shop' });
+    const u = new URL(routeUrl('google', DEFAULT_CENTER, [m('m2'), shop, m('m5')]));
+    expect(u.searchParams.get('waypoints')!.split('|')).toHaveLength(2);
+    expect(routeUrl('apple', null, [m('m2'), shop]).match(/daddr=/g)).toHaveLength(2);
+  });
+});

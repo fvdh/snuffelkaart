@@ -1,0 +1,405 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-27T15:24:47.774Z",
+  "title": "Design System: Snuffelkaart",
+  "extensions": {
+    "colorMeta": {
+      "kassa-inkt": {
+        "role": "primary",
+        "displayName": "Kassa-inkt",
+        "canonical": "oklch(0.47 0.15 262)",
+        "tonalRamp": [
+          "oklch(0.15 0.084 262)",
+          "oklch(0.25 0.100 262)",
+          "oklch(0.35 0.117 262)",
+          "oklch(0.47 0.137 262)",
+          "oklch(0.6 0.142 262)",
+          "oklch(0.72 0.122 262)",
+          "oklch(0.85 0.101 262)",
+          "oklch(0.95 0.084 262)"
+        ]
+      },
+      "goudsbloem": {
+        "role": "secondary",
+        "displayName": "Goudsbloem",
+        "canonical": "oklch(0.78 0.15 70)",
+        "tonalRamp": [
+          "oklch(0.15 0.084 70)",
+          "oklch(0.25 0.100 70)",
+          "oklch(0.35 0.117 70)",
+          "oklch(0.47 0.137 70)",
+          "oklch(0.6 0.142 70)",
+          "oklch(0.72 0.122 70)",
+          "oklch(0.85 0.101 70)",
+          "oklch(0.95 0.084 70)"
+        ]
+      },
+      "open-groen": {
+        "role": "tertiary",
+        "displayName": "Open-groen",
+        "canonical": "oklch(0.62 0.16 150)",
+        "tonalRamp": [
+          "oklch(0.15 0.090 150)",
+          "oklch(0.25 0.107 150)",
+          "oklch(0.35 0.125 150)",
+          "oklch(0.47 0.146 150)",
+          "oklch(0.6 0.151 150)",
+          "oklch(0.72 0.130 150)",
+          "oklch(0.85 0.107 150)",
+          "oklch(0.95 0.090 150)"
+        ]
+      },
+      "let-op": {
+        "role": "tertiary",
+        "displayName": "Let op",
+        "canonical": "oklch(0.72 0.15 75)",
+        "tonalRamp": [
+          "oklch(0.15 0.084 75)",
+          "oklch(0.25 0.100 75)",
+          "oklch(0.35 0.117 75)",
+          "oklch(0.47 0.137 75)",
+          "oklch(0.6 0.142 75)",
+          "oklch(0.72 0.122 75)",
+          "oklch(0.85 0.101 75)",
+          "oklch(0.95 0.084 75)"
+        ]
+      },
+      "klopt-niet": {
+        "role": "tertiary",
+        "displayName": "Klopt niet",
+        "canonical": "oklch(0.56 0.19 27)",
+        "tonalRamp": [
+          "oklch(0.15 0.106 27)",
+          "oklch(0.25 0.127 27)",
+          "oklch(0.35 0.148 27)",
+          "oklch(0.47 0.173 27)",
+          "oklch(0.6 0.180 27)",
+          "oklch(0.72 0.154 27)",
+          "oklch(0.85 0.127 27)",
+          "oklch(0.95 0.106 27)"
+        ]
+      },
+      "inkt": {
+        "role": "neutral",
+        "displayName": "Inkt",
+        "canonical": "oklch(0.25 0.015 262)",
+        "tonalRamp": [
+          "oklch(0.15 0.008 262)",
+          "oklch(0.25 0.010 262)",
+          "oklch(0.35 0.012 262)",
+          "oklch(0.47 0.014 262)",
+          "oklch(0.6 0.014 262)",
+          "oklch(0.72 0.012 262)",
+          "oklch(0.85 0.010 262)",
+          "oklch(0.95 0.008 262)"
+        ]
+      },
+      "pagina": {
+        "role": "neutral",
+        "displayName": "Pagina",
+        "canonical": "oklch(0.972 0.004 85)",
+        "tonalRamp": [
+          "oklch(0.15 0.003 85)",
+          "oklch(0.25 0.004 85)",
+          "oklch(0.35 0.005 85)",
+          "oklch(0.47 0.005 85)",
+          "oklch(0.6 0.006 85)",
+          "oklch(0.72 0.005 85)",
+          "oklch(0.85 0.004 85)",
+          "oklch(0.95 0.003 85)"
+        ]
+      },
+      "bonpapier": {
+        "role": "neutral",
+        "displayName": "Bonpapier",
+        "canonical": "oklch(0.978 0.012 88)",
+        "tonalRamp": [
+          "oklch(0.15 0.007 88)",
+          "oklch(0.25 0.008 88)",
+          "oklch(0.35 0.009 88)",
+          "oklch(0.47 0.011 88)",
+          "oklch(0.6 0.011 88)",
+          "oklch(0.72 0.010 88)",
+          "oklch(0.85 0.008 88)",
+          "oklch(0.95 0.007 88)"
+        ]
+      }
+    },
+    "darkMode": {
+      "pagina": "oklch(0.19 0.008 260)",
+      "oppervlak": "oklch(0.235 0.009 260)",
+      "oppervlak-2": "oklch(0.27 0.01 260)",
+      "tekst": "oklch(0.95 0.004 85)",
+      "inkt": "oklch(0.93 0.006 85)",
+      "on-inkt": "oklch(0.21 0.01 260)",
+      "kassa-inkt": "oklch(0.72 0.12 262)",
+      "goudsbloem": "oklch(0.80 0.14 75)",
+      "goudsbloem-ink": "oklch(0.82 0.12 75)",
+      "open-groen": "oklch(0.72 0.16 150)",
+      "klopt-niet": "oklch(0.68 0.17 27)",
+      "bonpapier": "oklch(0.30 0.01 85)",
+      "kaart-land": "oklch(0.235 0.008 260)",
+      "kaart-water": "oklch(0.30 0.04 240)"
+    },
+    "typographyMeta": {
+      "title": {
+        "displayName": "Title",
+        "purpose": "Naam in detail, Mijn zaterdag."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Kop van de lijst."
+      },
+      "name": {
+        "displayName": "Name",
+        "purpose": "Naam in lijstregel."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Toelichting en formulieren."
+      },
+      "status": {
+        "displayName": "Status",
+        "purpose": "Open/dicht en tijden, altijd met stip."
+      },
+      "meta": {
+        "displayName": "Meta",
+        "purpose": "Plaats, specialiteiten, bevestiging."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Sectiekoppen in hoofdletters."
+      },
+      "bon": {
+        "displayName": "Bon",
+        "purpose": "Alleen de kassabon van het dagplan."
+      }
+    },
+    "shadows": [
+      {
+        "name": "zwevend",
+        "value": "0 1px 2px oklch(0.2 0.02 260 / .06), 0 6px 20px oklch(0.2 0.02 260 / .08)",
+        "purpose": "Kaartbediening, toasts, pinlabels."
+      },
+      {
+        "name": "paneel",
+        "value": "0 -2px 6px oklch(0.2 0.02 260 / .05), 0 -12px 32px oklch(0.2 0.02 260 / .10)",
+        "purpose": "Bottom sheet."
+      },
+      {
+        "name": "pin",
+        "value": "0 1px 2px oklch(0.2 0.02 260 / .25), 0 3px 8px oklch(0.2 0.02 260 / .18)",
+        "purpose": "Pins boven de kaart."
+      },
+      {
+        "name": "dagplanbalk",
+        "value": "0 10px 30px -8px oklch(0.15 0.02 260 / .5)",
+        "purpose": "De belangrijkste knop."
+      }
+    ],
+    "motion": [
+      {
+        "name": "ease-uitloop",
+        "value": "cubic-bezier(0.22, 1, 0.36, 1)",
+        "purpose": "Standaard voor alle overgangen."
+      },
+      {
+        "name": "druk",
+        "value": "120ms",
+        "purpose": "Knop indrukken (scale .97)."
+      },
+      {
+        "name": "status",
+        "value": "150-220ms",
+        "purpose": "Chips, fades, nieuwe regels."
+      },
+      {
+        "name": "herorden",
+        "value": "280ms",
+        "purpose": "Lijst FLIP bij filteren."
+      },
+      {
+        "name": "view",
+        "value": "240-300ms",
+        "purpose": "Lijst naar detail, View Transition."
+      },
+      {
+        "name": "sheet",
+        "value": "420ms",
+        "purpose": "Paneel snapt naar stand."
+      },
+      {
+        "name": "kaart",
+        "value": "450ms",
+        "purpose": "Kaart schuift, groepjes splitsen."
+      },
+      {
+        "name": "pop",
+        "value": "320-380ms",
+        "purpose": "Plus en hartje."
+      },
+      {
+        "name": "bon-print",
+        "value": "700ms",
+        "purpose": "Dagplan openen, alleen een keer."
+      },
+      {
+        "name": "route",
+        "value": "700ms",
+        "purpose": "Routelijn tekent zich."
+      },
+      {
+        "name": "puls",
+        "value": "2400ms loop",
+        "purpose": "Nu open-stip."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "telefoon",
+        "value": "< 440px"
+      },
+      {
+        "name": "tablet",
+        "value": "< 980px"
+      },
+      {
+        "name": "desktop",
+        "value": ">= 980px (lijst 400px + kaart)"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primaire knop",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Eén per weergave; de hoofdactie zoals In mijn zaterdag.",
+      "html": "<button class=\"ds-btn-primary\"><svg width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.2\" stroke-linecap=\"round\"><path d=\"M12 5v14M5 12h14\"/></svg>In mijn zaterdag</button>",
+      "css": ".ds-btn-primary{font-family:Figtree,ui-sans-serif,system-ui,sans-serif;display:inline-flex;align-items:center;gap:8px;height:44px;padding:0 16px;border-radius:12px;border:1px solid oklch(0.25 0.015 262);background:oklch(0.25 0.015 262);color:oklch(0.985 0.003 85);font-weight:650;font-size:15px;cursor:pointer;transition:transform .12s cubic-bezier(0.22,1,0.36,1)}.ds-btn-primary:hover{background:oklch(0.32 0.02 262)}.ds-btn-primary:active{transform:scale(.97)}.ds-btn-primary:focus-visible{outline:2px solid oklch(0.55 0.17 262);outline-offset:2px}"
+    },
+    {
+      "name": "Secundaire knop",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Naast de primaire knop; nooit twee primaire knoppen.",
+      "html": "<button class=\"ds-btn-secondary\">Slimste volgorde</button>",
+      "css": ".ds-btn-secondary{font-family:Figtree,ui-sans-serif,system-ui,sans-serif;height:44px;padding:0 16px;border-radius:12px;border:1px solid oklch(0.80 0.008 85);background:oklch(0.995 0.002 85);color:oklch(0.24 0.012 260);font-weight:650;font-size:15px;cursor:pointer;transition:transform .12s cubic-bezier(0.22,1,0.36,1),background .15s}.ds-btn-secondary:hover{background:oklch(0.955 0.005 85)}.ds-btn-secondary:active{transform:scale(.97)}.ds-btn-secondary:focus-visible{outline:2px solid oklch(0.55 0.17 262);outline-offset:2px}"
+    },
+    {
+      "name": "Filterchip",
+      "kind": "chip",
+      "refersTo": "chip",
+      "description": "Snelle filters; geselecteerd wordt inkt.",
+      "html": "<div class=\"ds-chips\"><button class=\"ds-chip\" aria-pressed=\"true\"><i class=\"ds-dot\"></i>Nu open</button><button class=\"ds-chip\" aria-pressed=\"false\">Dit weekend</button><button class=\"ds-chip\" aria-pressed=\"false\">Gratis entree</button></div>",
+      "css": ".ds-chips{display:flex;gap:6px;flex-wrap:wrap}.ds-chip{font-family:Figtree,ui-sans-serif,system-ui,sans-serif;height:34px;padding:0 12px;border-radius:999px;border:1px solid oklch(0.80 0.008 85);background:oklch(0.995 0.002 85);color:oklch(0.24 0.012 260);font-size:14px;font-weight:580;display:inline-flex;align-items:center;gap:6px;cursor:pointer;transition:background .15s,color .15s}.ds-chip:hover{background:oklch(0.955 0.005 85)}.ds-chip[aria-pressed=\"true\"]{background:oklch(0.25 0.015 262);border-color:oklch(0.25 0.015 262);color:oklch(0.985 0.003 85)}.ds-chip:focus-visible{outline:2px solid oklch(0.55 0.17 262);outline-offset:2px}.ds-dot{width:7px;height:7px;border-radius:50%;background:oklch(0.62 0.16 150)}"
+    },
+    {
+      "name": "Zoekveld",
+      "kind": "input",
+      "refersTo": "input-search",
+      "description": "Plaats, postcode of naam; zonder rand, focusring om het hele veld.",
+      "html": "<label class=\"ds-search\"><svg width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\"><circle cx=\"11\" cy=\"11\" r=\"6.5\"/><path d=\"m20 20-4.2-4.2\"/></svg><input placeholder=\"Plaats, postcode of naam\"></label>",
+      "css": ".ds-search{font-family:Figtree,ui-sans-serif,system-ui,sans-serif;display:flex;align-items:center;gap:8px;height:44px;padding:0 12px;border-radius:12px;background:oklch(0.955 0.005 85);color:oklch(0.55 0.01 260);max-width:340px}.ds-search input{flex:1;border:0;background:none;outline:none;font:inherit;font-size:16px;color:oklch(0.24 0.012 260)}.ds-search:focus-within{box-shadow:0 0 0 2px oklch(0.55 0.17 262)}"
+    },
+    {
+      "name": "Lijstregel",
+      "kind": "custom",
+      "refersTo": "tile-kringloop",
+      "description": "Type, status en afstand, met losse plusknop voor het dagplan.",
+      "html": "<div class=\"ds-row\"><span class=\"ds-tile\"><svg width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M3.5 12.2V4.5a1 1 0 0 1 1-1h7.7l8.3 8.3a1.5 1.5 0 0 1 0 2.1l-6.6 6.6a1.5 1.5 0 0 1-2.1 0z\"/><circle cx=\"8.2\" cy=\"8.2\" r=\"1.6\"/></svg></span><span class=\"ds-main\"><b>Kringloop De Wenteltrap</b><span class=\"ds-st\"><i></i>Open · sluit 17:00</span><small>Amersfoort · meubels, boeken</small></span><span class=\"ds-km\">1,1 km</span><button class=\"ds-add\" aria-label=\"Zet in mijn zaterdag\"><span><svg width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.2\" stroke-linecap=\"round\"><path d=\"M12 5v14M5 12h14\"/></svg></span></button></div>",
+      "css": ".ds-row{font-family:Figtree,ui-sans-serif,system-ui,sans-serif;display:grid;grid-template-columns:40px 1fr auto 44px;gap:12px;align-items:center;max-width:380px;padding:12px 0;border-bottom:1px solid oklch(0.89 0.006 85)}.ds-tile{width:40px;height:40px;border-radius:11px;background:oklch(0.93 0.035 262);color:oklch(0.47 0.15 262);display:grid;place-items:center}.ds-main{display:flex;flex-direction:column;min-width:0}.ds-main b{font-weight:650;font-size:16px;color:oklch(0.24 0.012 260)}.ds-st{display:flex;align-items:center;gap:6px;font-size:14px;font-weight:560;color:oklch(0.47 0.13 150)}.ds-st i{width:7px;height:7px;border-radius:50%;background:oklch(0.62 0.16 150)}.ds-main small{font-size:13px;color:oklch(0.55 0.01 260)}.ds-km{font-size:13px;color:oklch(0.43 0.012 260);font-variant-numeric:tabular-nums;align-self:start}.ds-add{width:44px;height:44px;border:0;background:none;display:grid;place-items:center;cursor:pointer}.ds-add span{width:32px;height:32px;border-radius:50%;border:1.5px solid oklch(0.80 0.008 85);display:grid;place-items:center;transition:background .18s,transform .18s}.ds-add:hover span{background:oklch(0.955 0.005 85)}.ds-add:active span{transform:scale(.9)}.ds-add:focus-visible{outline:2px solid oklch(0.55 0.17 262);border-radius:50%}"
+    },
+    {
+      "name": "Pins",
+      "kind": "custom",
+      "refersTo": "pin-kringloop",
+      "description": "Vorm geeft het type, rand de zekerheid.",
+      "html": "<div class=\"ds-pins\"><span class=\"ds-pin ds-k\"><svg width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M3.5 12.2V4.5a1 1 0 0 1 1-1h7.7l8.3 8.3a1.5 1.5 0 0 1 0 2.1l-6.6 6.6a1.5 1.5 0 0 1-2.1 0z\"/><circle cx=\"8.2\" cy=\"8.2\" r=\"1.6\"/></svg><i></i></span><span class=\"ds-pin ds-m\"><svg width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M3 9.5 5 4h14l2 5.5\"/><path d=\"M3 9.5a2.25 2.25 0 0 0 4.5 0 2.25 2.25 0 0 0 4.5 0 2.25 2.25 0 0 0 4.5 0 2.25 2.25 0 0 0 4.5 0\"/><path d=\"M5 12v8M19 12v8M3.5 20h17\"/></svg></span><span class=\"ds-pin ds-m ds-un\"><svg width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M3 9.5 5 4h14l2 5.5\"/><path d=\"M3 9.5a2.25 2.25 0 0 0 4.5 0 2.25 2.25 0 0 0 4.5 0 2.25 2.25 0 0 0 4.5 0 2.25 2.25 0 0 0 4.5 0\"/><path d=\"M5 12v8M19 12v8M3.5 20h17\"/></svg></span></div>",
+      "css": ".ds-pins{display:flex;gap:24px;padding:16px;background:oklch(0.958 0.006 95);border-radius:12px;width:max-content}.ds-pin{position:relative;width:32px;height:32px;display:grid;place-items:center;border:2px solid oklch(0.995 0.002 85);box-shadow:0 1px 2px oklch(0.2 0.02 260/.25),0 3px 8px oklch(0.2 0.02 260/.18);transition:transform .2s cubic-bezier(0.22,1,0.36,1)}.ds-pin:hover{transform:scale(1.15)}.ds-k{border-radius:9px;background:oklch(0.47 0.15 262);color:oklch(0.985 0.005 262)}.ds-m{border-radius:50%;background:oklch(0.78 0.15 70);color:oklch(0.26 0.04 55)}.ds-un{background:oklch(0.995 0.002 85);color:oklch(0.50 0.12 60);border:2px dashed oklch(0.50 0.12 60)}.ds-pin i{position:absolute;top:-3px;right:-3px;width:11px;height:11px;border-radius:50%;background:oklch(0.62 0.16 150);border:2px solid oklch(0.995 0.002 85)}"
+    },
+    {
+      "name": "Dagplanbalk",
+      "kind": "nav",
+      "refersTo": "planbar",
+      "description": "Zwevende balk onderin; altijd bereikbaar zodra er stops zijn.",
+      "html": "<button class=\"ds-planbar\"><span class=\"ds-n\">3</span><span class=\"ds-t\"><b>Mijn zaterdag</b><span>3 stops · klaar ±12:44</span></span><svg width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\"><path d=\"m9 5 7 7-7 7\"/></svg></button>",
+      "css": ".ds-planbar{font-family:Figtree,ui-sans-serif,system-ui,sans-serif;display:flex;align-items:center;gap:12px;width:340px;height:58px;padding:0 14px 0 10px;border:0;border-radius:16px;background:oklch(0.25 0.015 262);color:oklch(0.985 0.003 85);text-align:left;cursor:pointer;box-shadow:0 10px 30px -8px oklch(0.15 0.02 260/.5);transition:transform .12s}.ds-planbar:active{transform:scale(.98)}.ds-planbar:focus-visible{outline:2px solid oklch(0.55 0.17 262);outline-offset:2px}.ds-n{min-width:36px;height:36px;border-radius:10px;background:oklch(0.985 0.003 85/.16);display:grid;place-items:center;font-weight:750;font-size:17px}.ds-t{flex:1;display:flex;flex-direction:column;line-height:1.25}.ds-t b{font-size:15px;font-weight:700}.ds-t span{font-size:13px;opacity:.78}"
+    },
+    {
+      "name": "Kassabon",
+      "kind": "card",
+      "refersTo": "bon",
+      "description": "Het dagplan; de enige plek met tweedehands-karakter.",
+      "html": "<div class=\"ds-bonwrap\"><div class=\"ds-bon\"><p class=\"ds-shop\">SNUFFELKAART</p><p class=\"ds-sub\">ZA 31 OKT · VERTREK 9:30</p><hr><p class=\"ds-line\"><span>1</span><span>9:34</span><b>Vlooienmarkt Bergkwartier</b></p><p class=\"ds-line\"><span>2</span><span>10:40</span><b>Kringloop De Wenteltrap</b></p><hr><p class=\"ds-tot\"><span>Klaar rond</span><span>11:20</span></p><div class=\"ds-bar\"></div><p class=\"ds-sub\">FIJNE ZATERDAG!</p></div></div>",
+      "css": ".ds-bonwrap{filter:drop-shadow(0 1px 1px oklch(0.2 0.02 260/.10)) drop-shadow(0 8px 16px oklch(0.2 0.02 260/.10));width:300px}.ds-bon{background:oklch(0.978 0.012 88);padding:22px 16px 28px;font-family:\"DM Mono\",ui-monospace,Menlo,monospace;font-size:14px;color:oklch(0.24 0.012 260);-webkit-mask:radial-gradient(circle 5px at 50% 0,#0000 97%,#000) top/14px 51% repeat-x,radial-gradient(circle 5px at 50% 100%,#0000 97%,#000) bottom/14px 51% repeat-x;mask:radial-gradient(circle 5px at 50% 0,#0000 97%,#000) top/14px 51% repeat-x,radial-gradient(circle 5px at 50% 100%,#0000 97%,#000) bottom/14px 51% repeat-x}.ds-bon p{margin:0}.ds-shop{text-align:center;letter-spacing:.2em;font-weight:500}.ds-sub{text-align:center;font-size:12px;color:oklch(0.43 0.012 260);margin-top:4px!important}.ds-bon hr{border:0;border-top:1.5px dashed oklch(0.80 0.008 85);margin:12px 0}.ds-line{display:grid;grid-template-columns:18px 48px 1fr;gap:6px;padding:3px 0}.ds-line b{font-family:Figtree,sans-serif;font-weight:680;font-size:15px}.ds-tot{display:flex;justify-content:space-between;font-size:18px;font-weight:500;border-top:1.5px solid oklch(0.24 0.012 260);padding-top:8px}.ds-bar{height:28px;margin:16px auto 0;width:72%;opacity:.8;background:repeating-linear-gradient(90deg,oklch(0.24 0.012 260) 0 2px,transparent 2px 4px,oklch(0.24 0.012 260) 4px 5px,transparent 5px 8px,oklch(0.24 0.012 260) 8px 11px,transparent 11px 12px)}"
+    }
+  ],
+  "narrative": {
+    "northStar": "De Betrouwbare Buurtkaart",
+    "overview": "Snuffelkaart is zo rustig als een goede kaart en zo warm als iemand uit de buurt die het gewoon weet. De kaart is het thuisscherm; alles wat erop ligt is een duidelijk, stevig voorwerp dat je met je duim raakt. Het zaterdagochtend-moment op de stoep in fel daglicht wint elke afweging. Het karakter zit in de details: vorm vertelt het type, de rand vertelt de zekerheid, kleur bevestigt alleen. Precies één plek is zichtbaar tweedehands: het dagplan als kassabon.",
+    "keyCharacteristics": [
+      "Kaart eerst op mobiel met een bottom sheet in drie standen; lijst links en kaart rechts op desktop.",
+      "Elke lijstregel toont drie dingen: type, open/dicht of datum, afstand.",
+      "Zekerheid is altijd zichtbaar: bevestigingsstatus en controledatum.",
+      "Eén lettertype (Figtree) voor de app; DM Mono alleen op de bon.",
+      "Beweging vertelt wat er veranderd is: 150–450 ms, zachte uitloop, nooit stuiteren.",
+      "Tijdsbewust: doordeweeks Nu open voorop, in het weekend Dit weekend."
+    ],
+    "rules": [
+      {
+        "name": "De Groen-is-open Regel",
+        "body": "Groen betekent alleen open of bevestigd. Kringlopen zijn daarom bewust niet groen, en groen wordt nergens decoratief gebruikt.",
+        "section": "colors"
+      },
+      {
+        "name": "De Nooit-alleen-kleur Regel",
+        "body": "Type, status en zekerheid hebben altijd ook een vorm, icoon of tekst. Kleur bevestigt; vorm vertelt.",
+        "section": "colors"
+      },
+      {
+        "name": "De Inkt-is-actie Regel",
+        "body": "Primaire acties zijn inkt, niet een type-kleur.",
+        "section": "colors"
+      },
+      {
+        "name": "De Vaste-schaal Regel",
+        "body": "App-typografie schaalt niet mee met het scherm; vaste rem-stappen, hiërarchie via gewicht.",
+        "section": "typography"
+      },
+      {
+        "name": "De Tabular-tijden Regel",
+        "body": "Elke tijd, afstand, telling en datum staat in tabular-nums.",
+        "section": "typography"
+      },
+      {
+        "name": "De Alleen-wat-zweeft Regel",
+        "body": "Schaduw betekent ligt boven de kaart. Niets in een lijst of paneel krijgt schaduw.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do toon bij elke markt de bevestigingsstatus en bij elke winkel de controledatum; openingstijden ouder dan 4 maanden krijgen een let-op-waarschuwing.",
+      "Do bereken status voor het moment waarop iemand er is (aankomsttijd in het dagplan), niet alleen voor de dag.",
+      "Do houd elke lijstregel bij drie dingen: type, open/dicht of datum, afstand.",
+      "Do gebruik skeletons in de vorm van de echte regels; geen spinners midden in de inhoud.",
+      "Do laat beweging 150–450 ms duren met `cubic-bezier(0.22, 1, 0.36, 1)`; weggaan is sneller dan binnenkomen. Respecteer `prefers-reduced-motion`.",
+      "Do geef elk raakvlak minstens 44px.",
+      "Do schrijf in gewoon Nederlands, in de je-vorm, kort; knoppen zeggen precies wat er gebeurt."
+    ],
+    "donts": [
+      "Don't maak het rommelig en vol: te veel info per regel, banners, geen hiërarchie.",
+      "Don't maak het traag: spinners bij elke filterklik, een haperende kaart.",
+      "Don't maak het gedateerd: standaard Google-pins, grijze lijsten.",
+      "Don't maak het onbetrouwbaar: onduidelijk hoe oud of zeker informatie is.",
+      "Don't gebruik het duurzaamheidsgroen-cliché, stoffige rommelmarkt-nostalgie of een SaaS-dashboard-uitstraling.",
+      "Don't gebruik groen voor iets anders dan open of bevestigd.",
+      "Don't laat type of status alleen via kleur zien.",
+      "Don't gebruik DM Mono of de bonvormgeving buiten het dagplan; het karakter werkt omdat het op één plek zit.",
+      "Don't gebruik korrel, verloopvlakken, glaseffecten of decoratieve laadanimaties; ze kosten leesbaarheid in fel licht en snelheid.",
+      "Don't gebruik gekleurde zijstrepen (`border-left` > 1px) op regels, kaartjes of meldingen.",
+      "Don't open een modal waar een paneelweergave volstaat; ook inloggen en melden gebeuren in de sheet.",
+      "Don't gebruik em-dashes in teksten."
+    ]
+  }
+}
