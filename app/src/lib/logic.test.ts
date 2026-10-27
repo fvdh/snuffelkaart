@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import type { Place } from './model';
-import { weekendOf, DEFAULT_CENTER } from './model';
+import type { Place, Cat } from './model';
+import { weekendOf, DEFAULT_CENTER, catOf } from './model';
 import { placeNow, placeDay, isHoliday, week, setWindow, intervals } from './hours';
 import { simulate, bestOrder, routeUrl } from './plan';
 import { matches } from './filter';
@@ -41,10 +41,17 @@ describe('openingstijden (vooruitgerekend)', () => {
 });
 
 describe('filters', () => {
-  const f = { type: 'all' as const, time: 'now' as const, date: null, gratis: false, overdekt: false, q: '' };
+  const f = { type: 'all' as const, time: 'now' as const, date: null, gratis: false, overdekt: false, q: '', hide: [] as Cat[] };
   it('onbekende tijden nooit bij Nu open, wel in het weekend', () => {
     expect(matches(P(null), f, TUE)).toBe(false);
     expect(matches(P(null), { ...f, time: 'weekend' }, TUE)).toBe(true);
+  });
+  it('winkelsoort uitzetten; een kringloop met antiek blijft kringloop', () => {
+    const all = { ...f, time: 'all' as const }, antiek = P(null, { kind: 'tweedehands', sub: 'antiek' });
+    expect(catOf(antiek)).toBe('antiek');
+    expect(matches(antiek, { ...all, hide: ['antiek'] }, TUE)).toBe(false);
+    expect(matches(P(null, { sub: 'antiek' }), { ...all, hide: ['antiek'] }, TUE)).toBe(true);
+    expect(matches(P(null, { kind: 'tweedehands' }), { ...all, hide: ['tweedehands'] }, TUE)).toBe(false);
   });
   it('zoeken negeert hoofdletters en accenten', () => {
     expect(matches(P('Mo-Su 00:00-24:00', { name: 'Kringloop Één' }), { ...f, q: 'een' }, TUE)).toBe(true);

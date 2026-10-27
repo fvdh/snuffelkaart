@@ -1,11 +1,11 @@
 import { useEffect, useLayoutEffect, useRef, useState, type ReactElement } from 'react';
 import type { Item, LatLon, Place, Market } from '../lib/model';
-import { dDay, dShort, dLong, fkm, hm, isoDay, addDays, dayStart, DAYS, DAYS_LONG, km, weekendOf } from '../lib/model';
+import { dDay, dShort, dLong, fkm, hm, isoDay, addDays, dayStart, DAYS, DAYS_LONG, km, weekendOf, CATS } from '../lib/model';
 import { placeNow, placeDay, placeWeekend, marketStatus, week, isHoliday, openOn, type Status } from '../lib/hours';
 import { simulate, bestOrder, routeUrl } from '../lib/plan';
 import type { Filters } from '../lib/filter';
 import { searchSpots, type Spot } from '../lib/pdok';
-import { Ic, Tile, St, Conf, Banner, kindLabel, isUnsure, EASE, reduced, pop } from './ui';
+import { Ic, Tile, St, Conf, Banner, CAT, kindLabel, isUnsure, EASE, reduced, pop } from './ui';
 
 export interface Ctx {
   now: Date; f: Filters; online: boolean; dataFrom: string | null; install: { add: () => void; no: () => void } | null; origin: LatLon; originLabel: string | null; locDenied: boolean; welcome: boolean; spot: boolean; me: LatLon | null;
@@ -81,7 +81,7 @@ function Welcome({ c }: { c: Ctx }) {
 }
 
 export function ListView({ c, list, total, limit, more, counts, nPlaces }: { c: Ctx; list: { it: Item; d: number }[]; total: number; limit: number; more: () => void; counts: { kNow: number; kToday: number; mWk: number }; nPlaces: number }) {
-  const { f, now } = c, today = isoDay(now), weekend = weekendOf(now).includes(today), spots = useSpots(f.q), flip = useFlip(list);
+  const { f, now } = c, today = isoDay(now), weekend = weekendOf(now).includes(today), spots = useSpots(f.q), flip = useFlip(list), [cats, setCats] = useState(false);
   if (c.welcome) return <Welcome c={c} />;
   const near = c.originLabel ? `rond ${c.originLabel}` : 'bij jou in de buurt';
   const title = f.time === 'all' ? `Snuffelen ${near}` : f.time === 'now' ? `Nu ${near}` : f.time === 'weekend' ? `Dit weekend ${near}` : f.time === 'today' ? `Vandaag ${near}` : dLong(f.date ?? today);
@@ -91,16 +91,17 @@ export function ListView({ c, list, total, limit, more, counts, nPlaces }: { c: 
       <a className="brand" href="/" aria-label="Snuffelkaart, naar het begin"><span className="brand-mark"><Ic n="tag" /></span>Snuffelkaart</a>
       <div className="greet"><div><h2>{title}</h2>
         <p className="counts">{weekend
-          ? <button onClick={() => c.setF({ time: 'today' })}><span className="cdot" />{counts.kToday} kringlopen open vandaag</button>
-          : <button onClick={() => c.setF({ time: 'now' })}><span className="cdot" />{counts.kNow} kringlopen nu open</button>}
+          ? <button onClick={() => c.setF({ time: 'today' })}><span className="cdot" />{counts.kToday} winkels open vandaag</button>
+          : <button onClick={() => c.setF({ time: 'now' })}><span className="cdot" />{counts.kNow} winkels nu open</button>}
           <span>·</span><button onClick={() => c.setF({ time: 'weekend' })}>{counts.mWk} markten dit weekend</button></p></div>
         <button className="me-btn" onClick={() => c.locate()} aria-label="Gebruik mijn locatie" aria-pressed={!!c.me}><Ic n="loc" /></button></div>
       <label className="search"><Ic n="search" /><span className="sr">Zoeken</span><input type="search" placeholder="Zoek op naam, plaats of postcode" value={f.q} onChange={e => c.setF({ q: e.target.value })} autoComplete="off" /></label>
       <div className="chips" role="group" aria-label="Filters">
         <div className="typeseg" role="group" aria-label="Type">
           <button {...P(f.type === 'all')} onClick={() => c.setF({ type: 'all' })}>Alles</button>
-          <button {...P(f.type === 'k')} onClick={() => c.setF({ type: 'k' })}><i className="tk" />Kringlopen</button>
+          <button {...P(f.type === 'k')} onClick={() => c.setF({ type: 'k' })}><i className="tk" />Winkels</button>
           <button {...P(f.type === 'm')} onClick={() => c.setF({ type: 'm' })}><i className="tm" />Markten</button></div>
+        {f.type !== 'm' && <button className="chip" aria-expanded={cats} {...P(f.hide.length > 0)} onClick={() => setCats(!cats)}><Ic n="store" />{f.hide.length ? `Soort (${CATS.length - f.hide.length})` : 'Soort'}</button>}
         <span className="sep" />
         <button className="chip" {...P(f.time === 'now')} onClick={() => c.setF({ time: f.time === 'now' ? 'all' : 'now' })}><span className="gdot" />Nu open</button>
         <button className="chip" {...P(f.time === 'today')} onClick={() => c.setF({ time: f.time === 'today' ? 'all' : 'today' })}>Vandaag</button>
@@ -110,6 +111,9 @@ export function ListView({ c, list, total, limit, more, counts, nPlaces }: { c: 
         <button className="chip" {...P(f.gratis)} onClick={() => c.setF({ gratis: !f.gratis })}>Gratis entree</button>
         <button className="chip" {...P(f.overdekt)} onClick={() => c.setF({ overdekt: !f.overdekt })}><Ic n="umbrella" />Overdekt</button>
       </div>
+      {cats && f.type !== 'm' && <div className="catstrip" role="group" aria-label="Soort winkel">
+        {CATS.map(k => { const on = !f.hide.includes(k); return <button key={k} className={`catchip c-${k}`} aria-pressed={on} onClick={() => c.setF({ hide: on ? [...f.hide, k] : f.hide.filter(x => x !== k) })}><span className="tile"><Ic n={CAT[k][2]} /></span>{CAT[k][1]}</button>; })}
+        {f.hide.length > 0 && <button className="chip" onClick={() => c.setF({ hide: [] })}>Alles aan</button>}</div>}
       {f.time === 'date' && <div className="daystrip" role="group" aria-label="Kies een dag">{Array.from({ length: 10 }, (_, i) => { const iso = addDays(today, i), d = dayStart(iso); return (
         <button key={iso} className="day" aria-pressed={f.date === iso} onClick={() => c.setF({ date: iso })} aria-label={dLong(iso) + (isHoliday(iso) ? ', feestdag' : '')}><span>{i === 0 ? 'vand.' : DAYS[d.getDay()]}</span><b className="tnum">{d.getDate()}</b><i className={`mk${isHoliday(iso) ? '' : ' none'}`} /></button>); })}</div>}
       {!c.online && <Banner icon="wifi-off"><b>Je bent offline.</b> Je ziet de gegevens van {c.dataFrom ? dShort(isoDay(new Date(c.dataFrom))) : 'je laatste bezoek'}. Afgelastingen van daarna zie je pas weer met verbinding.</Banner>}
@@ -121,7 +125,7 @@ export function ListView({ c, list, total, limit, more, counts, nPlaces }: { c: 
       {spots.length > 0 && <div className="sresults"><h4>Kijk rond in</h4>{spots.map(s => <button key={s.label + s.sub} className="sres" onClick={() => c.pickSpot(s)}><span className="ic"><Ic n="pin" /></span><span><b>{s.label}</b><span>{s.sub}</span></span><Ic n="chev" /></button>)}{list.length > 0 && <h4>Winkels en markten</h4>}</div>}
       {list.length ? <ul className="rows" aria-label="Resultaten" ref={flip}>{list.slice(0, limit).map(x => <Row key={x.it.id} it={x.it} d={x.d} c={c} />)}</ul>
         : spots.length ? null : <div className="empty"><h3>{f.q ? `Niets gevonden voor “${f.q}”` : 'Geen resultaten met deze filters'}</h3><p>{f.q ? 'Zoek op de naam van een winkel of een plaats.' : f.time === 'all' ? 'Zet een filter uit.' : 'Zet het tijdfilter uit om alles te zien.'}</p>
-          <div className="btns">{f.q && <button className="btn sm" onClick={() => c.setF({ q: '' })}>Wis zoekopdracht</button>}<button className="btn sm primary" onClick={() => c.setF({ time: 'all', gratis: false, overdekt: false })}>Toon alles</button></div></div>}
+          <div className="btns">{f.q && <button className="btn sm" onClick={() => c.setF({ q: '' })}>Wis zoekopdracht</button>}<button className="btn sm primary" onClick={() => c.setF({ time: 'all', gratis: false, overdekt: false, hide: [] })}>Toon alles</button></div></div>}
       {total > limit && <button className="more" onClick={more}>Toon meer ({total - limit})</button>}
       {f.time === 'now' && f.type !== 'k' && !f.q && <button className="hint" onClick={() => c.setF({ time: 'weekend' })}><span>{counts.mWk} markten dit weekend<small>Markten zijn er vooral op zaterdag en zondag</small></span><Ic n="chev" /></button>}
       <p className="src" style={{ marginTop: 18 }}><Ic n="info" /><span>{nPlaces} winkels uit © OpenStreetMap-bijdragers en © Overture Maps Foundation, heel Nederland. De winkelgegevens zijn vrij te gebruiken onder de <a href="https://opendatacommons.org/licenses/odbl/1-0/" target="_blank" rel="noopener">ODbL</a> (<a href="/data/places.json">download</a>). Markten uit de eigen agenda van organisatoren; bij elke markt staat welke.</span></p>

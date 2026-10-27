@@ -50,7 +50,7 @@ export default function App() {
   const items: Item[] = useMemo(() => [...(places ?? []), ...markets], [places, markets]);
   const byId = useMemo(() => new Map(items.map(i => [i.id, i])), [items]);
 
-  const [f, setFState] = useState<Filters>(() => ({ type: 'all', time: 'all', date: null, gratis: false, overdekt: false, q: '' }));
+  const [f, setFState] = useState<Filters>(() => ({ type: 'all', time: 'all', date: null, gratis: false, overdekt: false, q: '', hide: [] }));
   const [view, setView] = useState<View>('list'), [prev, setPrev] = useState<View>('list'), [sel, setSel] = useState<string | null>(null);
   const [dir, setDir] = useState<'fwd' | 'back' | null>(null), [snap, setSnap] = useState<Snap>('half'), [limit, setLimit] = useState(40);
   // Locatie pas na een tik (A10) en nooit opgeslagen; een gekozen plaats wel.

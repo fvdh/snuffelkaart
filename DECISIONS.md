@@ -99,3 +99,10 @@ Keuzes en waarom. Nieuwste onderaan. "Freek" = besloten door Freek; anders voorl
 - **Analyse**: `LICENTIES.md`, per datastroom wat de licentie is, waar het landt en wat we moeten doen.
 - **D4: OSM-afgeleide data accepteren onder ODbL** (Freek). Vermelding met downloadlink in de app; `public/data/LICENTIE.txt` naast het bestand. Het openbare `places.json` is voor het OSM-deel een afgeleide database; velden die we bij OSM-winkels aanvullen (Overture-website/telefoon, websitetijden) gaan daarin mee. Markten vallen er niet onder (geen OSM, plek via PDOK).
 - **Organisatorsites**: databankenrecht beschermt verzamelen, niet maken (HvJ 2004), maar websitevoorwaarden kunnen hergebruik toch beperken (HvJ *Ryanair* 2015). Daarom blijft de voorwaardencheck per site nodig.
+
+## Winkelsoorten met eigen kleur, icoon en filter (2026-10-27)
+
+- **Wat** (Freek): acht soorten, elk met eigen kleur en icoon op pin, tegel en groepje: kringloop, goede doelen, antiek en brocante, kleding, sloop en restpartijen, pandjeshuis, vaste vlooienmarkt, overige tweedehands. Filter "Soort" zet soorten aan/uit; standaard alles aan.
+- **Indeling**: `catOf` in `model.ts`. Een kringloop blijft een kringloop, ook als Overture er "antiek" bij zet. Vaste vlooienmarkt in de marktkleur, maar als vierkant (winkel). Overige tweedehands neutraal leigrijs.
+- **Kleuren**: één token per soort (`--cat-*`), gelijke lichtheid, eigen tint, apart voor donker. Iconen gift, vase, hammer, gem naar Lucide (ISC).
+- **Typeschakelaar** heet nu "Winkels" in plaats van "Kringlopen"; tellers ook.

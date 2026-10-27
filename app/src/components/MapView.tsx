@@ -6,7 +6,8 @@ let maplibregl: typeof ML;
 import Supercluster from 'supercluster';
 import type { Item, LatLon } from '../lib/model';
 import { DEFAULT_CENTER } from '../lib/model';
-import { isUnsure, isTw, kindIcon, EASE, reduced } from './ui';
+import { isUnsure, catCls, kindIcon, CAT, EASE, reduced } from './ui';
+import { CATS, catOf } from '../lib/model';
 
 const STYLE = 'https://tiles.openfreemap.org/styles/positron';
 
@@ -79,8 +80,8 @@ export default function MapView(p: MapProps) {
 
   // ponytail: supercluster op alle zichtbare items; HTML-markers zodat pins exact het ontwerp volgen. Bij duizenden punten: symbol-laag.
   const index = useMemo(() => {
-    const sc = new Supercluster<{ id: string; t: string; tw: boolean }>({ radius: 34, maxZoom: 16 });
-    sc.load(p.items.filter(it => it.id !== p.sel && !p.planIds.includes(it.id)).map(it => ({ type: 'Feature', geometry: { type: 'Point', coordinates: [it.lon, it.lat] }, properties: { id: it.id, t: it.t, tw: isTw(it) } })));
+    const sc = new Supercluster<{ id: string; c: string }>({ radius: 34, maxZoom: 16 });
+    sc.load(p.items.filter(it => it.id !== p.sel && !p.planIds.includes(it.id)).map(it => ({ type: 'Feature', geometry: { type: 'Point', coordinates: [it.lon, it.lat] }, properties: { id: it.id, c: it.t === 'm' ? 'm' : catOf(it) } })));
     return sc;
   }, [p.items, p.sel, p.planIds]);
 
@@ -92,19 +93,19 @@ export default function MapView(p: MapProps) {
     for (const f of index.getClusters([b.getWest(), b.getSouth(), b.getEast(), b.getNorth()], z)) {
       const [lon, lat] = f.geometry.coordinates as [number, number], pr = f.properties as unknown as { cluster?: boolean; cluster_id: number; point_count: number; id: string };
       if (pr.cluster) {
-        // Verhouding kringloop / tweedehands / markt, in dezelfde kleuren als de pins.
+        // Verhouding per soort, in dezelfde kleuren als de pins; markten als laatste.
         const leaves = index.getLeaves(pr.cluster_id, 500), n = pr.point_count, nl = leaves.length;
-        const ntw = leaves.filter(l => l.properties.tw).length, nm = leaves.filter(l => l.properties.t === 'm').length, nk = nl - ntw - nm;
-        const a = Math.round(nk / nl * 360), b = a + Math.round(ntw / nl * 360);
-        const bg = `conic-gradient(var(--kring) 0 ${a}deg,var(--tweede) 0 ${b}deg,var(--markt-ink) 0)`;
-        want.set(`c${pr.cluster_id}`, { lnglat: [lon, lat], cls: 'mk', leaves: leaves.map(l => l.properties.id), label: `${n} locaties, tik om in te zoomen`, html: `<button class="cluster" style="background:${bg}" aria-label="${n} locaties: ${nl < n ? 'ongeveer ' : ''}${Math.round(nk * n / nl)} kringlopen, ${Math.round(ntw * n / nl)} tweedehandswinkels, ${Math.round(nm * n / nl)} markten. Tik om in te zoomen.">${n > 99 ? '99+' : n}</button>`, onClick: () => map.easeTo({ center: [lon, lat], zoom: Math.min(index.getClusterExpansionZoom(pr.cluster_id), 17) }) });
+        const per = [...CATS, 'm' as const].map(k => [k, leaves.filter(l => l.properties.c === k).length] as const).filter(([, v]) => v);
+        let at = 0; const bg = `conic-gradient(${per.map(([k, v]) => `var(--cat-${k === 'm' ? 'markt' : k}) ${at}deg ${(at += v / nl * 360)}deg`).join(',')})`;
+        const say = per.map(([k, v]) => `${Math.round(v * n / nl)} ${k === 'm' ? 'markten' : CAT[k][1].toLowerCase()}`).join(', ');
+        want.set(`c${pr.cluster_id}`, { lnglat: [lon, lat], cls: 'mk', leaves: leaves.map(l => l.properties.id), label: `${n} locaties, tik om in te zoomen`, html: `<button class="cluster" style="background:${bg}" aria-label="${n} locaties: ${nl < n ? 'ongeveer ' : ''}${say}. Tik om in te zoomen.">${n > 99 ? '99+' : n}</button>`, onClick: () => map.easeTo({ center: [lon, lat], zoom: Math.min(index.getClusterExpansionZoom(pr.cluster_id), 17) }) });
       } else { const it = byId.get(pr.id); if (it) want.set(it.id, pinFor(it)); }
     }
     for (const id of [p.sel, ...p.planIds]) { const it = id && byId.get(id); if (it) want.set(it.id, pinFor(it)); }
     function pinFor(it: Item) {
       const n = p.planIds.indexOf(it.id), sel = it.id === p.sel;
       return { lnglat: [it.lon, it.lat] as [number, number], cls: `mk${sel ? ' zsel' : ''}`, label: it.name, onClick: () => cb.current.onSelect(it.id),
-        html: `<button class="pin ${it.t}${isTw(it) ? ' tw' : ''} ${cb.current.pinClass(it)}${it.t === 'k' && isUnsure(it) ? ' unknown' : ''}${sel ? ' sel' : ''}${n >= 0 ? ' numbered' : ''}${p.planIds.length && n < 0 ? ' dim' : ''}" aria-label="${it.name.replace(/"/g, '&quot;')}"><span class="pin-b">${icon(kindIcon(it))}</span><span class="pin-dot"></span><span class="pin-n">${n + 1}</span><span class="pin-lbl"></span></button>` };
+        html: `<button class="pin ${it.t}${catCls(it)} ${cb.current.pinClass(it)}${it.t === 'k' && isUnsure(it) ? ' unknown' : ''}${sel ? ' sel' : ''}${n >= 0 ? ' numbered' : ''}${p.planIds.length && n < 0 ? ' dim' : ''}" aria-label="${it.name.replace(/"/g, '&quot;')}"><span class="pin-b">${icon(kindIcon(it))}</span><span class="pin-dot"></span><span class="pin-n">${n + 1}</span><span class="pin-lbl"></span></button>` };
     }
     // Bewegingen: nieuwe data → pins vallen in (28 ms na elkaar, samen ≤ 0,5 s); groepje splitst → pins schuiven
     // vanuit het midden (450 ms); wat verdwijnt schaalt weg (180 ms).
