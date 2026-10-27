@@ -119,7 +119,8 @@ export default function MapView(p: MapProps) {
     for (const [id, w] of want) {
       let v = cur.get(id), fresh = false;
       if (!v) { const el = document.createElement('div'); v = { el, at: w.lnglat, m: new maplibregl.Marker({ element: el }).setLngLat(w.lnglat).addTo(map) }; cur.set(id, v); fresh = true; }
-      v.el.className = w.cls; if (v.el.dataset.h !== w.html) { v.el.innerHTML = w.html; v.el.dataset.h = w.html; const l = v.el.querySelector('.pin-lbl'); if (l) l.textContent = w.label; }
+      // classList, geen className: MapLibre's eigen klasse (position:absolute) moet blijven, anders schuiven pins bij uitzoomen weg.
+      v.el.classList.add('mk'); v.el.classList.toggle('zsel', w.cls.includes('zsel')); if (v.el.dataset.h !== w.html) { v.el.innerHTML = w.html; v.el.dataset.h = w.html; const l = v.el.querySelector('.pin-lbl'); if (l) l.textContent = w.label; }
       v.el.onclick = e => { e.stopPropagation(); w.onClick(); };
       v.m.setLngLat(w.lnglat); v.at = w.lnglat; v.leaves = w.leaves;
       const inner = v.el.firstElementChild as HTMLElement | null;

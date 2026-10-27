@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import fs from 'node:fs';
-import { donCalendar, donProduct, holidayDate, wildroEvent, vacAgenda, vacAddress, aerleAgenda, aerleProduct } from './fetch-markets.mjs';
+import { donCalendar, donProduct, holidayDate, wildroEvent, vacAgenda, vacAddress, aerleAgenda, aerleProduct, vitalisIcs, vitalisPlace, evlAgenda, mikkiEvent } from './fetch-markets.mjs';
 
 // Opgeslagen pagina's van Don Events (27 okt 2026): breekt de site-opbouw, dan faalt deze test.
 const fx = f => fs.readFileSync(new URL(`./fixtures/${f}`, import.meta.url), 'utf8');
@@ -78,5 +78,41 @@ describe('uitlezer Van Aerle', () => {
     const page = (open, fee) => `<p>Openingstijden</p><p>${open}</p><p>Toegangsprijs</p><p>${fee}</p>`;
     expect(aerleProduct(page('09:00 - 16:00', '€ 6 voor volwassenen, Gratis Parkeren'))).toMatchObject({ entree: '€6', open: [540, 960] });
     expect(aerleProduct(page('00:00 - 00:00', 'Gratis entree'))).toMatchObject({ entree: 'gratis', open: null });
+  });
+});
+
+describe('uitlezer Vitalis', () => {
+  it('iCal-feed geeft snuffelmarkten met datum en tijden, zonder winterfairs', () => {
+    const eds = vitalisIcs(fx('vitalis-events.ics'));
+    expect(eds[0]).toEqual({ uid: '424@vitalismarkten.nl', name: 'Eelde Flowerdome vlooienmarkt', kind: 'Vlooienmarkt', date: '2026-11-01', start: 600, end: 960,
+      url: 'https://vitalismarkten.nl/events/eelde-flowerdome-vlooienmarkt/', page: 'https://vitalismarkten.nl/markten/eelde-flowerdome-vlooienmarkt/' });
+    expect(eds.some(e => /winterfair/i.test(e.name))).toBe(false);
+    expect(eds.find(e => e.kind === 'Platenbeurs')).toBeTruthy();
+    expect(eds.find(e => e.name === 'Hardenberg Evenementenhal')).toBeTruthy();
+  });
+  it('marktpagina geeft hal, adres, entree en standplaatsprijs', () => {
+    expect(vitalisPlace(fx('vitalis-markt.html'))).toEqual({ venue: 'Assen Expo', street: 'De Haar 11', postcode: '9405TE', city: 'Assen', entree: '€5', kraamhuur: '€25' });
+    expect(vitalisPlace('<p>Entreeprijzen:</p><p>Volwassenen: € 4,= per persoon</p><p>in de entreehal</p>').entree).toBe('€4');
+  });
+});
+
+describe('uitlezer De Evenementenlijn', () => {
+  it('agenda geeft per markt adres, datum, tijden, binnen, entree en kraamprijs', () => {
+    const eds = evlAgenda(fx('evenementenlijn-agenda.html'));
+    expect(eds.length).toBe(16);
+    expect(eds[2]).toEqual({
+      id: 'evl-breda-2026-11-08', t: 'm', name: 'Rommelmarkt Breda', kind: 'Rommelmarkt', place: 'Breda', venue: 'Sporthal de Bress', addr: 'Nieuwe inslag 99, 4817 GN Breda',
+      street: 'Nieuwe inslag 99', postcode: '4817GN', date: '2026-11-08', start: 540, end: 960, timeKnown: true, indoor: true, entree: '€3', kraamhuur: '€33',
+      org: 'De Evenementenlijn', url: 'https://www.deevenementenlijn.nl/markten/breda-sporthal-de-bress-08-november-2026/', schema: '', status: 'chk',
+    });
+  });
+});
+
+describe('uitlezer Mikki', () => {
+  it('eventpagina geeft datum, tijden, hal, adres, toegang en kraamprijs', () => {
+    const url = 'https://www.mikki.nl/event/vlooienmarkt-sporthal-de-vaart-2/';
+    expect(mikkiEvent(fx('mikki-event.html'), url)).toMatchObject({ id: 'mikki-vlooienmarkt-sporthal-de-vaart-2', name: 'Vlooienmarkt Purmerend', venue: 'Sporthal De Vaart',
+      addr: 'Koggenland, 1447 CN Purmerend', date: '2026-11-01', start: 570, end: 960, indoor: true, entree: '€3', kraamhuur: '€32,50', url });
+    expect(mikkiEvent('<title>Kerstmarkt, Centrum - Mikki</title>', url)).toBeNull();
   });
 });

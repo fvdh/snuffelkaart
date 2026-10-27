@@ -139,6 +139,74 @@ export function aerleProduct(html) {
     street: v('Adres'), postcode: v('Postcode')?.replace(/\s/g, '') ?? null, city: v('Plaats'), venue: v('Locatienaam') };
 }
 
+// ---------- Organisatieburo Vitalis (zie ../sources/vitalis.md) ----------
+/** Hun iCal-feed → edities. Alleen snuffelmarkten (vlooienmarkt, braderie, platenbeurs); winterfairs e.d. niet. `page` = marktpagina voor het adres. */
+export function vitalisIcs(ics) {
+  const out = [];
+  for (const ev of ics.replace(/\r?\n[ \t]/g, '').split('BEGIN:VEVENT').slice(1)) {
+    const g = k => new RegExp(`^${k}[^:\\n]*:(.*)$`, 'm').exec(ev)?.[1]?.trim() ?? '';
+    const cats = g('CATEGORIES'), name = g('SUMMARY').replace(/Evenenementenhal/, 'Evenementenhal'), s = /(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})/.exec(g('DTSTART')), e = /T(\d{2})(\d{2})/.exec(g('DTEND'));
+    if (!s || !/vlooien|braderie|rommel|kofferbak|platen/i.test(cats) || /winterfair|kerst/i.test(name)) continue;
+    const kind = /platen/i.test(cats + name) ? 'Platenbeurs' : /vlooien/i.test(cats) ? 'Vlooienmarkt' : 'Braderie';
+    out.push({ uid: g('UID'), name, kind, date: `${s[1]}-${s[2]}-${s[3]}`, start: +s[4] * 60 + +s[5], end: e ? +e[1] * 60 + +e[2] : null, url: g('URL'), page: g('LOCATION') || null });
+  }
+  return out;
+}
+/** Marktpagina → hal, adres ("De Haar 11, 9405 TE Assen" onder "Locatie"), entree en standplaatsprijs. */
+export function vitalisPlace(html) {
+  const t = toText(html), loc = /(?:^|\n)Locatie\n([^\n]+)\n([^\n,]+),\s*(\d{4}\s?[A-Z]{2})\s+([^\n]+)/.exec(t);
+  const fee = /Entree(?:prijs|prijzen)?:[ \t]*\n?([^\n]+)/i.exec(t)?.[1] ?? ''; // ook "Entreeprijzen:⏎Volwassenen: € 4"
+  return { venue: loc?.[1].trim() ?? null, street: loc?.[2].trim() ?? null, postcode: loc?.[3].replace(/\s/g, '') ?? null, city: loc?.[4].trim() ?? null,
+    entree: /€\s?\d/.test(fee) ? `€${/€\s?(\d+(?:,\d{2})?)/.exec(fee)[1]}` : /gratis/i.test(fee) ? 'gratis' : 'onbekend',
+    kraamhuur: /Standplaats \d+ meter:?\s*(€\s?\d+(?:,\d{2})?)/i.exec(t)?.[1]?.replace(/\s/g, '') };
+}
+
+// ---------- De Evenementenlijn (zie ../sources/evenementenlijn.md) ----------
+/** Agenda (homepage) → per blok "Breda, sporthal de Bress / Nieuwe inslag 99, 4817 GN Breda / 8 november 2026 / Open van 09:00 t/m 16:00 uur / … / BINNENMARKT". */
+export function evlAgenda(html) {
+  const L = toText(html).split('\n').map(l => l.replace(/[\u200b-\u200d\ufeff\ue000-\uf8ff]/g, '').trim()).filter(Boolean), out = []; // hun opmaak zet icoontekens (privégebied) tussen de blokken
+  const links = [...html.matchAll(/href="(https:\/\/www\.deevenementenlijn\.nl\/markten\/[^"#?]+)"/g)].map(m => m[1]);
+  const dateRe = new RegExp(`^(\\d{1,2})\\s+(${MONTHS.join('|')})\\s+(\\d{4})$`, 'i');
+  L.forEach((l, i) => {
+    const dm = dateRe.exec(l), a = dm && /^(.+),\s*(\d{4}\s?[A-Z]{2})\s+(.+)$/.exec(L[i - 1] ?? ''); if (!a) return;
+    const b = L.slice(i + 1, i + 16), end = b.findIndex(x => dateRe.test(x)), blk = end > 0 ? b.slice(0, end) : b;
+    const tm = /(\d{1,2}[:.]\d{2})\s*(?:t\/m|tot|[-–])\s*(\d{1,2}[:.]\d{2})/.exec(blk.find(x => /^open/i.test(x)) ?? '');
+    const date = `${dm[3]}-${pad(MONTHS.indexOf(dm[2].toLowerCase()) + 1)}-${pad(+dm[1])}`, city = a[3].trim();
+    const url = links.find(u => new RegExp(`-0?${+dm[1]}-${dm[2].toLowerCase()}-${dm[3]}/?$`).test(u) && u.includes(city.toLowerCase().split(' ')[0])) ?? 'https://www.deevenementenlijn.nl/';
+    const io = blk.find(x => /^(binnen|buiten)markt$/i.test(x)) ?? '';
+    out.push({ id: `evl-${city.toLowerCase().replace(/\W+/g, '-')}-${date}`, t: 'm', name: `Rommelmarkt ${city}`, kind: 'Rommelmarkt', place: city,
+      venue: L[i - 2].replace(new RegExp(`^${city},?\\s*`, 'i'), '').replace(/^./, c => c.toUpperCase()), addr: `${a[1].trim()}, ${a[2].replace(/\s/g, '').replace(/([A-Z]{2})$/, ' $1')} ${city}`,
+      street: a[1].trim(), postcode: a[2].replace(/\s/g, ''), date, start: tm ? mins(tm[1]) : 540, end: tm ? mins(tm[2]) : null, timeKnown: !!tm,
+      indoor: /^binnen/i.test(io) ? true : /^buiten/i.test(io) ? false : undefined,
+      // "Entree pp €3,- | 65+ €2,50" en "Kraam vanaf €33,-": soms op één regel, soms verdeeld over drie.
+      entree: (/Entree[^€]{0,20}€\s?(\d+(?:,\d{2})?)/i.exec(blk.join(' ')) ?? [])[1]?.replace(/^/, '€') ?? 'onbekend',
+      kraamhuur: (/Kraam\b[^€]{0,20}€\s?(\d+(?:,\d{2})?)/i.exec(blk.join(' ')) ?? [])[1]?.replace(/^/, '€'),
+      org: 'De Evenementenlijn', url, schema: '', status: 'chk' });
+  });
+  return out;
+}
+
+// ---------- Organisatieburo Mikki (zie ../sources/mikki.md) ----------
+/** Eventpagina → editie: "Zondag / 1 / november 2026", "Van 09:30 tot 16:00", titel "Vlooienmarkt, Sporthal De Vaart", blok "Adres", toegang en kraamprijs. */
+export function mikkiEvent(html, url) {
+  const L = toText(html).split('\n').map(l => l.trim()).filter(Boolean), t = L.join('\n');
+  const d = new RegExp(`(?:^|\\n)(?:maandag|dinsdag|woensdag|donderdag|vrijdag|zaterdag|zondag)\\n(\\d{1,2})\\n(${MONTHS.join('|')})\\s+(\\d{4})`, 'i').exec(t);
+  const tm = /Van (\d{1,2}[:.]\d{2}) tot (\d{1,2}[:.]\d{2})/i.exec(t), ai = L.indexOf('Adres'), pc = /^(\d{4}\s?[A-Z]{2})\s+(.+)$/.exec(L[ai + 2] ?? '');
+  const head = (html.match(/<title>([^<]*)<\/title>/i)?.[1] ?? '').replace(/\s*-\s*Mikki\s*$/i, '').replace(/&amp;/g, '&').trim();
+  if (!d || ai < 0 || !pc || /kerst/i.test(head)) return null;
+  const [kindW, ...rest] = head.split(','), venue = rest.join(',').trim() || null, city = pc[2].trim(), date = `${d[3]}-${pad(MONTHS.indexOf(d[2].toLowerCase()) + 1)}-${pad(+d[1])}`;
+  const kind = /kofferbak/i.test(kindW) ? 'Kofferbakmarkt' : /vlooien/i.test(kindW) ? 'Vlooienmarkt' : title(kindW.trim());
+  // Toegang staat in lopende tekst ("Toegang voor bezoekers 3,00 …"); gratis alleen als er geen bedrag staat.
+  const fee = /Toegang[^\n.]*/i.exec(t)?.[0] ?? '';
+  return { id: `mikki-${url.replace(/\/$/, '').split('/').pop()}`, t: 'm', name: `${kind} ${city}`, kind, place: city, venue,
+    addr: `${L[ai + 1]}, ${pc[1].replace(/\s/g, '').replace(/([A-Z]{2})$/, ' $1')} ${city}`, street: L[ai + 1], postcode: pc[1].replace(/\s/g, ''),
+    date, start: tm ? mins(tm[1]) : 540, end: tm ? mins(tm[2]) : null, timeKnown: !!tm,
+    indoor: /park\b|park$|centrum|winkelcentrum|plein|straat/i.test(venue ?? '') ? false : INDOOR.test(venue ?? '') ? true : undefined,
+    entree: /\d+[,.]\d{2}/.test(fee) ? `€${/(\d+)[,.](\d{2})/.exec(fee).slice(1).join(',').replace(/,00$/, '')}` : /gratis/i.test(fee) ? 'gratis' : 'onbekend',
+    kraamhuur: /\nKraam\n(?:€\s*)?(\d+)[.,](\d{2})/.exec(t)?.slice(1).join(',').replace(/^/, '€'),
+    org: 'Organisatieburo Mikki', url, schema: '', status: 'chk' };
+}
+
 /** Adres → coördinaten via PDOK (adres, anders postcode). Null buiten Nederland. */
 async function geocode(m) {
   for (const [q, type] of [[m.street && `${m.street} ${m.postcode}`, 'adres'], [m.q, '(adres OR weg)'], [m.postcode, 'postcode'], [m.place, 'woonplaats']]) {
@@ -203,12 +271,45 @@ async function vanAerle(skipped) {
   }
   return out;
 }
-const SOURCES = [['Don Events', donEvents, 'https://donevents.nl/marktkalender/'], ['Organisatieburo Wildro', wildro, 'https://wildro.nl/vlooienmarkten/'], ['Organisatie Bureau VAC', vac, 'https://org-vac.nl/'], ['Van Aerle (vlooienmarkten.nl)', vanAerle, 'https://www.vlooienmarkten.nl/agenda-markten/']];
+async function vitalis(skipped) {
+  const eds = vitalisIcs(await (await get('https://vitalismarkten.nl/events.ics')).text()), pages = new Map(), out = [];
+  for (const e of eds) {
+    if (!e.page) { skipped.push(`${e.url} (geen marktpagina)`); continue; }
+    if (!pages.has(e.page)) { await sleep(1500); try { pages.set(e.page, vitalisPlace(await (await get(e.page)).text())); } catch (err) { pages.set(e.page, null); skipped.push(`${e.page} (${err.message})`); } }
+    const p = pages.get(e.page); if (!p?.city) { skipped.push(`${e.page} (geen adres)`); continue; }
+    out.push({ id: `vitalis-${e.uid.split('@')[0]}`, t: 'm', name: e.name, kind: e.kind, place: p.city, venue: p.venue,
+      addr: `${p.street}, ${p.postcode.replace(/([A-Z]{2})$/, ' $1')} ${p.city}`, street: p.street, postcode: p.postcode,
+      date: e.date, start: e.start, end: e.end, timeKnown: true,
+      indoor: INDOOR.test(`${p.venue} ${e.name}`) || /flowerdome/i.test(e.name) ? true : OUTDOOR.test(p.venue ?? '') ? false : undefined,
+      entree: p.entree, kraamhuur: p.kraamhuur, org: 'Organisatieburo Vitalis', url: e.page, schema: '', status: 'chk' });
+  }
+  return out;
+}
+async function evenementenlijn() { return evlAgenda(await (await get('https://www.deevenementenlijn.nl/')).text()); }
+async function mikki(skipped) {
+  const links = new Set(), out = [];
+  for (let page = 1, pages = 1; page <= pages; page++) {
+    if (page > 1) await sleep(1500);
+    const html = await (await get(`https://www.mikki.nl/${page > 1 ? `page/${page}/` : ''}`)).text();
+    pages = Math.min(+(/Pagina \d+ van (\d+)/.exec(html)?.[1] ?? 1), 10);
+    for (const m of html.matchAll(/href="(https:\/\/www\.mikki\.nl\/event\/[^"#?]+\/)"/g)) links.add(m[1]);
+  }
+  for (const url of links) {
+    await sleep(1500);
+    let m; try { m = mikkiEvent(await (await get(url)).text(), url); } catch (e) { skipped.push(`${url} (${e.message})`); continue; }
+    if (m) out.push(m); else skipped.push(`${url} (geen datum of adres)`);
+  }
+  return out;
+}
+const SOURCES = [['Organisatieburo Mikki', mikki, 'https://www.mikki.nl/'], ['De Evenementenlijn', evenementenlijn, 'https://www.deevenementenlijn.nl/'], ['Organisatieburo Vitalis', vitalis, 'https://vitalismarkten.nl/agenda/'],['Don Events', donEvents, 'https://donevents.nl/marktkalender/'], ['Organisatieburo Wildro', wildro, 'https://wildro.nl/vlooienmarkten/'], ['Organisatie Bureau VAC', vac, 'https://org-vac.nl/'], ['Van Aerle (vlooienmarkten.nl)', vanAerle, 'https://www.vlooienmarkten.nl/agenda-markten/']];
 
 async function main() {
   const today = new Date().toISOString().slice(0, 10), prevAll = fs.existsSync(OUT) ? JSON.parse(fs.readFileSync(OUT, 'utf8')).markets : [];
   const markets = [], report = [];
+  // --only=<woord>: alleen die organisator(en) opnieuw lezen, de rest houdt de vorige stand (hooguit één keer per dag per site).
+  const only = process.argv.find(a => a.startsWith('--only='))?.slice(7).toLowerCase();
   for (const [org, read] of SOURCES) {
+    if (only && !org.toLowerCase().includes(only)) { markets.push(...prevAll.filter(m => m.org === org && m.date >= today)); continue; }
     const skipped = []; let eds = [];
     try { eds = await read(skipped); } catch (e) { skipped.push(`hele bron: ${e.message}`); }
     const placed = [];
