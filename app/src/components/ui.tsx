@@ -7,11 +7,14 @@ export const Ic = ({ n, className = '' }: { n: string; className?: string }) => 
 );
 
 export const isUnsure = (it: Item) => (it.t === 'm' ? it.status === 'unconf' : !it.h);
+/** Tweedehandswinkel: geen standaard kringloop, eigen icoon en tint. */
+export const isTw = (it: Item) => it.t === 'k' && it.kind === 'tweedehands';
+export const kindIcon = (it: Item) => it.t === 'm' ? 'kraam' : isTw(it) ? 'hanger' : 'tag';
 export const kindLabel = (it: Item) => (it.t === 'm' ? it.kind : it.kind === 'goede-doelen' ? 'Goede-doelenwinkel' : it.kind === 'tweedehands' ? 'Tweedehandswinkel' : 'Kringloop');
 
 export function Tile({ it, small }: { it: Item; small?: boolean }) {
-  const cls = `tile ${it.t}${isUnsure(it) ? ' unconf' : ''}${it.t === 'm' && it.status === 'cancel' ? ' cancel' : ''}`;
-  return <span className={cls} title={kindLabel(it)} style={small ? { width: 24, height: 24 } : undefined}><Ic n={it.t === 'k' ? 'tag' : 'kraam'} /></span>;
+  const cls = `tile ${it.t}${isUnsure(it) ? ' unconf' : ''}${it.t === 'm' && it.status === 'cancel' ? ' cancel' : ''}${isTw(it) ? ' tw' : ''}`;
+  return <span className={cls} title={kindLabel(it)} style={small ? { width: 24, height: 24 } : undefined}><Ic n={kindIcon(it)} /></span>;
 }
 
 export const St = ({ s, pulse }: { s: Status; pulse?: boolean }) => (

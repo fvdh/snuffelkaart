@@ -36,6 +36,8 @@ colors:
   kaart-weg: "oklch(0.995 0.002 90)"
   kaart-snelweg: "oklch(0.93 0.05 85)"
   focus: "oklch(0.55 0.17 262)"
+  pruim: "oklch(0.48 0.11 330)"
+  pruim-soft: "oklch(0.94 0.03 330)"
 typography:
   title:
     fontFamily: "Figtree, ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif"
@@ -237,6 +239,8 @@ Terughoudend: getinte, heel licht warme neutrale kleuren met twee type-accenten 
 ### Primary
 - **Kassa-inkt** (`oklch(0.47 0.15 262)`): het type-accent voor kringloopwinkels. Vult de vierkante kringlooppin; als zachte variant (`oklch(0.93 0.035 262)`) de achtergrond van de kringlooptegel in lijsten. Nooit gebruikt voor knoppen of decoratie.
 
+- **Pruim** (`oklch(0.48 0.11 330)`): het type-accent voor tweedehandswinkels die geen standaard kringloop zijn (vintage, dumpstore, opkoper, of een naam waaruit we het niet weten). Zelfde vierkante winkelvorm, maar met een kleerhanger in plaats van het prijskaartje (een winkelpui leek te veel op het marktkraampje); zachte variant (`oklch(0.94 0.03 330)`) voor de tegel. Zo is het verschil te zien zonder dat de winkel verdwijnt.
+
 ### Secondary
 - **Goudsbloem** (`oklch(0.78 0.15 70)`): het type-accent voor markten. Vult de ronde marktpin. Voor tekst en iconen op licht oppervlak gebruik je **Goudsbloem-inkt** (`oklch(0.50 0.12 60)`), want de volle goudsbloem haalt geen leescontrast.
 
@@ -325,7 +329,7 @@ Vertrouwd en stevig: standaardvormen, 44px raakvlakken, duidelijke druk-feedback
 - **+** gedrukt: vult zich in inkt met een vinkje en een pop van 320 ms.
 
 ### Pins en groepjes
-- Kringloop: vierkant met 9px hoeken, 32px, 2px witte rand. Markt: cirkel, 32px.
+- Kringloop: vierkant met 9px hoeken, 32px, 2px witte rand, prijskaartje. Tweedehandswinkel: zelfde vierkant in pruim, kleerhanger. Markt: cirkel, 32px.
 - Nu open: groen stipje rechtsboven met een rustige puls van 2,4 s. Dicht: wit met gedempt icoon. Onbevestigd: wit met een gestippelde goudsbloem-inkt rand. Afgelast: grijs met een rode diagonale streep.
 - Geselecteerd: schaal 1.22 met naamlabel eronder. In het dagplan: een inkt-nummerbadge linksboven.
 - Groepje: een cirkel van 38px; de kleur is een conic-gradient in de verhouding tussen kringlopen en markten.

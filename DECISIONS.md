@@ -17,7 +17,7 @@ Keuzes en waarom. Nieuwste onderaan. "Freek" = besloten door Freek; anders voorl
 - **Openingstijden**: OSM-syntax via de `opening_hours`-bibliotheek, met Nederlandse feestdagen (`PH`).
 - **Data in de browser**: één JSON (`public/data/places.json`), lokaal gefilterd (§6.1). Geen server.
 - **Markten**: nog geen echte bron. `app/src/lib/markets.ts` bevat de verzonnen markten uit het prototype, met datums relatief aan de komende zaterdag/zondag, en zichtbaar gemarkeerd als voorbeeld. Echte markten komen uit de organisator-uitlezers (M0, §5.2).
-- **OSM-ophalen**: Overpass met een rechthoek om Utrecht + Gelderland (de provinciefilter time-out op de publieke servers). Gevolg: ook randjes van omliggende provincies. Prima voor de PoC; de echte import gaat via het Geofabrik-extract (§5.1).
+- **OSM-ophalen**: Overpass met een rechthoek om Utrecht + Gelderland (de provinciefilter time-out op de publieke servers). De import knipt daarna precies op de provinciegrenzen (CBS via PDOK); de echte import gaat via het Geofabrik-extract (§5.1).
 - **Vite 7 vastgezet** (`overrides` in package.json): Vitest 5 trok Vite 8 binnen, wat met Astro 6 de React-plugin breekt.
 - **MapLibre niet voorbundelen in dev** (`optimizeDeps.exclude`): MapLibre 6 laadt zijn worker relatief; voorbundelen breekt dat.
 - **Openingstijden vooruitgerekend** (21 dagen) bij de import i.p.v. in de browser: scheelt ±160 kB gz en maakt elke statuscheck een opzoeking. Gevolg: zonder verse build worden tijden na 21 dagen "onbekend"; de nachtelijke build (§6.1) voorkomt dat.
@@ -28,3 +28,10 @@ Keuzes en waarom. Nieuwste onderaan. "Freek" = besloten door Freek; anders voorl
 - **Plaats zoeken via PDOK Locatieserver** (`suggest`, woonplaatsen + postcodes): open, geen sleutel, CORS open, matcht op een begin ("utr"). Rechtstreeks uit de browser; geen eigen server nodig. Een kale postcode van 4 cijfers wordt één plek.
 - **Gekozen plaats wordt bewaard** op het apparaat (`snuffel-plek`), **GPS-locatie niet** (belofte in het welkom). Wie al toestemming gaf, krijgt de locatie stil opnieuw bij openen.
 - **Welkom inline in het paneel**, geen pop-up (A10). Kaart toont tot die tijd Amersfoort, niet de hele regio zoals in het ontwerp; aanpassen als het testen dat vraagt.
+
+## 2026-10-27 · OSM opschonen (§14.4)
+- **Knippen op provinciegrenzen** Utrecht + Gelderland (CBS `provincie_gegeneraliseerd` via PDOK). De rechthoek gaf 178 winkels buiten de regio (Amsterdam, Zwolle, Duitsland). Gegeneraliseerde grens: een winkel vlak op de grens kan aan de verkeerde kant vallen; acceptabel voor de proef.
+- **"Kringloop" alleen als we het weten** (naam of keten: Het Goed, Woord en Daad, 2Switch, Ecokring…). Onbekende naam = "tweedehandswinkel". Liever bescheiden dan een belofte die niet klopt (principe: betrouwbaar).
+- **Goede doelen** = `shop=charity` of een bekende keten (Dorcas, Terre des Hommes, Leger des Heils…).
+- **Weggelaten**: alleen winkels met nieuwe spullen (wereldwinkels, Unicef). Dumpstores, vintage, opkopers e.d. blijven (Freek), als **tweedehandswinkel**: eigen pruimkleur en kleerhanger-icoon, plus een uitleg in het detail.
+- **Handmatige uitzonderingen** per OSM-id in `FIXES` (`scripts/fetch-osm.mjs`), met reden. Voorkeur: de fout in OSM zelf verbeteren, dan profiteert iedereen.

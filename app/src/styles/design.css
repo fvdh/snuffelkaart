@@ -16,7 +16,7 @@
   --ink:oklch(0.25 0.015 262);
   --on-ink:oklch(0.985 0.003 85);
   --kring:oklch(0.47 0.15 262);
-  --kring-soft:oklch(0.93 0.035 262);
+  --kring-soft:oklch(0.93 0.035 262);--tweede:oklch(0.48 0.11 330);--tweede-soft:oklch(0.94 0.03 330);--on-tweede:oklch(0.985 0.005 330);
   --on-kring:oklch(0.985 0.005 262);
   --markt:oklch(0.78 0.15 70);
   --markt-ink:oklch(0.50 0.12 60);
@@ -54,7 +54,7 @@
   --line:oklch(0.32 0.01 260);--line-strong:oklch(0.42 0.012 260);
   --fg:oklch(0.95 0.004 85);--fg-2:oklch(0.80 0.006 85);--fg-3:oklch(0.68 0.008 85);
   --ink:oklch(0.93 0.006 85);--on-ink:oklch(0.21 0.01 260);
-  --kring:oklch(0.72 0.12 262);--kring-soft:oklch(0.32 0.06 262);--on-kring:oklch(0.18 0.03 262);
+  --kring:oklch(0.72 0.12 262);--kring-soft:oklch(0.32 0.06 262);--tweede:oklch(0.74 0.10 330);--tweede-soft:oklch(0.33 0.05 330);--on-tweede:oklch(0.18 0.03 330);--on-kring:oklch(0.18 0.03 262);
   --markt:oklch(0.80 0.14 75);--markt-ink:oklch(0.82 0.12 75);--markt-soft:oklch(0.33 0.05 70);--on-markt:oklch(0.24 0.04 55);
   --open:oklch(0.72 0.16 150);--open-ink:oklch(0.78 0.14 150);
   --warn:oklch(0.80 0.14 80);--warn-ink:oklch(0.84 0.12 80);--warn-soft:oklch(0.31 0.05 75);
@@ -76,7 +76,7 @@
   --line:oklch(0.32 0.01 260);--line-strong:oklch(0.42 0.012 260);
   --fg:oklch(0.95 0.004 85);--fg-2:oklch(0.80 0.006 85);--fg-3:oklch(0.68 0.008 85);
   --ink:oklch(0.93 0.006 85);--on-ink:oklch(0.21 0.01 260);
-  --kring:oklch(0.72 0.12 262);--kring-soft:oklch(0.32 0.06 262);--on-kring:oklch(0.18 0.03 262);
+  --kring:oklch(0.72 0.12 262);--kring-soft:oklch(0.32 0.06 262);--tweede:oklch(0.74 0.10 330);--tweede-soft:oklch(0.33 0.05 330);--on-tweede:oklch(0.18 0.03 330);--on-kring:oklch(0.18 0.03 262);
   --markt:oklch(0.80 0.14 75);--markt-ink:oklch(0.82 0.12 75);--markt-soft:oklch(0.33 0.05 70);--on-markt:oklch(0.24 0.04 55);
   --open:oklch(0.72 0.16 150);--open-ink:oklch(0.78 0.14 150);
   --warn:oklch(0.80 0.14 80);--warn-ink:oklch(0.84 0.12 80);--warn-soft:oklch(0.31 0.05 75);
@@ -518,3 +518,9 @@ svg.i{width:20px;height:20px;flex:none;fill:none;stroke:currentColor;stroke-widt
 
 .reduce *,.reduce *::before,.reduce *::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
 @media (prefers-reduced-motion: reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
+/* tweedehandswinkel: geen standaard kringloop. Zelfde vorm (winkel), eigen icoon en tint. */
+.pin.k.tw .pin-b{background:var(--tweede);color:var(--on-tweede)}
+.pin.k.tw.closed .pin-b{background:var(--surface);color:var(--tweede);border-color:var(--line-strong)}
+.pin.k.tw.unknown .pin-b{background:var(--surface);color:var(--tweede);border:2px dashed var(--tweede)}
+.tile.k.tw{background:var(--tweede-soft);color:var(--tweede)}
+.tile.k.tw.unconf{background:var(--surface);border-color:var(--tweede)}

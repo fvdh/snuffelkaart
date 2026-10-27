@@ -6,7 +6,7 @@ let maplibregl: typeof ML;
 import Supercluster from 'supercluster';
 import type { Item, LatLon } from '../lib/model';
 import { DEFAULT_CENTER } from '../lib/model';
-import { isUnsure } from './ui';
+import { isUnsure, isTw, kindIcon } from './ui';
 
 const STYLE = 'https://tiles.openfreemap.org/styles/positron';
 
@@ -98,7 +98,7 @@ export default function MapView(p: MapProps) {
     function pinFor(it: Item) {
       const n = p.planIds.indexOf(it.id), sel = it.id === p.sel;
       return { lnglat: [it.lon, it.lat] as [number, number], cls: `mk${sel ? ' zsel' : ''}`, label: it.name, onClick: () => cb.current.onSelect(it.id),
-        html: `<button class="pin ${it.t} ${cb.current.pinClass(it)}${it.t === 'k' && isUnsure(it) ? ' unknown' : ''}${sel ? ' sel' : ''}${n >= 0 ? ' numbered' : ''}${p.planIds.length && n < 0 ? ' dim' : ''}" aria-label="${it.name.replace(/"/g, '&quot;')}"><span class="pin-b">${icon(it.t === 'k' ? 'tag' : 'kraam')}</span><span class="pin-dot"></span><span class="pin-n">${n + 1}</span><span class="pin-lbl"></span></button>` };
+        html: `<button class="pin ${it.t}${isTw(it) ? ' tw' : ''} ${cb.current.pinClass(it)}${it.t === 'k' && isUnsure(it) ? ' unknown' : ''}${sel ? ' sel' : ''}${n >= 0 ? ' numbered' : ''}${p.planIds.length && n < 0 ? ' dim' : ''}" aria-label="${it.name.replace(/"/g, '&quot;')}"><span class="pin-b">${icon(kindIcon(it))}</span><span class="pin-dot"></span><span class="pin-n">${n + 1}</span><span class="pin-lbl"></span></button>` };
     }
     const cur = marks.current;
     for (const [id, v] of cur) if (!want.has(id)) { v.m.remove(); cur.delete(id); }
