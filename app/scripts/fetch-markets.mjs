@@ -234,12 +234,40 @@ export function ijAgenda(html) {
   return out;
 }
 
+// ---------- Animo Vlooienmarkten (zie ../sources/animo.md) ----------
+/** Kalender → per blok "Doesburg / Sporthal Beumerskamp / [1e Editie!] / zondag 15 november 2026 / Breedestraat 39 / Binnen / … / Meer info".
+ *  Het adres is wisselend: "Breedestraat 39", "Monumentenweg 30, 6997AH", "Gruttostraat 14 Velp, 6883 CN", "Invictusstraat 1, Afferden/Druten". */
+export function animoCalendar(html) {
+  const out = []; let from = 0;
+  for (const m of html.matchAll(/<a\b[^>]*href="(\/kalender\/[^"#?]+)"[^>]*>([\s\S]*?)<\/a>/g)) {
+    if (!/meer info/i.test(m[2].replace(/<[^>]+>/g, ''))) continue;
+    const L = toText(html.slice(from, m.index)).split('\n').map(l => l.trim()).filter(Boolean); from = m.index + m[0].length;
+    const di = L.findIndex(l => DATE_NL.test(l)); if (di < 2) continue;
+    const head = L.slice(0, di).filter(l => !new RegExp(`^(${MONTHS.join('|')})\\s+\\d{4}$`, 'i').test(l) && !/!$/.test(l)).slice(-2);
+    const [, d, mon, y] = DATE_NL.exec(L[di]), city = head[0].replace(/^'S-/, "'s-"), parts = (L[di + 1] ?? '').split(/,\s*/);
+    const pc = parts.find(p => /^\d{4}\s?[A-Z]{2}$/.test(p))?.replace(/\s/g, '') ?? null, other = parts.slice(1).find(p => !/^\d{4}\s?[A-Z]{2}$/.test(p));
+    const street = parts[0].replace(new RegExp(`\\s+${city}$`, 'i'), '').trim(), io = L[di + 2] ?? '';
+    out.push({ url: `https://animo-vlooienmarkten.nl${m[1]}`, city, venue: head[1] ?? null, date: `${y}-${pad(MONTHS.indexOf(mon.toLowerCase()) + 1)}-${pad(+d)}`,
+      street, postcode: pc, q: `${street} ${other?.split('/')[0] ?? city}`, indoor: /^binnen/i.test(io) ? true : /^buiten/i.test(io) ? false : undefined });
+  }
+  return out;
+}
+/** Marktpagina → tijden ("09:00 tot 16:00") en kraamprijs ("Kraam: € 35.00"). */
+export function animoEvent(html) {
+  const t = toText(html), tm = /(\d{1,2}[:.]\d{2})\s*tot\s*(\d{1,2}[:.]\d{2})/.exec(t), k = /(?:^|\n)Kraam:\s*€\s*(\d+)(?:[.,](\d{2}))?/.exec(t);
+  return { open: tm ? [mins(tm[1]), mins(tm[2])] : null, kraamhuur: k ? `€${k[1]}${k[2] && k[2] !== '00' ? `,${k[2]}` : ''}` : undefined };
+}
+
 /** Adres → coördinaten via PDOK (adres, anders postcode). Null buiten Nederland. */
 async function geocode(m) {
   for (const [q, type] of [[m.street && `${m.street} ${m.postcode}`, 'adres'], [m.q, '(adres OR weg)'], [m.postcode, 'postcode'], [m.place, 'woonplaats']]) {
     if (!q) continue;
-    const u = `https://api.pdok.nl/bzk/locatieserver/search/v3_1/free?q=${encodeURIComponent(q)}&fq=type:${type}&rows=1&fl=centroide_ll`;
-    const p = /POINT\(([\d.]+) ([\d.]+)\)/.exec((await (await fetch(u)).json()).response?.docs?.[0]?.centroide_ll ?? '');
+    const u = `https://api.pdok.nl/bzk/locatieserver/search/v3_1/free?q=${encodeURIComponent(q)}&fq=type:${type}&rows=1&fl=centroide_ll,weergavenaam`;
+    const doc = (await (await fetch(u)).json()).response?.docs?.[0];
+    // Vrije tekst ("Centrum, Assen", "Schuberstraat 1 Elst") zoekt ruim: alleen houden als eerste én laatste woord in de uitkomst staan, anders gaf PDOK een andere plek.
+    const w = q === m.q ? q.toLowerCase().split(/[\s,]+/).filter(Boolean) : null;
+    if (w && !(doc?.weergavenaam && [w[0], w.at(-1)].every(x => doc.weergavenaam.toLowerCase().includes(x)))) continue;
+    const p = /POINT\(([\d.]+) ([\d.]+)\)/.exec(doc?.centroide_ll ?? '');
     if (p) return { lon: +(+p[1]).toFixed(5), lat: +(+p[2]).toFixed(5), exact: type !== 'woonplaats' && type !== 'postcode' };
   }
   return null;
@@ -329,7 +357,21 @@ async function mikki(skipped) {
   return out;
 }
 async function ijHallen() { return ijAgenda(await (await get('https://ijhallen.nl/agenda.php')).text()); }
-const SOURCES = [['IJ-Hallen', ijHallen, 'https://ijhallen.nl/agenda.php'], ['Organisatieburo Mikki', mikki, 'https://www.mikki.nl/'], ['De Evenementenlijn', evenementenlijn, 'https://www.deevenementenlijn.nl/'], ['Organisatieburo Vitalis', vitalis, 'https://vitalismarkten.nl/agenda/'],['Don Events', donEvents, 'https://donevents.nl/marktkalender/'], ['Organisatieburo Wildro', wildro, 'https://wildro.nl/vlooienmarkten/'], ['Organisatie Bureau VAC', vac, 'https://org-vac.nl/'], ['Van Aerle (vlooienmarkten.nl)', vanAerle, 'https://www.vlooienmarkten.nl/agenda-markten/']];
+async function animo(skipped) {
+  const out = [];
+  for (const c of animoCalendar(await (await get('https://animo-vlooienmarkten.nl/kalender')).text())) {
+    await sleep(1500);
+    let p; try { p = animoEvent(await (await get(c.url)).text()); } catch (e) { p = { open: null }; skipped.push(`${c.url} (${e.message}; zonder tijden)`); }
+    out.push({ id: `animo-${c.url.split('/').pop()}-${c.date}`, t: 'm', name: `Vlooienmarkt ${c.city}`, kind: 'Vlooienmarkt', place: c.city, venue: c.venue,
+      addr: c.postcode ? `${c.street}, ${c.postcode.replace(/([A-Z]{2})$/, ' $1')} ${c.city}` : `${c.street}, ${c.city}`,
+      // Zonder postcode alleen op straat + plaats zoeken (geocode probeert anders "straat undefined").
+      street: c.postcode ? c.street : undefined, postcode: c.postcode ?? undefined, q: c.q, date: c.date,
+      start: p.open ? p.open[0] : 540, end: p.open ? p.open[1] : null, timeKnown: !!p.open, indoor: c.indoor, entree: 'onbekend', kraamhuur: p.kraamhuur,
+      org: 'Animo Vlooienmarkten', url: c.url, schema: '', status: 'chk' });
+  }
+  return out;
+}
+const SOURCES = [['Animo Vlooienmarkten', animo, 'https://animo-vlooienmarkten.nl/kalender'], ['IJ-Hallen', ijHallen, 'https://ijhallen.nl/agenda.php'], ['Organisatieburo Mikki', mikki, 'https://www.mikki.nl/'], ['De Evenementenlijn', evenementenlijn, 'https://www.deevenementenlijn.nl/'], ['Organisatieburo Vitalis', vitalis, 'https://vitalismarkten.nl/agenda/'],['Don Events', donEvents, 'https://donevents.nl/marktkalender/'], ['Organisatieburo Wildro', wildro, 'https://wildro.nl/vlooienmarkten/'], ['Organisatie Bureau VAC', vac, 'https://org-vac.nl/'], ['Van Aerle (vlooienmarkten.nl)', vanAerle, 'https://www.vlooienmarkten.nl/agenda-markten/']];
 
 async function main() {
   const today = new Date().toISOString().slice(0, 10), prevAll = fs.existsSync(OUT) ? JSON.parse(fs.readFileSync(OUT, 'utf8')).markets : [];

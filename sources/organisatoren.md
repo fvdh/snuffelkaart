@@ -14,7 +14,7 @@ Onderzoek 2026-10-27. Alleen organisatoren die **hun eigen markten** publiceren 
 | 5 | De Evenementenlijn | deevenementenlijn.nl | ±35 | Noord-Brabant | HTML, volledig adres in de lijst | ☑ uitgelezen (`evenementenlijn.md`) |
 | 6 | Organisatieburo Mikki | mikki.nl | ±40 | Noord-Holland, Bollenstreek | HTML met paginering, adres op eventpagina | ☑ uitgelezen (`mikki.md`) |
 | 7 | IJ-Hallen | ijhallen.nl/agenda.php | ±18–20 weekenden | Amsterdam NDSM | simpele HTML, vast adres | ☑ uitgelezen (`ijhallen.md`) |
-| 8 | Animo Vlooienmarkten | animo-vlooienmarkten.nl/kalender | ±15–20 | Gelderland (Achterhoek, Velp, Elst) | HTML + pagina per markt | ☐ |
+| 8 | Animo Vlooienmarkten | animo-vlooienmarkten.nl/kalender | ±15–20 | Gelderland (Achterhoek, Velp, Elst) | HTML + pagina per markt | ☑ uitgelezen (`animo.md`) |
 | 9 | JoJo Vlooienmarkten | jojovlooienmarkten.nl/agenda-vlooienmarkten | ±4 + braderieën | Utrecht, 't Gooi | HTML (webshop), jaar ontbreekt | ☐ |
 
 Kleiner (≤ 12/jaar): MDV Evenementen (Schiedam), Carbootsale Horst (Crawl-delay 10), LIROM Kofferbakmarkten (Reuver), VD-Organisatie (Rivierenland), Twentse Vlooienmarkt, Organisatiebureau De Nijs (antiek, Haarlem), Ferrion Markten, Grote Gestelse Vlooienmarkt, Kofferbakverkoop Budel, Smeets Buitenmarkten, Dynamic Promotions. ReZi (Twente, ±30–45?) staat in lopende tekst: lastig.

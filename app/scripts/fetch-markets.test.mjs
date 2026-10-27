@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import fs from 'node:fs';
-import { donCalendar, donProduct, holidayDate, wildroEvent, vacAgenda, vacAddress, aerleAgenda, aerleProduct, vitalisIcs, vitalisPlace, evlAgenda, mikkiEvent, nlDays, ijAgenda } from './fetch-markets.mjs';
+import { donCalendar, donProduct, holidayDate, wildroEvent, vacAgenda, vacAddress, aerleAgenda, aerleProduct, vitalisIcs, vitalisPlace, evlAgenda, mikkiEvent, nlDays, ijAgenda, animoCalendar, animoEvent } from './fetch-markets.mjs';
 
 // Opgeslagen pagina's van Don Events (27 okt 2026): breekt de site-opbouw, dan faalt deze test.
 const fx = f => fs.readFileSync(new URL(`./fixtures/${f}`, import.meta.url), 'utf8');
@@ -133,5 +133,25 @@ describe('uitlezer IJ-Hallen', () => {
     expect(nlDays('31 december en 1 januari 2027')).toEqual(['2026-12-31', '2027-01-01']);
     expect(nlDays('7 maart 2027')).toEqual(['2027-03-07']);
     expect(nlDays('Boek een kraam')).toEqual([]);
+  });
+});
+
+describe('uitlezer Animo', () => {
+  it('kalender geeft per markt plaats, hal, datum, adres en binnen', () => {
+    const cal = animoCalendar(fx('animo-kalender.html'));
+    expect(cal.length).toBe(11);
+    expect(cal[0]).toEqual({ url: 'https://animo-vlooienmarkten.nl/kalender/doesburg', city: 'Doesburg', venue: 'Sporthal Beumerskamp', date: '2026-11-15',
+      street: 'Breedestraat 39', postcode: null, q: 'Breedestraat 39 Doesburg', indoor: true });
+    // "1e Editie!" en "Nieuwjaarsmarkt!" zijn geen hal; adres in drie vormen.
+    expect(cal.find(c => c.city === 'Hoog-Keppel')).toMatchObject({ venue: 'Hessenhal', street: 'Monumentenweg 30', postcode: '6997AH' });
+    expect(cal.find(c => c.city === 'Velp')).toMatchObject({ street: 'Gruttostraat 14', postcode: '6883CN' });
+    expect(cal.find(c => c.city === 'Druten')).toMatchObject({ venue: 'Sportcentrum De Gelenberg', q: 'Invictusstraat 1 Afferden' });
+    expect(cal.find(c => c.city === 'Warnsveld').venue).toBe('Sportcentrum De Kei');
+    expect(cal[1].city).toBe("'s-Heerenberg");
+    expect(new Set(cal.map(c => c.url)).size).toBe(cal.length);
+  });
+  it('marktpagina geeft tijden en kraamprijs', () => {
+    expect(animoEvent(fx('animo-markt.html'))).toEqual({ open: [540, 960], kraamhuur: '€35' });
+    expect(animoEvent('<p>Kraam: € 32.50</p>')).toEqual({ open: null, kraamhuur: '€32,50' });
   });
 });
