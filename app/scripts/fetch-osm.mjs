@@ -1,4 +1,4 @@
-// Haalt kringloopwinkels uit OpenStreetMap (proefregio Utrecht + Gelderland), voegt Overture toe (data-raw/overture.json,
+// Haalt kringloopwinkels uit OpenStreetMap (heel Nederland), voegt Overture toe (data-raw/overture.json,
 // zie fetch-overture.mjs) en schrijft public/data/places.json.
 // Gebruik: npm run data:osm            (haalt opnieuw op via Overpass)
 //          npm run data:osm -- --cached (gebruikt data-raw/osm.json)
@@ -6,14 +6,16 @@
 import fs from 'node:fs';
 import { precompute, holidays, todayIso, DAYS_AHEAD } from './hours-precompute.mjs';
 
-const BBOX = [51.73, 4.79, 52.52, 6.83]; // z, w, n, o: Utrecht + Gelderland (met randjes van buurprovincies)
-const QUERY = `[out:json][timeout:90];(nwr["shop"~"^(second_hand|charity)$"](${BBOX.join(',')}););out center tags;`;
-const ENDPOINTS = ['https://overpass-api.de/api/interpreter', 'https://maps.mail.ru/osm/tools/overpass/api/interpreter'];
+const BBOX = [50.75, 3.35, 53.56, 7.23]; // z, w, n, o: heel Nederland (knippen op de grens gebeurt hieronder)
+const TILES = []; // 3 × 3 vakken: één query voor heel NL loopt op de publieke Overpass-servers vaak in een time-out
+for (let a = 0; a < 3; a++) for (let b = 0; b < 3; b++) { const dz = (BBOX[2] - BBOX[0]) / 3, dw = (BBOX[3] - BBOX[1]) / 3; TILES.push([BBOX[0] + a * dz, BBOX[1] + b * dw, BBOX[0] + (a + 1) * dz, BBOX[1] + (b + 1) * dw].map(x => +x.toFixed(3))); }
+const query = b => `[out:json][timeout:180];(nwr["shop"~"^(second_hand|charity)$"](${b.join(',')}););out center tags;`;
+const ENDPOINTS = ['https://overpass-api.de/api/interpreter', 'https://overpass.private.coffee/api/interpreter', 'https://overpass.kumi.systems/api/interpreter', 'https://maps.mail.ru/osm/tools/overpass/api/interpreter'];
 const UA = 'Snuffelkaart-PoC/0.1 (contact: freek@draad.nu)';
 const RAW = new URL('../data-raw/osm.json', import.meta.url);
 const OUT = new URL('../public/data/places.json', import.meta.url);
 
-async function fetchOverpass() {
+async function fetchTile(QUERY) {
   for (const url of ENDPOINTS) {
     for (let attempt = 1; attempt <= 2; attempt++) {
       try {
@@ -26,6 +28,11 @@ async function fetchOverpass() {
     }
   }
   throw new Error('Geen Overpass-server bereikbaar. Probeer later opnieuw, of gebruik --cached.');
+}
+async function fetchOverpass() {
+  const seen = new Map();
+  for (const [i, b] of TILES.entries()) { const j = await fetchTile(query(b)); for (const e of j.elements) seen.set(e.type + e.id, e); console.log(`  vak ${i + 1}/${TILES.length}: ${j.elements.length}`); }
+  return { elements: [...seen.values()] };
 }
 
 // Valse treffers (§14.4). "Kringloop" alleen als naam of keten het zegt; anders eerlijk "tweedehands".
@@ -40,8 +47,8 @@ const FIXES = {
 const CHARITY = /dorcas|terres? des hommes|leger des heils|leprawinkel|rode kruis/i;
 const kindOf = t => t.shop === 'charity' || CHARITY.test(t.name || '') ? 'goede-doelen' : KRINGLOOP.test(t.name || '') ? 'kringloop' : 'tweedehands';
 
-// Proefregio: precies Utrecht + Gelderland, op de provinciegrenzen van het CBS (via PDOK).
-const PROV = new URL('../data-raw/provincies.json', import.meta.url), REGION = ['Utrecht', 'Gelderland'];
+// Regio: Nederland (of een paar provincies), op de provinciegrenzen van het CBS (via PDOK).
+const PROV = new URL('../data-raw/provincies.json', import.meta.url), REGION = null; // null = heel Nederland; of bijv. ['Utrecht', 'Gelderland']
 async function provinces() {
   if (process.argv.includes('--cached') && fs.existsSync(PROV)) return JSON.parse(fs.readFileSync(PROV, 'utf8'));
   const res = await fetch('https://service.pdok.nl/cbs/gebiedsindelingen/2024/wfs/v1_0?service=WFS&version=2.0.0&request=GetFeature&typeName=gebiedsindelingen:provincie_gegeneraliseerd&outputFormat=json&srsName=EPSG:4326');
@@ -56,7 +63,7 @@ export function inside([x, y], polys) {
   }
   return c;
 }
-const regionPolys = (await provinces()).features.filter(f => REGION.includes(f.properties.statnaam))
+const regionPolys = (await provinces()).features.filter(f => !REGION || REGION.includes(f.properties.statnaam))
   .flatMap(f => f.geometry.type === 'Polygon' ? [f.geometry.coordinates] : f.geometry.coordinates);
 
 const FROM = todayIso();
@@ -73,7 +80,7 @@ let places = raw.elements
     const city = t['addr:city'] || '';
     const h = t.opening_hours ? precompute(t.opening_hours, FROM) : null;
     return {
-      id: `osm-${e.type[0]}${e.id}`, t: 'k', kind: kindOf(t), name: t.name.trim(), lat: +lat.toFixed(6), lon: +lon.toFixed(6),
+      id: `osm-${e.type[0]}${e.id}`, t: 'k', kind: kindOf(t), name: t.name.trim(), lat: +lat.toFixed(5), lon: +lon.toFixed(5),
       addr: [street, [t['addr:postcode'], city].filter(Boolean).join(' ')].filter(Boolean).join(', ') || null, place: city || null,
       h, ohRaw: t.opening_hours && !h ? t.opening_hours : undefined,
       checked: t['check_date:opening_hours'] || t.check_date || t['survey:date'] || null,
@@ -122,7 +129,7 @@ if (fs.existsSync(OV)) {
     }
     const city = nice(o.city) || null;
     places.push({
-      id: `ov-${o.id}`, t: 'k', kind: kindOf({ name: o.name }), sub: SUB[o.cat] ?? undefined, name: o.name.trim(), lat: +o.lat.toFixed(6), lon: +o.lon.toFixed(6),
+      id: `ov-${o.id.replace(/-/g, '').slice(0, 12)}`, /* ingekort: scheelt ±100 kB, stabiel zolang Overture het id houdt */ t: 'k', kind: kindOf({ name: o.name }), sub: SUB[o.cat] ?? undefined, name: o.name.trim(), lat: +o.lat.toFixed(5), lon: +o.lon.toFixed(5),
       addr: [nice(o.street), [o.postcode, city].filter(Boolean).join(' ')].filter(Boolean).join(', ') || null, place: city,
       h: null, checked: null, website: o.website || null, phone: telNL(o.phone), conf: o.conf, src: 'overture',
     });
@@ -132,12 +139,12 @@ if (fs.existsSync(OV)) {
 }
 
 fs.mkdirSync(new URL('../public/data/', import.meta.url), { recursive: true });
-fs.writeFileSync(OUT, JSON.stringify({ generated: new Date().toISOString(), source: '© OpenStreetMap-bijdragers (ODbL); Overture Maps Foundation (CDLA Permissive 2.0)', overture: ovStat.release, bbox: BBOX, from: FROM, days: DAYS_AHEAD, holidays: holidays(FROM), places }));
+fs.writeFileSync(OUT, JSON.stringify({ generated: new Date().toISOString(), source: '© OpenStreetMap-bijdragers (ODbL); Overture Maps Foundation (CDLA Permissive 2.0)', overture: ovStat.release, bbox: BBOX, from: FROM, days: DAYS_AHEAD, holidays: holidays(FROM), places }, (k, v) => (v === null ? undefined : v))); // lege velden weglaten
 
 const n = places.length, pct = x => `${Math.round(100 * x / n)}%`;
 const count = f => places.filter(f).length;
 const unnamed = raw.elements.filter(e => !e.tags?.name).length;
-console.log(`\nWinkels proefregio: ${n} (van ${raw.elements.length} OSM-objecten, ${unnamed} zonder naam)`);
+console.log(`\nWinkels: ${n} (van ${raw.elements.length} OSM-objecten, ${unnamed} zonder naam)`);
 console.log(`  openingstijden leesbaar: ${count(p => p.h)} (${pct(count(p => p.h))}), onleesbaar: ${count(p => p.ohRaw)}, geen: ${count(p => !p.h && !p.ohRaw)}`);
 console.log(`  met controledatum: ${count(p => p.checked)}  adres: ${pct(count(p => p.addr))}  website: ${pct(count(p => p.website))}  telefoon: ${pct(count(p => p.phone))}`);
 console.log(`  weggelaten: buiten regio ${dropped.region}, geen tweedehands ${dropped.notSecondHand}, handmatig ${dropped.manual}`);

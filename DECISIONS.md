@@ -50,3 +50,9 @@ Keuzes en waarom. Nieuwste onderaan. "Freek" = besloten door Freek; anders voorl
 - **Licentie**: Overture Places = CDLA Permissive 2.0, bronvermelding, geen share-alike. Overture-records blijven herkenbaar gescheiden (`src: 'overture'`, id `ov-…`), zodat de ODbL-afweging (§12) per bron kan.
 - **DuckDB** (`@duckdb/node-api`, dev) leest de Overture-parquet direct van S3, gefilterd op de rechthoek: ±10 s.
 - **Foursquare OS Places** nog niet getest: vraagt een Hugging Face-account (Freek).
+
+## 2026-10-27 · Heel Nederland (Freek)
+- **Regio = heel Nederland**: knippen op de landsgrens (alle 12 CBS-provincies). Terug naar een paar provincies kan met `REGION` in `fetch-osm.mjs`.
+- **Overpass in 3 × 3 vakken** met vier publieke servers als terugval: één NL-query loopt in een time-out. Duurt ±10 min. De wekelijkse import gaat later via het Geofabrik-extract (§5.1).
+- **Resultaat**: 3701 winkels (OSM 1049, Overture 2652); 895 kringlopen, 194 goede doelen, 2612 overige tweedehands. Tijden bekend: 16%.
+- **Databestand 243 kB gz** (ingekorte Overture-id's, lege velden weg, 5 decimalen). Werkbaar voor de PoC; bij groei opknippen per regio of tegels (§6.1).

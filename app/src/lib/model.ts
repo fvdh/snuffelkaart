@@ -19,7 +19,7 @@ export interface Market {
 export type Item = Place | Market;
 export interface LatLon { lat: number; lon: number }
 
-export const DEFAULT_CENTER: LatLon = { lat: 52.1561, lon: 5.3878 }; // Amersfoort, midden in de proefregio
+export const DEFAULT_CENTER: LatLon = { lat: 52.1561, lon: 5.3878 }; // Amersfoort, midden in het land
 
 /** Afstand in km (haversine). */
 export function km(a: LatLon, b: LatLon): number {

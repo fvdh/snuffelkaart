@@ -5,7 +5,7 @@
 import fs from 'node:fs';
 import { DuckDBInstance } from '@duckdb/node-api';
 
-const BBOX = { w: 4.79, s: 51.73, e: 6.83, n: 52.52 }; // ruim; fetch-osm knipt op de provinciegrens
+const BBOX = { w: 3.35, s: 50.75, e: 7.23, n: 53.56 }; // Nederland, ruim; fetch-osm knipt op de landsgrens
 const OUT = new URL('../data-raw/overture.json', import.meta.url);
 
 async function latestRelease() {

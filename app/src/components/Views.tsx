@@ -73,7 +73,7 @@ function Welcome({ c }: { c: Ctx }) {
     <div className="lv-head" data-peek data-drag><div className="welcome">
       <span className="brand-mark"><Ic n="tag" /></span>
       <h2>Snuffelen, maar dan slim</h2>
-      <p>Kringlopen en rommelmarkten in Utrecht en Gelderland op één kaart. Je ziet wat er open is, en je maakt in twee minuten een plan voor je zaterdag.</p>
+      <p>Kringlopen en tweedehandswinkels in heel Nederland op één kaart, met rommelmarkten erbij. Je ziet wat er open is, en je maakt in twee minuten een plan voor je zaterdag.</p>
       <div className="btns"><button className="btn primary" onClick={() => c.locate()}><Ic n="loc" />Laat zien wat er bij mij is</button><button className="btn" onClick={c.pickPlace}>Kies een plaats</button></div>
       <p className="fine"><Ic n="shield" />Je locatie blijft op je telefoon. We slaan hem niet op.</p>
     </div></div>
@@ -122,7 +122,7 @@ export function ListView({ c, list, total, limit, more, counts, nPlaces }: { c: 
           <div className="btns">{f.q && <button className="btn sm" onClick={() => c.setF({ q: '' })}>Wis zoekopdracht</button>}<button className="btn sm primary" onClick={() => c.setF({ time: 'weekend', gratis: false, overdekt: false })}>Dit weekend</button></div></div>}
       {total > limit && <button className="more" onClick={more}>Toon meer ({total - limit})</button>}
       {f.time === 'now' && f.type !== 'k' && !f.q && <button className="hint" onClick={() => c.setF({ time: 'weekend' })}><span>{counts.mWk} markten dit weekend<small>Markten zijn er vooral op zaterdag en zondag</small></span><Ic n="chev" /></button>}
-      <p className="src" style={{ marginTop: 18 }}><Ic n="info" /><span>{nPlaces} winkels uit © OpenStreetMap-bijdragers en © Overture Maps Foundation, proefregio Utrecht en Gelderland. De markten zijn nog <b>verzonnen voorbeelden</b>.</span></p>
+      <p className="src" style={{ marginTop: 18 }}><Ic n="info" /><span>{nPlaces} winkels uit © OpenStreetMap-bijdragers en © Overture Maps Foundation, heel Nederland. De markten zijn nog <b>verzonnen voorbeelden</b>.</span></p>
     </div>
   </>);
 }
