@@ -19,15 +19,15 @@ Klein en uitvoerbaar. Elke taak: wat, klaar als, test. Status: ☐ open · ◐ b
 | # | Taak | Klaar als |
 |---|---|---|
 | 10 | ☐ Bewegingen uit het ontwerp | lijst herordent (FLIP), pins vallen in, groepjes splitsen geanimeerd, bon print, lijst → detail met View Transition |
-| 11 | ☐ Zoeken op plaats/postcode (PDOK) | “Utrecht” of “3811” verplaatst de kaart en het afstandspunt |
-| 12 | ☐ Eerste keer openen + locatie | welkomstpaneel, locatie pas na tik, geweigerd-staat |
+| 11 | ☑ Zoeken op plaats/postcode (PDOK) | “Utrecht” of “3811” verplaatst de kaart en het afstandspunt |
+| 12 | ☑ Eerste keer openen + locatie | welkomstpaneel, locatie pas na tik, geweigerd-staat |
 | 13 | ☐ Valse treffers OSM opschonen | regels voor tweedehands/vintage, handmatige uitzonderingenlijst |
 | 14 | ☐ Eerste echte organisator-uitlezer (§5.2) | één organisatorsite → markten met status “gecontroleerd”, test met opgeslagen pagina |
 | 15 | ☐ Preview-deploy (Cloudflare Pages) | privé-preview-URL; account: Freek |
 | 16 | ☐ Testronde op de echte app | testscript draaien met 3 personen |
 
 ## Later
-- Melden ("Klopt er iets niet?"), PDOK-zoeken, eigen locatie + eerste keer openen, stadspagina's, PWA/offline, "Hoe we controleren", aanmelden organisatoren.
+- Melden ("Klopt er iets niet?"), stadspagina's, PWA/offline, "Hoe we controleren", aanmelden organisatoren.
 - Echte markten: uitlezers voor organisatorsites (§5.2).
 - Supabase, accounts, beheer, deploy naar Cloudflare (accounts en secrets: Freek).
 - Testronde draaien op de echte app.

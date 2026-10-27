@@ -39,3 +39,6 @@ a.btn.primary{color:var(--on-ink)}
   .shell .toast{left:416px;right:auto;width:360px}
   [data-drag]{cursor:default}
 }
+
+/* eerste keer openen */
+.brand-mark{width:40px;height:40px;border-radius:12px;background:var(--ink);color:var(--on-ink);display:grid;place-items:center}

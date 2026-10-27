@@ -23,3 +23,8 @@ Keuzes en waarom. Nieuwste onderaan. "Freek" = besloten door Freek; anders voorl
 - **Openingstijden vooruitgerekend** (21 dagen) bij de import i.p.v. in de browser: scheelt ±160 kB gz en maakt elke statuscheck een opzoeking. Gevolg: zonder verse build worden tijden na 21 dagen "onbekend"; de nachtelijke build (§6.1) voorkomt dat.
 - **MapLibre laadt lui** (dynamic import): eerste weergave ±90 kB gz JS, kaart (±300 kB gz) daarna.
 - **Pin-filter (pinnen) weggelaten**: de OSM-import bevat (nog) geen betaalmethoden. Terug als `payment:*` wordt meegenomen.
+
+## 2026-10-27 · Locatie en zoeken
+- **Plaats zoeken via PDOK Locatieserver** (`suggest`, woonplaatsen + postcodes): open, geen sleutel, CORS open, matcht op een begin ("utr"). Rechtstreeks uit de browser; geen eigen server nodig. Een kale postcode van 4 cijfers wordt één plek.
+- **Gekozen plaats wordt bewaard** op het apparaat (`snuffel-plek`), **GPS-locatie niet** (belofte in het welkom). Wie al toestemming gaf, krijgt de locatie stil opnieuw bij openen.
+- **Welkom inline in het paneel**, geen pop-up (A10). Kaart toont tot die tijd Amersfoort, niet de hele regio zoals in het ontwerp; aanpassen als het testen dat vraagt.

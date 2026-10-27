@@ -5,6 +5,7 @@ import { placeNow, openOn, setWindow } from '../lib/hours';
 import { visible, defaultTime, type Filters } from '../lib/filter';
 import { simulate } from '../lib/plan';
 import { sampleMarkets } from '../lib/markets';
+import type { Spot } from '../lib/pdok';
 import MapView from './MapView';
 import { ListView, DetailView, PlanView, type Ctx } from './Views';
 import { Ic } from './ui';
@@ -37,7 +38,10 @@ export default function App() {
   const [f, setFState] = useState<Filters>(() => ({ type: 'all', time: defaultTime(now), date: null, gratis: false, overdekt: false, q: '' }));
   const [view, setView] = useState<View>('list'), [prev, setPrev] = useState<View>('list'), [sel, setSel] = useState<string | null>(null);
   const [snap, setSnap] = useState<Snap>('half'), [limit, setLimit] = useState(40);
-  const [me, setMe] = useState<LatLon | null>(null), origin = me ?? DEFAULT_CENTER;
+  // Locatie pas na een tik (A10) en nooit opgeslagen; een gekozen plaats wel.
+  const [me, setMe] = useState<LatLon | null>(null), [spot, setSpot] = useLocal<Spot | null>('snuffel-plek', null);
+  const [locDenied, setLocDenied] = useState(false), [welcomed, setWelcomed] = useLocal('snuffel-welkom', false);
+  const origin = me ?? spot ?? DEFAULT_CENTER, originLabel = me ? null : spot?.label ?? 'Amersfoort';
   const [favs, setFavs] = useLocal<string[]>('snuffel-favs', []);
   const [sat] = weekendOf(now);
   const [planRaw, setPlanRaw] = useLocal('snuffel-plan', { day: sat, start: 570, stops: [] as string[] });
@@ -71,27 +75,33 @@ export default function App() {
     else if (it.t === 'k' && !openOn(it, plan.day)) setToast(`Let op: deze winkel is op ${DAYS_LONG[dayStart(plan.day).getDay()]} dicht.`);
     setPlan(next);
   };
-  const locate = () => {
-    if (!navigator.geolocation) return setToast('Je browser kan je locatie niet delen. Zoek een plaats.');
+  const locate = (quiet = false) => {
+    if (!quiet) setWelcomed(true);
+    if (!navigator.geolocation) return setLocDenied(true);
     navigator.geolocation.getCurrentPosition(
-      p => { const ll = { lat: p.coords.latitude, lon: p.coords.longitude }; setMe(ll); setFocus({ ...ll, key: Date.now() }); },
-      () => setToast('Je locatie staat uit. Zoek een plaats, of zet hem aan in je browser.'), { enableHighAccuracy: false, timeout: 8000 });
+      p => { const ll = { lat: p.coords.latitude, lon: p.coords.longitude }; setMe(ll); setLocDenied(false); setFocus({ ...ll, key: Date.now() }); },
+      e => { if (quiet) return; if (e.code === e.PERMISSION_DENIED) setLocDenied(true); else setToast('Je locatie lukte nu niet. Probeer het nog eens, of zoek een plaats.'); },
+      { enableHighAccuracy: false, timeout: 8000, maximumAge: 300_000 });
   };
+  // Al eerder toestemming gegeven? Dan zonder vragen opnieuw ophalen.
+  useEffect(() => { navigator.permissions?.query({ name: 'geolocation' }).then(s => s.state === 'granted' && locate(true)).catch(() => {}); }, []);
+  const pickSpot = (s: Spot) => { setSpot(s); setMe(null); setWelcomed(true); setFState(o => ({ ...o, q: '' })); setFocus({ lat: s.lat, lon: s.lon, key: Date.now() }); scrollTop(); };
+  const pickPlace = () => { setWelcomed(true); setSnap('full'); requestAnimationFrame(() => sheet.current?.querySelector<HTMLInputElement>('input[type=search]')?.focus()); };
   const openPlan = () => { setPrev(view); setView('plan'); setSnap(desktop ? 'half' : 'half'); scrollTop(); };
   useEffect(() => { if (view === 'plan') setFit({ pts: [origin, ...plan.stops.map(id => byId.get(id)).filter(Boolean) as Item[]], key: Date.now() }); }, [view, plan.stops.join(), plan.day]);
 
-  const c: Ctx = { now, f, origin, me, favs, planStops: plan.stops, planDay: plan.day, setF, open, toggleStop, toggleFav, locate, back, openPlan };
+  const c: Ctx = { now, f, origin, originLabel, locDenied, welcome: !welcomed && !spot && !me, spot: !!spot, pickSpot, pickPlace, me, favs, planStops: plan.stops, planDay: plan.day, setF, open, toggleStop, toggleFav, locate, back, openPlan };
 
   // ---------- bottom sheet (mobiel) ----------
   const shell = useRef<HTMLDivElement>(null), sheet = useRef<HTMLDivElement>(null), scroller = useRef<HTMLDivElement>(null);
   const [tops, setTops] = useState({ full: 12, half: 400, collapsed: 600 }), [dragTop, setDragTop] = useState<number | null>(null);
   const scrollTop = () => requestAnimationFrame(() => scroller.current && (scroller.current.scrollTop = 0));
-  const barOn = plan.stops.length > 0 && view !== 'plan';
+  const barOn = plan.stops.length > 0 && view !== 'plan' && (welcomed || !!spot || !!me);
   useLayoutEffect(() => {
     const H = shell.current!.clientHeight, peek = sheet.current!.querySelector<HTMLElement>('[data-peek]');
     const ph = (peek ? peek.offsetTop + peek.offsetHeight : 180) + (barOn ? 78 : 0), half = Math.round(H * 0.5);
     setTops({ full: 12, half, collapsed: Math.max(half + 40, H - ph) });
-  }, [view, sel, f.time, barOn, places, desktop]);
+  }, [view, sel, f.time, barOn, places, desktop, welcomed, locDenied, me, spot]);
   const top = dragTop ?? tops[snap];
   const bottomPad = desktop || !shell.current ? 0 : Math.max(0, shell.current.clientHeight - Math.min(top, tops.half));
   const drag = useRef<{ y: number; top: number; last: number; t: number; v: number; moved: boolean; id: number; handle: boolean } | null>(null);

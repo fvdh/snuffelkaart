@@ -5,6 +5,7 @@ import { placeNow, placeDay, isHoliday, week, setWindow, intervals } from './hou
 import { simulate, bestOrder, routeUrl } from './plan';
 import { matches, defaultTime } from './filter';
 import { sampleMarkets } from './markets';
+import { parsePdok } from './pdok';
 // dezelfde code als de import gebruikt
 import { precompute, holidays } from '../../scripts/hours-precompute.mjs';
 
@@ -76,5 +77,15 @@ describe('dagplan', () => {
     const u = new URL(routeUrl('google', DEFAULT_CENTER, [m('m2'), shop, m('m5')]));
     expect(u.searchParams.get('waypoints')!.split('|')).toHaveLength(2);
     expect(routeUrl('apple', null, [m('m2'), shop]).match(/daddr=/g)).toHaveLength(2);
+  });
+});
+
+describe('plaats zoeken (PDOK)', () => {
+  const pc = (n: string, x = 5.39) => ({ type: 'postcode', weergavenaam: n, centroide_ll: `POINT(${x} 52.15)` });
+  it('vier cijfers worden één plek; woonplaats krijgt gemeente', () => {
+    expect(parsePdok([pc('Appelmarkt, 3811CT Amersfoort'), pc('Arnhemsestraat, 3811LE Amersfoort', 5.38)], '3811')).toEqual([{ lat: 52.15, lon: 5.39, label: '3811', sub: 'Amersfoort' }]);
+    expect(parsePdok([pc('Appelmarkt, 3811CT Amersfoort')], '3811ct')[0]).toMatchObject({ label: '3811CT', sub: 'Appelmarkt, Amersfoort' });
+    const w = (n: string) => ({ type: 'woonplaats', weergavenaam: n, centroide_ll: 'POINT(5.25 52.09)' });
+    expect(parsePdok([w('Zeist, Zeist, Utrecht'), w('Den Dolder, Zeist, Utrecht')], 'z').map(s => s.sub)).toEqual(['Utrecht', 'Gemeente Zeist, Utrecht']);
   });
 });

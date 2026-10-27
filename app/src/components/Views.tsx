@@ -1,15 +1,17 @@
-import type { ReactElement } from 'react';
+import { useEffect, useState, type ReactElement } from 'react';
 import type { Item, LatLon, Place, Market } from '../lib/model';
 import { dShort, dLong, fkm, hm, isoDay, addDays, dayStart, DAYS, DAYS_LONG, km, weekendOf } from '../lib/model';
 import { placeNow, placeDay, placeWeekend, marketStatus, week, isHoliday, openOn, type Status } from '../lib/hours';
 import { simulate, bestOrder, routeUrl } from '../lib/plan';
 import type { Filters } from '../lib/filter';
+import { searchSpots, type Spot } from '../lib/pdok';
 import { Ic, Tile, St, Conf, Banner, kindLabel, isUnsure } from './ui';
 
 export interface Ctx {
-  now: Date; f: Filters; origin: LatLon; me: LatLon | null; favs: string[]; planStops: string[]; planDay: string;
+  now: Date; f: Filters; origin: LatLon; originLabel: string | null; locDenied: boolean; welcome: boolean; spot: boolean; me: LatLon | null;
+  pickSpot: (s: Spot) => void; pickPlace: () => void; favs: string[]; planStops: string[]; planDay: string;
   setF: (p: Partial<Filters>) => void; open: (id: string) => void; toggleStop: (id: string) => void; toggleFav: (id: string) => void;
-  locate: () => void; back: () => void; openPlan: () => void;
+  locate: (quiet?: boolean) => void; back: () => void; openPlan: () => void;
 }
 
 /** Status van een item in de context van het gekozen tijdfilter. */
@@ -39,9 +41,34 @@ export function Row({ it, d, c }: { it: Item; d: number; c: Ctx }) {
   );
 }
 
+/** Plaatsen en postcodes bij de zoekterm (PDOK), met een korte pauze na het typen. */
+function useSpots(q: string): Spot[] {
+  const [hits, setHits] = useState<Spot[]>([]);
+  useEffect(() => {
+    const t = q.trim(); if (t.length < 2) { setHits([]); return; }
+    const ac = new AbortController(), id = setTimeout(() => searchSpots(t, ac.signal).then(setHits).catch(() => {}), 220);
+    return () => { clearTimeout(id); ac.abort(); };
+  }, [q]);
+  return q.trim().length < 2 ? [] : hits;
+}
+
+function Welcome({ c }: { c: Ctx }) {
+  return (
+    <div className="lv-head" data-peek data-drag><div className="welcome">
+      <span className="brand-mark"><Ic n="tag" /></span>
+      <h2>Snuffelen, maar dan slim</h2>
+      <p>Kringlopen en rommelmarkten in Utrecht en Gelderland op één kaart. Je ziet wat er open is, en je maakt in twee minuten een plan voor je zaterdag.</p>
+      <div className="btns"><button className="btn primary" onClick={() => c.locate()}><Ic n="loc" />Laat zien wat er bij mij is</button><button className="btn" onClick={c.pickPlace}>Kies een plaats</button></div>
+      <p className="fine"><Ic n="shield" />Je locatie blijft op je telefoon. We slaan hem niet op.</p>
+    </div></div>
+  );
+}
+
 export function ListView({ c, list, total, limit, more, counts, nPlaces }: { c: Ctx; list: { it: Item; d: number }[]; total: number; limit: number; more: () => void; counts: { kNow: number; kToday: number; mWk: number }; nPlaces: number }) {
-  const { f, now } = c, today = isoDay(now), weekend = weekendOf(now).includes(today);
-  const title = f.time === 'now' ? 'Nu bij jou in de buurt' : f.time === 'weekend' ? 'Dit weekend bij jou in de buurt' : f.time === 'today' ? 'Vandaag bij jou in de buurt' : dLong(f.date ?? today);
+  const { f, now } = c, today = isoDay(now), weekend = weekendOf(now).includes(today), spots = useSpots(f.q);
+  if (c.welcome) return <Welcome c={c} />;
+  const near = c.originLabel ? `rond ${c.originLabel}` : 'bij jou in de buurt';
+  const title = f.time === 'now' ? `Nu ${near}` : f.time === 'weekend' ? `Dit weekend ${near}` : f.time === 'today' ? `Vandaag ${near}` : dLong(f.date ?? today);
   const P = (b: boolean) => ({ 'aria-pressed': b });
   return (<>
     <div className="lv-head" data-peek data-drag>
@@ -50,8 +77,8 @@ export function ListView({ c, list, total, limit, more, counts, nPlaces }: { c: 
           ? <button onClick={() => c.setF({ time: 'today' })}><span className="cdot" />{counts.kToday} kringlopen open vandaag</button>
           : <button onClick={() => c.setF({ time: 'now' })}><span className="cdot" />{counts.kNow} kringlopen nu open</button>}
           <span>·</span><button onClick={() => c.setF({ time: 'weekend' })}>{counts.mWk} markten dit weekend</button></p></div>
-        <button className="me-btn" onClick={c.locate} aria-label="Gebruik mijn locatie"><Ic n="loc" /></button></div>
-      <label className="search"><Ic n="search" /><span className="sr">Zoeken</span><input type="search" placeholder="Zoek op naam of plaats" value={f.q} onChange={e => c.setF({ q: e.target.value })} autoComplete="off" /></label>
+        <button className="me-btn" onClick={() => c.locate()} aria-label="Gebruik mijn locatie" aria-pressed={!!c.me}><Ic n="loc" /></button></div>
+      <label className="search"><Ic n="search" /><span className="sr">Zoeken</span><input type="search" placeholder="Zoek op naam, plaats of postcode" value={f.q} onChange={e => c.setF({ q: e.target.value })} autoComplete="off" /></label>
       <div className="chips" role="group" aria-label="Filters">
         <div className="typeseg" role="group" aria-label="Type">
           <button {...P(f.type === 'all')} onClick={() => c.setF({ type: 'all' })}>Alles</button>
@@ -69,11 +96,13 @@ export function ListView({ c, list, total, limit, more, counts, nPlaces }: { c: 
       {f.time === 'date' && <div className="daystrip" role="group" aria-label="Kies een dag">{Array.from({ length: 10 }, (_, i) => { const iso = addDays(today, i), d = dayStart(iso); return (
         <button key={iso} className="day" aria-pressed={f.date === iso} onClick={() => c.setF({ date: iso })} aria-label={dLong(iso) + (isHoliday(iso) ? ', feestdag' : '')}><span>{i === 0 ? 'vand.' : DAYS[d.getDay()]}</span><b className="tnum">{d.getDate()}</b><i className={`mk${isHoliday(iso) ? '' : ' none'}`} /></button>); })}</div>}
       {isHoliday(f.time === 'date' && f.date ? f.date : today) && <Banner kind="warn" icon="cal"><b>Het is een feestdag.</b> Kringlopen hebben dan vaak andere tijden. Bel even voordat je gaat.</Banner>}
-      {!c.me && <Banner icon="pin"><b>Afstanden vanaf Amersfoort.</b> <button className="link" onClick={c.locate}>Gebruik mijn locatie</button></Banner>}
+      {c.locDenied && !c.me ? <Banner icon="pin"><b>Je locatie staat uit.</b> Geen probleem: zoek hierboven een plaats of postcode. Wil je hem toch aanzetten, dan kan dat in de instellingen van je browser.</Banner>
+        : !c.me && !f.q && <Banner icon="pin">{!c.spot ? <><b>Waar wil je snuffelen?</b> We tonen nu Amersfoort. </> : <><b>Afstanden vanaf {c.originLabel}.</b> </>}<button className="link" onClick={() => c.locate()}>Gebruik mijn locatie</button> of zoek een plaats.</Banner>}
     </div>
     <div className="rows-wrap">
+      {spots.length > 0 && <div className="sresults"><h4>Kijk rond in</h4>{spots.map(s => <button key={s.label + s.sub} className="sres" onClick={() => c.pickSpot(s)}><span className="ic"><Ic n="pin" /></span><span><b>{s.label}</b><span>{s.sub}</span></span><Ic n="chev" /></button>)}{list.length > 0 && <h4>Winkels en markten</h4>}</div>}
       {list.length ? <ul className="rows" aria-label="Resultaten">{list.slice(0, limit).map(x => <Row key={x.it.id} it={x.it} d={x.d} c={c} />)}</ul>
-        : <div className="empty"><h3>{f.q ? `Niets gevonden voor “${f.q}”` : 'Geen resultaten met deze filters'}</h3><p>{f.q ? 'Zoek op de naam van een winkel of een plaats.' : 'Kijk naar het hele weekend, of zet een filter uit.'}</p>
+        : spots.length ? null : <div className="empty"><h3>{f.q ? `Niets gevonden voor “${f.q}”` : 'Geen resultaten met deze filters'}</h3><p>{f.q ? 'Zoek op de naam van een winkel of een plaats.' : 'Kijk naar het hele weekend, of zet een filter uit.'}</p>
           <div className="btns">{f.q && <button className="btn sm" onClick={() => c.setF({ q: '' })}>Wis zoekopdracht</button>}<button className="btn sm primary" onClick={() => c.setF({ time: 'weekend', gratis: false, overdekt: false })}>Dit weekend</button></div></div>}
       {total > limit && <button className="more" onClick={more}>Toon meer ({total - limit})</button>}
       {f.time === 'now' && f.type !== 'k' && !f.q && <button className="hint" onClick={() => c.setF({ time: 'weekend' })}><span>{counts.mWk} markten dit weekend<small>Markten zijn er vooral op zaterdag en zondag</small></span><Ic n="chev" /></button>}
