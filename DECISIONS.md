@@ -93,3 +93,9 @@ Keuzes en waarom. Nieuwste onderaan. "Freek" = besloten door Freek; anders voorl
 - **Workers, niet Pages**: Cloudflare stuurt nieuwe projecten naar Workers met statische bestanden (`wrangler.jsonc`, geen eigen code). Zelfde resultaat, gratis.
 - **Open link** (Freek): wie de link heeft, kan erin. Niet vindbaar: `X-Robots-Tag: noindex` via `_headers` en `robots.txt` met `Disallow: /`. Achter een login (Cloudflare Access) kan later.
 - **MapLibre-worker**: MapLibre 6 zoekt `maplibre-gl-worker.mjs` naast zijn eigen bestand; na bundelen staat die er niet en blijft de kaart leeg. We wijzen hem aan met `setWorkerUrl` en een `?url`-import.
+
+## Licentieanalyse M0 (2026-10-27)
+
+- **Analyse**: `LICENTIES.md`, per datastroom wat de licentie is, waar het landt en wat we moeten doen.
+- **Voorstel D4: OSM-afgeleide data accepteren onder ODbL** (beslist Freek). Het openbare `places.json` is voor het OSM-deel een afgeleide database; velden die we bij OSM-winkels aanvullen (Overture-website/telefoon, websitetijden) gaan daarin mee. Markten vallen er niet onder (geen OSM, plek via PDOK).
+- **Organisatorsites**: databankenrecht beschermt verzamelen, niet maken (HvJ 2004), maar websitevoorwaarden kunnen hergebruik toch beperken (HvJ *Ryanair* 2015). Daarom blijft de voorwaardencheck per site nodig.
