@@ -290,6 +290,31 @@ export function jojoEvent(html, url, today = new Date().toISOString().slice(0, 1
     kraamhuur: k ? `€${k[1]}${k[2] !== '00' ? `,${k[2]}` : ''}` : undefined, org: 'JoJo Vlooienmarkten', url, schema: '', status: 'chk' };
 }
 
+// ---------- MDV Evenementen (zie ../sources/mdv.md) ----------
+/** Locatiepagina → per hal naam, straat, postcode, plaats ("Sport- en Evenementenhal Margriet / … / Adres: / Nieuwe Damlaan 5 / 3119 KA Schiedam"). */
+export function mdvLocations(html) {
+  const L = toText(html).split('\n').map(l => l.trim()).filter(Boolean), out = [];
+  L.forEach((l, i) => { const pc = /^Adres:$/i.test(l) && /^(\d{4}\s?[A-Z]{2})\s+(.+)$/.exec(L[i + 2] ?? ''); if (pc) out.push({ venue: L[i - 2], street: L[i + 1], postcode: pc[1].replace(/\s/g, ''), city: pc[2].trim() }); });
+  return out;
+}
+/** Agenda (homepage) → per "event-day" datum, tijden, titel "22 November 2026 – (VOLGEBOEKT …) Mega-Rommelmarkt in de Margriethal in Schiedam" en link.
+ *  Adres via de plaats uit de titel op de locatiepagina (`locs`). */
+export function mdvAgenda(html, locs = []) {
+  const out = [];
+  for (const blk of html.split(/<div class="event-day">/).slice(1)) {
+    const a = /<a href="(https:\/\/www\.mdv-evenementen\.nl\/event\/[^"]+)">([^<]+)<\/a>/.exec(blk); if (!a) continue;
+    const head = toText(a[2]).replace(/\s*\([^)]*\)\s*/g, ' ').replace(/\s+/g, ' ').trim(), tm = /<span>(\d{1,2}:\d{2})<\/span>\s*(\d{1,2}:\d{2})/.exec(blk);
+    const d = new RegExp(`^(\\d{1,2})\\s+(${MONTHS.join('|')})\\s+(\\d{4})`, 'i').exec(head), w = /(\S*rommelmarkt|vlooienmarkt)\s+in\s+de\s+(.+?)\s+in\s+(.+)$/i.exec(head);
+    if (!d || !w || /kerst/i.test(head)) continue;
+    const city = w[3].trim(), loc = locs.find(l => l.city.toLowerCase() === city.toLowerCase()), date = `${d[3]}-${pad(MONTHS.indexOf(d[2].toLowerCase()) + 1)}-${pad(+d[1])}`;
+    out.push({ id: `mdv-${date}-${city.toLowerCase().replace(/\W+/g, '-')}`, t: 'm', name: `Rommelmarkt ${city}`, kind: 'Rommelmarkt', place: city, venue: w[2].trim(),
+      addr: loc ? `${loc.street}, ${loc.postcode.replace(/([A-Z]{2})$/, ' $1')} ${loc.city}` : null, street: loc?.street, postcode: loc?.postcode,
+      date, start: tm ? mins(tm[1]) : 540, end: tm ? mins(tm[2]) : null, timeKnown: !!tm, indoor: true /* alleen sporthallen */, entree: 'onbekend',
+      org: 'MDV Evenementen', url: a[1], schema: '', status: 'chk' });
+  }
+  return out;
+}
+
 /** Adres → coördinaten via PDOK (adres, anders postcode). Null buiten Nederland. */
 async function geocode(m) {
   for (const [q, type] of [[m.street && `${m.street} ${m.postcode}`, 'adres'], [m.q, '(adres OR weg)'], [m.postcode, 'postcode'], [m.place, 'woonplaats']]) {
@@ -412,7 +437,11 @@ async function jojo(skipped) {
   }
   return out;
 }
-const SOURCES = [['JoJo Vlooienmarkten', jojo, 'https://www.jojovlooienmarkten.nl/agenda-vlooienmarkten'], ['Animo Vlooienmarkten', animo, 'https://animo-vlooienmarkten.nl/kalender'], ['IJ-Hallen', ijHallen, 'https://ijhallen.nl/agenda.php'], ['Organisatieburo Mikki', mikki, 'https://www.mikki.nl/'], ['De Evenementenlijn', evenementenlijn, 'https://www.deevenementenlijn.nl/'], ['Organisatieburo Vitalis', vitalis, 'https://vitalismarkten.nl/agenda/'],['Don Events', donEvents, 'https://donevents.nl/marktkalender/'], ['Organisatieburo Wildro', wildro, 'https://wildro.nl/vlooienmarkten/'], ['Organisatie Bureau VAC', vac, 'https://org-vac.nl/'], ['Van Aerle (vlooienmarkten.nl)', vanAerle, 'https://www.vlooienmarkten.nl/agenda-markten/']];
+async function mdv() {
+  const home = await (await get('https://www.mdv-evenementen.nl/')).text(); await sleep(1500);
+  return mdvAgenda(home, mdvLocations(await (await get('https://www.mdv-evenementen.nl/locaties/')).text()));
+}
+const SOURCES = [['MDV Evenementen', mdv, 'https://www.mdv-evenementen.nl/'], ['JoJo Vlooienmarkten', jojo, 'https://www.jojovlooienmarkten.nl/agenda-vlooienmarkten'], ['Animo Vlooienmarkten', animo, 'https://animo-vlooienmarkten.nl/kalender'], ['IJ-Hallen', ijHallen, 'https://ijhallen.nl/agenda.php'], ['Organisatieburo Mikki', mikki, 'https://www.mikki.nl/'], ['De Evenementenlijn', evenementenlijn, 'https://www.deevenementenlijn.nl/'], ['Organisatieburo Vitalis', vitalis, 'https://vitalismarkten.nl/agenda/'],['Don Events', donEvents, 'https://donevents.nl/marktkalender/'], ['Organisatieburo Wildro', wildro, 'https://wildro.nl/vlooienmarkten/'], ['Organisatie Bureau VAC', vac, 'https://org-vac.nl/'], ['Van Aerle (vlooienmarkten.nl)', vanAerle, 'https://www.vlooienmarkten.nl/agenda-markten/']];
 
 async function main() {
   const today = new Date().toISOString().slice(0, 10), prevAll = fs.existsSync(OUT) ? JSON.parse(fs.readFileSync(OUT, 'utf8')).markets : [];
