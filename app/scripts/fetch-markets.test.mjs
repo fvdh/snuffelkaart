@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import fs from 'node:fs';
-import { donCalendar, donProduct, holidayDate, wildroEvent, vacAgenda, vacAddress, aerleAgenda, aerleProduct, vitalisIcs, vitalisPlace, evlAgenda, mikkiEvent, nlDays, ijAgenda, animoCalendar, animoEvent } from './fetch-markets.mjs';
+import { donCalendar, donProduct, holidayDate, wildroEvent, vacAgenda, vacAddress, aerleAgenda, aerleProduct, vitalisIcs, vitalisPlace, evlAgenda, mikkiEvent, nlDays, ijAgenda, animoCalendar, animoEvent, jojoAgenda, jojoEvent, nextDate } from './fetch-markets.mjs';
 
 // Opgeslagen pagina's van Don Events (27 okt 2026): breekt de site-opbouw, dan faalt deze test.
 const fx = f => fs.readFileSync(new URL(`./fixtures/${f}`, import.meta.url), 'utf8');
@@ -153,5 +153,32 @@ describe('uitlezer Animo', () => {
   it('marktpagina geeft tijden en kraamprijs', () => {
     expect(animoEvent(fx('animo-markt.html'))).toEqual({ open: [540, 960], kraamhuur: '€35' });
     expect(animoEvent('<p>Kraam: € 32.50</p>')).toEqual({ open: null, kraamhuur: '€32,50' });
+  });
+});
+
+describe('uitlezer JoJo', () => {
+  const today = '2026-10-27';
+  it('agenda geeft de productpagina\'s', () => {
+    const links = jojoAgenda(fx('jojo-agenda.html'));
+    expect(links.length).toBe(5);
+    expect(links[0]).toEqual({ url: 'https://www.jojovlooienmarkten.nl/product/23744253/zondag-1-november-kortenhoef', title: 'Zondag 1 November Kortenhoef' });
+  });
+  it('jaar ontbreekt: eerstvolgende datum vanaf vandaag, weekdag moet kloppen', () => {
+    expect(nextDate(1, 10, 0, today)).toBe('2026-11-01');
+    expect(nextDate(28, 1, 0, today)).toBe('2027-02-28');
+    expect(nextDate(27, 9, null, today)).toBe('2026-10-27'); // vandaag telt mee
+    expect(nextDate(1, 10, 1, today)).toBeNull(); // 1 november 2026 is geen maandag: niet doorschuiven naar 2027
+    expect(nextDate(26, 9, 2, today)).toBe('2027-10-26'); // gisteren → volgend jaar (dinsdag 26 oktober 2027)
+  });
+  it('productpagina geeft datum, plaats, hal, tijden uit het reglement en kraamprijs', () => {
+    const url = 'https://www.jojovlooienmarkten.nl/product/22586651/zondag-22-november-bussum';
+    expect(jojoEvent(fx('jojo-markt.html'), url, today)).toEqual({ id: 'jojo-22586651', t: 'm', name: 'Vlooienmarkt Bussum', kind: 'Vlooienmarkt', place: 'Bussum',
+      venue: 'Sporthal De Zandzee', addr: null, street: undefined, postcode: undefined, date: '2026-11-22', start: 540, end: 960, timeKnown: true, indoor: true,
+      entree: 'onbekend', kraamhuur: '€28', org: 'JoJo Vlooienmarkten', url, schema: '', status: 'chk' });
+  });
+  it('tweede paasdag in het volgende jaar, met adres', () => {
+    const url = 'https://www.jojovlooienmarkten.nl/product/24074654/2de-paasdag-29-maart-keizerswei-doorn';
+    expect(jojoEvent(fx('jojo-markt-adres.html'), url, today)).toMatchObject({ place: 'Doorn', venue: 'Keizerswei', addr: 'De Beaufortweg 1, 3941 PA Doorn',
+      street: 'De Beaufortweg 1', postcode: '3941PA', date: '2027-03-29', indoor: undefined });
   });
 });

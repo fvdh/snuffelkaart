@@ -258,6 +258,38 @@ export function animoEvent(html) {
   return { open: tm ? [mins(tm[1]), mins(tm[2])] : null, kraamhuur: k ? `€${k[1]}${k[2] && k[2] !== '00' ? `,${k[2]}` : ''}` : undefined };
 }
 
+// ---------- JoJo Vlooienmarkten (zie ../sources/jojo.md) ----------
+const WEEKDAYS = ['zondag', 'maandag', 'dinsdag', 'woensdag', 'donderdag', 'vrijdag', 'zaterdag'];
+/** Agenda (webshop) → links naar de productpagina's, één per markt. */
+export function jojoAgenda(html) {
+  const out = new Map();
+  for (const m of html.matchAll(/<a\b[^>]*href="(\/product\/\d+\/[^"#?]+)"[^>]*>([\s\S]*?)<\/a>/g)) {
+    const t = toText(m[2]).replace(/\s+/g, ' ').trim(); if (t && !/bekijk details/i.test(t) && !out.has(m[1])) out.set(m[1], { url: `https://www.jojovlooienmarkten.nl${m[1]}`, title: t });
+  }
+  return [...out.values()];
+}
+/** "1 november" zonder jaar → de eerstvolgende keer op of na `today`. Staat er een weekdag bij ("zondag", "2de paasdag" = maandag) en klopt die
+ *  niet met die datum, dan is de pagina oud of fout: null (niet een jaar verder zoeken). */
+export function nextDate(day, month, weekday, today) {
+  const y = +today.slice(0, 4), md = `${pad(month + 1)}-${pad(day)}`, iso = `${y}-${md}` >= today ? `${y}-${md}` : `${y + 1}-${md}`;
+  return weekday == null || new Date(`${iso}T12:00:00Z`).getUTCDay() === weekday ? iso : null;
+}
+/** Productpagina → editie. Titel "Zondag 1 November Kortenhoef" of "2de Paasdag (29 Maart) Keizerswei Doorn"; hal uit "wordt in sporthal De Fuik",
+ *  adres als het er staat ("De Beaufortweg 1 / 3941 PA Doorn"). Tijden: hun marktreglement, "voor het publiek geopend van 9.00-16.00 uur" op alle markten. */
+export function jojoEvent(html, url, today = new Date().toISOString().slice(0, 10)) {
+  const head = (html.match(/<title>([^<]*)<\/title>/i)?.[1] ?? '').replace(/\s*\|\s*jojovlooienmarkten\s*$/i, '').replace(/[()]/g, ' ').replace(/\s+/g, ' ').trim();
+  const d = new RegExp(`^(.*?)\\b(\\d{1,2})\\s+(${MONTHS.join('|')})\\s+(.+)$`, 'i').exec(head); if (!d || /kerst/i.test(head)) return null;
+  const pre = d[1].toLowerCase(), wd = /2de\s+(paas|pinkster)dag/.test(pre) ? 1 : WEEKDAYS.findIndex(w => pre.includes(w));
+  const date = nextDate(+d[2], MONTHS.indexOf(d[3].toLowerCase()), wd < 0 ? null : wd, today); if (!date) return null;
+  const t = toText(html), a = /(?:^|\n)([^\n]*?[A-Za-z][^\n]*?\s\d+[a-zA-Z]?)\n(\d{4}\s?[A-Z]{2})\s+([^\n]+)/.exec(t), words = d[4].trim().split(' ');
+  const city = a ? a[3].trim() : words.at(-1), hall = /wordt in\s+([^\n]+?)\s+een grote/i.exec(t.replace(/\n/g, ' '))?.[1]?.replace(new RegExp(`\\s+in\\s+${city}$`, 'i'), '');
+  const venue = hall?.replace(/^./, c => c.toUpperCase()) ?? (words.length > 1 ? words.slice(0, -1).join(' ') : null), k = /1 kraam\s*-\s*€\s*(\d+),(\d{2})/.exec(t);
+  return { id: `jojo-${url.split('/product/')[1]?.split('/')[0]}`, t: 'm', name: `Vlooienmarkt ${city}`, kind: 'Vlooienmarkt', place: city, venue,
+    addr: a ? `${a[1].trim()}, ${a[2].replace(/\s/g, '').replace(/([A-Z]{2})$/, ' $1')} ${city}` : null, street: a?.[1].trim(), postcode: a?.[2].replace(/\s/g, ''),
+    date, start: 540, end: 960, timeKnown: true, indoor: /sporthal|overdekt/i.test(`${venue} ${t}`) ? true : undefined, entree: 'onbekend',
+    kraamhuur: k ? `€${k[1]}${k[2] !== '00' ? `,${k[2]}` : ''}` : undefined, org: 'JoJo Vlooienmarkten', url, schema: '', status: 'chk' };
+}
+
 /** Adres → coördinaten via PDOK (adres, anders postcode). Null buiten Nederland. */
 async function geocode(m) {
   for (const [q, type] of [[m.street && `${m.street} ${m.postcode}`, 'adres'], [m.q, '(adres OR weg)'], [m.postcode, 'postcode'], [m.place, 'woonplaats']]) {
@@ -371,7 +403,16 @@ async function animo(skipped) {
   }
   return out;
 }
-const SOURCES = [['Animo Vlooienmarkten', animo, 'https://animo-vlooienmarkten.nl/kalender'], ['IJ-Hallen', ijHallen, 'https://ijhallen.nl/agenda.php'], ['Organisatieburo Mikki', mikki, 'https://www.mikki.nl/'], ['De Evenementenlijn', evenementenlijn, 'https://www.deevenementenlijn.nl/'], ['Organisatieburo Vitalis', vitalis, 'https://vitalismarkten.nl/agenda/'],['Don Events', donEvents, 'https://donevents.nl/marktkalender/'], ['Organisatieburo Wildro', wildro, 'https://wildro.nl/vlooienmarkten/'], ['Organisatie Bureau VAC', vac, 'https://org-vac.nl/'], ['Van Aerle (vlooienmarkten.nl)', vanAerle, 'https://www.vlooienmarkten.nl/agenda-markten/']];
+async function jojo(skipped) {
+  const out = [];
+  for (const { url } of jojoAgenda(await (await get('https://www.jojovlooienmarkten.nl/agenda-vlooienmarkten')).text())) {
+    await sleep(1500);
+    let m; try { m = jojoEvent(await (await get(url)).text(), url); } catch (e) { skipped.push(`${url} (${e.message})`); continue; }
+    if (m) out.push(m); else skipped.push(`${url} (geen datum, of weekdag past niet in dit of volgend jaar)`);
+  }
+  return out;
+}
+const SOURCES = [['JoJo Vlooienmarkten', jojo, 'https://www.jojovlooienmarkten.nl/agenda-vlooienmarkten'], ['Animo Vlooienmarkten', animo, 'https://animo-vlooienmarkten.nl/kalender'], ['IJ-Hallen', ijHallen, 'https://ijhallen.nl/agenda.php'], ['Organisatieburo Mikki', mikki, 'https://www.mikki.nl/'], ['De Evenementenlijn', evenementenlijn, 'https://www.deevenementenlijn.nl/'], ['Organisatieburo Vitalis', vitalis, 'https://vitalismarkten.nl/agenda/'],['Don Events', donEvents, 'https://donevents.nl/marktkalender/'], ['Organisatieburo Wildro', wildro, 'https://wildro.nl/vlooienmarkten/'], ['Organisatie Bureau VAC', vac, 'https://org-vac.nl/'], ['Van Aerle (vlooienmarkten.nl)', vanAerle, 'https://www.vlooienmarkten.nl/agenda-markten/']];
 
 async function main() {
   const today = new Date().toISOString().slice(0, 10), prevAll = fs.existsSync(OUT) ? JSON.parse(fs.readFileSync(OUT, 'utf8')).markets : [];
