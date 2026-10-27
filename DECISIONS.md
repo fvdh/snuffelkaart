@@ -16,7 +16,7 @@ Keuzes en waarom. Nieuwste onderaan. "Freek" = besloten door Freek; anders voorl
 - **Clustering**: `supercluster` met HTML-markers, zodat pins exact de ontworpen vorm en animaties hebben. Grens: ~30 px, zoals in het ontwerp.
 - **Openingstijden**: OSM-syntax via de `opening_hours`-bibliotheek, met Nederlandse feestdagen (`PH`).
 - **Data in de browser**: één JSON (`public/data/places.json`), lokaal gefilterd (§6.1). Geen server.
-- **Markten**: nog geen echte bron. `app/src/lib/markets.ts` bevat de verzonnen markten uit het prototype, met datums relatief aan de komende zaterdag/zondag, en zichtbaar gemarkeerd als voorbeeld. Echte markten komen uit de organisator-uitlezers (M0, §5.2).
+- **Markten**: eerst verzonnen voorbeelden; sinds taak 14 echte markten uit de agenda van organisatoren (zie onder). `app/src/lib/markets.ts` blijft alleen voor de tests.
 - **OSM-ophalen**: Overpass met een rechthoek om Utrecht + Gelderland (de provinciefilter time-out op de publieke servers). De import knipt daarna precies op de provinciegrenzen (CBS via PDOK); de echte import gaat via het Geofabrik-extract (§5.1).
 - **Vite 7 vastgezet** (`overrides` in package.json): Vitest 5 trok Vite 8 binnen, wat met Astro 6 de React-plugin breekt.
 - **MapLibre niet voorbundelen in dev** (`optimizeDeps.exclude`): MapLibre 6 laadt zijn worker relatief; voorbundelen breekt dat.
@@ -56,3 +56,27 @@ Keuzes en waarom. Nieuwste onderaan. "Freek" = besloten door Freek; anders voorl
 - **Overpass in 3 × 3 vakken** met vier publieke servers als terugval: één NL-query loopt in een time-out. Duurt ±10 min. De wekelijkse import gaat later via het Geofabrik-extract (§5.1).
 - **Resultaat**: 3701 winkels (OSM 1049, Overture 2652); 895 kringlopen, 194 goede doelen, 2612 overige tweedehands. Tijden bekend: 16%.
 - **Databestand 243 kB gz** (ingekorte Overture-id's, lege velden weg, 5 decimalen). Werkbaar voor de PoC; bij groei opknippen per regio of tegels (§6.1).
+
+## 2026-10-27 · Openingstijden van de eigen website (taak 19)
+- **Bron**: de website van de winkel zelf (feiten, met bronlabel "gelezen op" + link). Geen gidssites van anderen (databankenrecht), geen sociale media.
+- **Regels, geen AI (nog)**: `scripts/hours-from-web.mjs` herkent Nederlandse notaties en slaat blokken over met inname/inbreng, kantoor, telefoon, feestdagen of datums. **Bij twijfel niets**: twee verschillende blokken, een halve lijst, of te weinig dagen. Een fout "dicht" is erger dan "onbekend".
+- **Ketenpagina's tellen niet**: deelt meer dan één winkel dezelfde pagina (bijv. `/contact` van het hoofdkantoor), dan nemen we de tijden niet over (dat waren kantoortijden).
+- **Netjes lezen**: robots.txt, eigen User-Agent met contact, per domein na elkaar met pauze, ≤ 3 pagina's per winkel, cache 7 dagen.
+- **Steekproef** (60 sites): 1 van 3 gecontroleerde uitkomsten was fout door inbrengtijden, 1 door een halve lijst; beide afgevangen en als test vastgelegd. Grotere steekproef volgt na de volle run.
+
+## 2026-10-27 · Eerste echte markten: Don Events (taak 14)
+- **Bron**: eigen agenda van Don Events (±40 markten, heel NL). robots.txt en voorwaarden gecontroleerd en vastgelegd in `sources/donevents.md`.
+- **Alleen feiten**, per markt van hun eigen marktpagina: datum (ook "7 & 8 nov" en "2e paasdag 2027"), "geopend van … tot …", volledig adres (PDOK → exacte plek), kramen, kraamhuur. Status **gecontroleerd** (nooit "bevestigd"), met link naar hun pagina (kraam boeken, doorgaan bij slecht weer).
+- **Niet raden**: binnen/buiten onbekend als de hal het niet zegt; entree "staat niet in de agenda"; zonder adres een pin op de plaats en "precieze plek staat bij de organisator". Losse tijden op de pagina negeren we (dat waren opbouw- en inbrengtijden); dan de tijd uit hun kalender.
+- **Buiten NL** (België, Duitsland) vallen af: PDOK kent ze niet.
+- **Veilige import**: 0 markten of minder dan de helft van vorige keer → oude bestand blijft (`--force` om toch te schrijven).
+- **Geen voorbeeldmarkten meer in de app**: lukt het laden niet, dan geen markten, nooit verzonnen.
+
+## 2026-10-27 · Meer organisatoren, websitetijden aangescherpt, PWA
+- **Organisatoren** (onderzoek in `sources/organisatoren.md`): Don Events, Wildro, Bureau VAC en Van Aerle uitgelezen → 102 markten. Elk met eigen bronbestand, test met opgeslagen pagina's, en veilige import **per organisator** (gaat er één mis, dan blijft zijn vorige stand staan). Thomas09 en Supervlooi verbieden verveelvoudigen in hun disclaimer: niet zonder toestemming (Freek beslist over contact).
+- **Entree pas "gratis" zonder bedrag** (Van Aerle: "€ 6 …, Gratis Parkeren"). Markten zonder tijden tonen "tijden bij de organisator" en krijgen een aandachtspunt in het dagplan.
+- **Websitetijden, twee extra veiligheden** (steekproef 2: parser 0 fouten, 2 fouten uit de brondata): vaste vlooienmarkten krijgen geen weektijden; noemt de pagina alleen postcodes uit een andere buurt (eerste 3 cijfers), dan is het waarschijnlijk een andere winkel of het hoofdkantoor. Exact vergelijken was te streng (bron-postcodes wijken een paar huizen af).
+- **Resultaat**: 532 winkels met tijden van hun eigen website; totaal 30% met tijden (was 16%).
+- **PWA**: manifest, eigen icoon (prijskaartje op kassa-inkt), service worker alleen in de gebouwde site. App en gegevens werken offline met de laatst geladen stand ("Je bent offline. Je ziet de gegevens van …"); kaarttegels die je zag blijven bewaard (max 1500). Getest met de server uit. "Zet op beginscherm" bij het dagplan (Android: echte installatievraag; iPhone: uitleg via Deel).
+- **Testtijd zichtbaar**: met `?nu=` staat rechtsboven "Testtijd: … · naar nu".
+- **Groepjes** tonen nu kringloop / tweedehands / markt in hun eigen kleur.

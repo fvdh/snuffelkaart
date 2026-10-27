@@ -10,7 +10,9 @@
     "test": "TZ=Europe/Amsterdam vitest run",
     "data:osm": "node scripts/fetch-osm.mjs",
     "data:overture": "node scripts/fetch-overture.mjs",
-    "data": "npm run data:overture && npm run data:osm"
+    "data": "npm run data:overture && npm run data:osm",
+    "data:web": "node scripts/fetch-web-hours.mjs",
+    "data:markets": "node scripts/fetch-markets.mjs"
   },
   "dependencies": {
     "@astrojs/react": "^5.0.7",

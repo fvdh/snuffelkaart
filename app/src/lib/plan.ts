@@ -32,7 +32,8 @@ export function simulate(order: Item[], iso: string, startMin: number, from: Lat
     } else {
       if (it.date !== iso) issue = { lv: 'bad', txt: `Is op ${DAYS_LONG[dayStart(it.date).getDay()]}, niet op ${dayName}` };
       else if (it.status === 'cancel') issue = { lv: 'bad', txt: 'Afgelast' };
-      else if (arrive >= mEnd(it)) issue = it.end ? { lv: 'bad', txt: `Markt is dan al voorbij (tot ${hm(it.end)})` } : { lv: 'warn', txt: 'Eindtijd onbekend: misschien ben je te laat' };
+      else if (it.timeKnown === false) issue = { lv: 'warn', txt: 'Tijden onbekend: kijk bij de organisator' };
+    else if (arrive >= mEnd(it)) issue = it.end ? { lv: 'bad', txt: `Markt is dan al voorbij (tot ${hm(it.end)})` } : { lv: 'warn', txt: 'Eindtijd onbekend: misschien ben je te laat' };
       else {
         if (arrive < it.start) { issue = { lv: 'warn', txt: `Begint pas om ${hm(it.start)}` }; leave = it.start + STAY.m; }
         else note = it.end ? `tot ${hm(it.end)}` : 'eindtijd onbekend';

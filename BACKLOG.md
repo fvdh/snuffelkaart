@@ -22,15 +22,16 @@ Klein en uitvoerbaar. Elke taak: wat, klaar als, test. Status: ☐ open · ◐ b
 | 11 | ☑ Zoeken op plaats/postcode (PDOK) | “Utrecht” of “3811” verplaatst de kaart en het afstandspunt |
 | 12 | ☑ Eerste keer openen + locatie | welkomstpaneel, locatie pas na tik, geweigerd-staat |
 | 13 | ☑ Valse treffers OSM opschonen | regels voor tweedehands/vintage, handmatige uitzonderingenlijst |
-| 14 | ☐ Eerste echte organisator-uitlezer (§5.2) | één organisatorsite → markten met status “gecontroleerd”, test met opgeslagen pagina |
+| 14 | ☑ Eerste echte organisator-uitlezer (§5.2) | één organisatorsite → markten met status “gecontroleerd”, test met opgeslagen pagina |
 | 15 | ☐ Preview-deploy (Cloudflare Pages) | privé-preview-URL; account: Freek |
 | 16 | ☐ Testronde op de echte app | testscript draaien met 3 personen |
 | 17 | ☑ Overture als tweede bron | ontbrekende kringlopen (Nunspeet) staan erin, ontdubbeld, met bron |
+| 20 | ◐ Meer organisatoren (4 van ±20 klaar) | lijst uit onderzoek; per organisator een uitlezer + test + `sources/<naam>.md` |
 | 18 | ☐ Foursquare OS Places als derde bron | account Hugging Face (Freek); zelfde ontdubbeling |
-| 19 | ☐ Openingstijden voor Overture-winkels | van de eigen website van de winkel (met bronlabel), §5.1 |
+| 19 | ☑ Openingstijden van de eigen website | regels + tests, volle run, steekproef van 30 uitkomsten handmatig gecontroleerd |
 
 ## Later
-- Melden ("Klopt er iets niet?"), stadspagina's, PWA/offline, "Hoe we controleren", aanmelden organisatoren.
+- Melden ("Klopt er iets niet?"), stadspagina's, "Hoe we controleren", aanmelden organisatoren.
 - Echte markten: uitlezers voor organisatorsites (§5.2).
 - Supabase, accounts, beheer, deploy naar Cloudflare (accounts en secrets: Freek).
 - Testronde draaien op de echte app.

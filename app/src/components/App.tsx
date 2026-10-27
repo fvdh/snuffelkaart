@@ -1,22 +1,21 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
-import type { Item, LatLon, Place } from '../lib/model';
-import { DEFAULT_CENTER, isoDay, weekendOf, DAYS_LONG, dayStart, hm } from '../lib/model';
+import type { Item, LatLon, Market, Place } from '../lib/model';
+import { DEFAULT_CENTER, isoDay, weekendOf, DAYS_LONG, dayStart, hm, dShort } from '../lib/model';
 import { placeNow, openOn, setWindow } from '../lib/hours';
 import { visible, defaultTime, type Filters } from '../lib/filter';
 import { simulate } from '../lib/plan';
-import { sampleMarkets } from '../lib/markets';
 import type { Spot } from '../lib/pdok';
 import MapView from './MapView';
 import { ListView, DetailView, PlanView, type Ctx } from './Views';
 import { Ic, reduced } from './ui';
 
 /** "Nu", met ?nu=2026-10-31T09:10 om tijdsbewust gedrag te testen. */
-function useNow(): Date {
+function useNow(): [Date, boolean] {
   const fixed = useMemo(() => { const v = new URLSearchParams(location.search).get('nu'); const d = v ? new Date(v) : null; return d && !isNaN(+d) ? d : null; }, []);
   const [now, setNow] = useState(() => fixed ?? new Date());
   useEffect(() => { if (fixed) return; const t = setInterval(() => setNow(new Date()), 60_000); return () => clearInterval(t); }, [fixed]);
-  return now;
+  return [now, !!fixed];
 }
 /** Per-apparaat-opslag (favorieten, dagplan). Mag stil falen. */
 function useLocal<T>(key: string, init: T): [T, (v: T) => void] {
@@ -29,10 +28,25 @@ type View = 'list' | 'detail' | 'plan';
 type Snap = 'collapsed' | 'half' | 'full';
 
 export default function App() {
-  const now = useNow(), desktop = useDesktop(), today = isoDay(now);
+  const [now, testClock] = useNow(), desktop = useDesktop(), today = isoDay(now);
   const [places, setPlaces] = useState<Place[] | null>(null), [err, setErr] = useState(false);
-  useEffect(() => { fetch('/data/places.json').then(r => r.json()).then(j => { setWindow(j.from, j.holidays); setPlaces(j.places); }).catch(() => setErr(true)); }, []);
-  const markets = useMemo(() => sampleMarkets(now), [today]);
+  const [dataFrom, setDataFrom] = useState<string | null>(null);
+  useEffect(() => { fetch('/data/places.json').then(r => r.json()).then(j => { setWindow(j.from, j.holidays); setPlaces(j.places); setDataFrom(j.generated); }).catch(() => setErr(true)); }, []);
+  // Offline (sw.js geeft de laatst geladen gegevens) en "zet op beginscherm".
+  const [online, setOnline] = useState(() => navigator.onLine);
+  useEffect(() => { const on = () => setOnline(true), off = () => setOnline(false); addEventListener('online', on); addEventListener('offline', off); return () => { removeEventListener('online', on); removeEventListener('offline', off); }; }, []);
+  const [installEvt, setInstallEvt] = useState<(Event & { prompt: () => Promise<void> }) | null>(null), [installNo, setInstallNo] = useLocal('snuffel-install-nee', false);
+  useEffect(() => { const f = (e: Event) => { e.preventDefault(); setInstallEvt(e as Event & { prompt: () => Promise<void> }); }; addEventListener('beforeinstallprompt', f); return () => removeEventListener('beforeinstallprompt', f); }, []);
+  const standalone = matchMedia('(display-mode: standalone)').matches || (navigator as { standalone?: boolean }).standalone === true;
+  const ios = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  const install = standalone || installNo || !(installEvt || ios) ? null : {
+    add: () => { if (installEvt) { installEvt.prompt().catch(() => {}); setInstallEvt(null); } else setToast('Tik op Deel (het vierkantje met de pijl) en kies “Zet op beginscherm”.'); },
+    no: () => setInstallNo(true),
+  };
+  // Echte markten uit de agenda's van organisatoren (scripts/fetch-markets.mjs). Lukt dat niet: geen markten, nooit verzonnen.
+  const [allMarkets, setAllMarkets] = useState<Market[]>([]);
+  useEffect(() => { fetch('/data/markets.json').then(r => r.json()).then(j => setAllMarkets(j.markets)).catch(() => {}); }, []);
+  const markets = useMemo(() => allMarkets.filter(m => m.date >= today), [allMarkets, today]);
   const items: Item[] = useMemo(() => [...(places ?? []), ...markets], [places, markets]);
   const byId = useMemo(() => new Map(items.map(i => [i.id, i])), [items]);
 
@@ -69,6 +83,7 @@ export default function App() {
     const title = () => sheet.current?.querySelector<HTMLElement>('.view h2');
     from.style.viewTransitionName = 'vt-title';
     const t = document.startViewTransition(() => { from.style.viewTransitionName = ''; flushSync(() => go(id)); const h = title(); if (h) h.style.viewTransitionName = 'vt-title'; });
+    t.ready.catch(() => {}); // afgebroken (tab op de achtergrond): de wissel zelf gaat gewoon door
     t.finished.catch(() => {}).finally(() => { const h = title(); if (h) h.style.viewTransitionName = ''; });
   };
   const back = () => { setDir('back'); setView(view === 'detail' ? prev : 'list'); if (view === 'detail') setSel(null); setPrev('list'); scrollTop(); };
@@ -99,7 +114,7 @@ export default function App() {
   const openPlan = () => { setDir('fwd'); setPrev(view); setView('plan'); setSnap(desktop ? 'half' : 'half'); scrollTop(); };
   useEffect(() => { if (view === 'plan') setFit({ pts: [origin, ...plan.stops.map(id => byId.get(id)).filter(Boolean) as Item[]], key: Date.now() }); }, [view, plan.stops.join(), plan.day]);
 
-  const c: Ctx = { now, f, origin, originLabel, locDenied, welcome: !welcomed && !spot && !me, spot: !!spot, pickSpot, pickPlace, me, favs, planStops: plan.stops, planDay: plan.day, setF, open, toggleStop, toggleFav, locate, back, openPlan };
+  const c: Ctx = { now, f, online, dataFrom, install, origin, originLabel, locDenied, welcome: !welcomed && !spot && !me, spot: !!spot, pickSpot, pickPlace, me, favs, planStops: plan.stops, planDay: plan.day, setF, open, toggleStop, toggleFav, locate, back, openPlan };
 
   // ---------- bottom sheet (mobiel) ----------
   const shell = useRef<HTMLDivElement>(null), sheet = useRef<HTMLDivElement>(null), scroller = useRef<HTMLDivElement>(null);
@@ -165,6 +180,7 @@ export default function App() {
         <span className="pb-t"><b>Mijn {DAYS_LONG[dayStart(plan.day).getDay()]}</b><span>{sim.bad ? <><i className="pb-warn" style={{ background: 'var(--bad)' }} />{sim.bad} klopt niet · </> : sim.warn ? <><i className="pb-warn" />{sim.warn} aandachtspunt{sim.warn > 1 ? 'en' : ''} · </> : null}{plan.stops.length} stop{plan.stops.length > 1 ? 's' : ''} · klaar ±{hm(sim.end)}</span></span>
         <Ic n="chev" />
       </button>
+      {testClock && <a className="testclock" href={location.pathname} title="Terug naar de echte tijd"><Ic n="clock" />Testtijd: {dShort(isoDay(now))} {hm(now.getHours() * 60 + now.getMinutes())} · <u>naar nu</u></a>}
       <div className={`toast${toast ? ' on' : ''}`} role="status" aria-live="polite">{toast && <><Ic n="info" /><span>{toast}</span></>}</div>
     </div>
   );

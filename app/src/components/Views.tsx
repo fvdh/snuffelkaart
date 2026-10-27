@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState, type ReactElement } from 'react';
 import type { Item, LatLon, Place, Market } from '../lib/model';
-import { dShort, dLong, fkm, hm, isoDay, addDays, dayStart, DAYS, DAYS_LONG, km, weekendOf } from '../lib/model';
+import { dDay, dShort, dLong, fkm, hm, isoDay, addDays, dayStart, DAYS, DAYS_LONG, km, weekendOf } from '../lib/model';
 import { placeNow, placeDay, placeWeekend, marketStatus, week, isHoliday, openOn, type Status } from '../lib/hours';
 import { simulate, bestOrder, routeUrl } from '../lib/plan';
 import type { Filters } from '../lib/filter';
@@ -8,7 +8,7 @@ import { searchSpots, type Spot } from '../lib/pdok';
 import { Ic, Tile, St, Conf, Banner, kindLabel, isUnsure, EASE, reduced, pop } from './ui';
 
 export interface Ctx {
-  now: Date; f: Filters; origin: LatLon; originLabel: string | null; locDenied: boolean; welcome: boolean; spot: boolean; me: LatLon | null;
+  now: Date; f: Filters; online: boolean; dataFrom: string | null; install: { add: () => void; no: () => void } | null; origin: LatLon; originLabel: string | null; locDenied: boolean; welcome: boolean; spot: boolean; me: LatLon | null;
   pickSpot: (s: Spot) => void; pickPlace: () => void; favs: string[]; planStops: string[]; planDay: string;
   setF: (p: Partial<Filters>) => void; open: (id: string, from?: HTMLElement | null) => void; toggleStop: (id: string) => void; toggleFav: (id: string) => void;
   locate: (quiet?: boolean) => void; back: () => void; openPlan: () => void;
@@ -111,6 +111,7 @@ export function ListView({ c, list, total, limit, more, counts, nPlaces }: { c: 
       </div>
       {f.time === 'date' && <div className="daystrip" role="group" aria-label="Kies een dag">{Array.from({ length: 10 }, (_, i) => { const iso = addDays(today, i), d = dayStart(iso); return (
         <button key={iso} className="day" aria-pressed={f.date === iso} onClick={() => c.setF({ date: iso })} aria-label={dLong(iso) + (isHoliday(iso) ? ', feestdag' : '')}><span>{i === 0 ? 'vand.' : DAYS[d.getDay()]}</span><b className="tnum">{d.getDate()}</b><i className={`mk${isHoliday(iso) ? '' : ' none'}`} /></button>); })}</div>}
+      {!c.online && <Banner icon="wifi-off"><b>Je bent offline.</b> Je ziet de gegevens van {c.dataFrom ? dShort(isoDay(new Date(c.dataFrom))) : 'je laatste bezoek'}. Afgelastingen van daarna zie je pas weer met verbinding.</Banner>}
       {isHoliday(f.time === 'date' && f.date ? f.date : today) && <Banner kind="warn" icon="cal"><b>Het is een feestdag.</b> Kringlopen hebben dan vaak andere tijden. Bel even voordat je gaat.</Banner>}
       {c.locDenied && !c.me ? <Banner icon="pin"><b>Je locatie staat uit.</b> Geen probleem: zoek hierboven een plaats of postcode. Wil je hem toch aanzetten, dan kan dat in de instellingen van je browser.</Banner>
         : !c.me && !f.q && <Banner icon="pin">{!c.spot ? <><b>Waar wil je snuffelen?</b> We tonen nu Amersfoort. </> : <><b>Afstanden vanaf {c.originLabel}.</b> </>}<button className="link" onClick={() => c.locate()}>Gebruik mijn locatie</button> of zoek een plaats.</Banner>}
@@ -122,7 +123,7 @@ export function ListView({ c, list, total, limit, more, counts, nPlaces }: { c: 
           <div className="btns">{f.q && <button className="btn sm" onClick={() => c.setF({ q: '' })}>Wis zoekopdracht</button>}<button className="btn sm primary" onClick={() => c.setF({ time: 'weekend', gratis: false, overdekt: false })}>Dit weekend</button></div></div>}
       {total > limit && <button className="more" onClick={more}>Toon meer ({total - limit})</button>}
       {f.time === 'now' && f.type !== 'k' && !f.q && <button className="hint" onClick={() => c.setF({ time: 'weekend' })}><span>{counts.mWk} markten dit weekend<small>Markten zijn er vooral op zaterdag en zondag</small></span><Ic n="chev" /></button>}
-      <p className="src" style={{ marginTop: 18 }}><Ic n="info" /><span>{nPlaces} winkels uit © OpenStreetMap-bijdragers en © Overture Maps Foundation, heel Nederland. De markten zijn nog <b>verzonnen voorbeelden</b>.</span></p>
+      <p className="src" style={{ marginTop: 18 }}><Ic n="info" /><span>{nPlaces} winkels uit © OpenStreetMap-bijdragers en © Overture Maps Foundation, heel Nederland. Markten uit de eigen agenda van organisatoren (nu: Don Events).</span></p>
     </div>
   </>);
 }
@@ -159,7 +160,7 @@ function PlaceDetail({ p, c, top, d, actions }: { p: Place; c: Ctx; top: ReactEl
     {p.kind === 'tweedehands' && <Banner icon="info"><b>Geen standaard kringloop.</b> {p.sub ? `${kindLabel(p)}: ` : ''}tweedehands, maar prijzen en aanbod kunnen anders zijn dan bij een kringloop.</Banner>}
     {w ? <section className="dv-sec"><h3>Openingstijden</h3>
       <dl className="hours">{w.map(x => <div key={x.iso} style={{ display: 'contents' }}><dt className={x.iso === today ? 'today' : ''}>{x.label}</dt><dd className={`${x.iso === today ? 'today' : ''}${x.txt.startsWith('Dicht') ? ' shut' : ''}`}>{x.txt}</dd></div>)}</dl>
-      <p className={`src${stale ? ' stale' : ''}`}><Ic n={stale ? 'alert' : 'clock'} /><span>{p.checked ? (stale ? `Laatst gecontroleerd op ${p.checked}, dat is al even geleden. Bel even voordat je gaat.` : `Laatst gecontroleerd op ${p.checked}`) : 'Controledatum onbekend'} · bron: {p.src === 'osm' ? 'OpenStreetMap' : 'Overture Maps'}<br />Rond feestdagen kunnen tijden afwijken.</span></p></section>
+      <p className={`src${stale ? ' stale' : ''}`}><Ic n={stale ? 'alert' : 'clock'} /><span>{p.checked ? (stale ? `Laatst gecontroleerd op ${p.checked}, dat is al even geleden. Bel even voordat je gaat.` : `${p.hs === 'web' ? 'Gelezen op' : 'Laatst gecontroleerd op'} ${p.checked}`) : 'Controledatum onbekend'} · {p.hs === 'web' ? <>van <a href={p.hu} target="_blank" rel="noopener">de website van de winkel</a></> : `bron: ${p.src === 'osm' ? 'OpenStreetMap' : 'Overture Maps'}`}<br />Rond feestdagen kunnen tijden afwijken.</span></p></section>
       : <section className="dv-sec"><h3>Openingstijden</h3><div className="unknown-box"><p><b>We weten de openingstijden nog niet.</b> {p.src === 'osm' ? 'Deze winkel staat op OpenStreetMap, maar zonder tijden.' : 'Deze winkel komt uit Overture Maps en is nog niet door ons gecontroleerd. Misschien bestaat hij niet meer.'} Bel even of kijk op de website voordat je gaat.</p>
         <div className="btns">{p.phone && <a className="btn sm" href={`tel:${p.phone.replace(/\s/g, '')}`}><Ic n="phone" />{p.phone}</a>}{!p.phone && p.website && <a className="btn sm" href={webUrl(p.website)} target="_blank" rel="noopener"><Ic n="globe" />Website</a>}{osm && <a className="btn sm primary" href={osm} target="_blank" rel="noopener"><Ic n="edit" />Tijden aanvullen op OSM</a>}</div></div>
         <p className="src"><Ic n="info" /><span>In “Nu open” tonen we deze winkel niet, omdat we dat niet kunnen beloven.</span></p></section>}
@@ -177,26 +178,30 @@ function PlaceDetail({ p, c, top, d, actions }: { p: Place; c: Ctx; top: ReactEl
 function MarketDetail({ m, c, top, d, actions }: { m: Market; c: Ctx; top: ReactElement; d: number; actions: ReactElement }) {
   const s = m.status;
   const box = s === 'org' ? <div className="statusbox org"><Ic n="check" /><div><b>Bevestigd door de organisator</b><p>{m.org} heeft deze datum zelf opgegeven.</p></div></div>
-    : s === 'chk' ? <div className="statusbox chk"><Ic n="check" /><div><b>Gecontroleerd op {m.checked}</b><p>Deze editie stond bij de laatste controle op de website van {m.org}.</p></div></div>
+    : s === 'chk' ? <div className="statusbox chk"><Ic n="check" /><div><b>Gecontroleerd op {m.checked && dDay(m.checked)}</b><p>Deze editie stond bij de laatste controle op de website van {m.org}.</p></div></div>
     : s === 'unconf' ? <div className="statusbox unconf"><Ic n="alert" /><div><b>Nog niet bevestigd</b><p>Deze datum is afgeleid uit het schema “{m.schema.toLowerCase()}”. Check het voordat je gaat; we stellen hem niet vanzelf voor in je dagplan.</p></div></div>
     : <div className="statusbox cancel"><Ic n="x" /><div><b>Afgelast</b><p>{m.cancelWhy}</p></div></div>;
   return (<article>
     <header className="dv-head" data-peek data-drag>{top}
-      <p className="eyebrow"><Tile it={m} small />{m.kind} · {m.indoor ? 'binnen' : 'buiten'} <span className="sample">voorbeeld</span></p>
+      <p className="eyebrow"><Tile it={m} small />{m.kind}{m.indoor !== undefined && <> · {m.indoor ? 'binnen' : 'buiten'}</>}{m.sample && <span className="sample">voorbeeld</span>}</p>
       <h2 className={s === 'cancel' ? 'strike' : ''}>{m.name}</h2>
-      <p className={`bigdate tnum${s === 'cancel' ? ' strike' : ''}`}>{dLong(m.date)} · {m.end ? `${hm(m.start)}–${hm(m.end)}` : `vanaf ${hm(m.start)}`}</p>
-      <p className="dv-status"><span className="tnum">{fkm(d)} km</span><span className="ds">·</span><span>{m.place}</span></p>
+      <p className={`bigdate tnum${s === 'cancel' ? ' strike' : ''}`}>{dLong(m.date)} · {m.timeKnown === false ? 'tijden bij de organisator' : m.end ? `${hm(m.start)}–${hm(m.end)}` : `vanaf ${hm(m.start)}`}</p>
+      <p className="dv-status"><span className="tnum">{fkm(d)} km</span><span className="ds">·</span><span>{m.venue ? `${m.venue}, ${m.place}` : m.place}</span></p>
       {box}{actions}
     </header>
-    <Banner icon="info">Dit is een <b>verzonnen voorbeeldmarkt</b> om het ontwerp te testen. Echte markten komen van de websites van organisatoren.</Banner>
+    {m.sample && <Banner icon="info">Dit is een <b>verzonnen voorbeeldmarkt</b> om het ontwerp te testen.</Banner>}
     <section className="dv-sec"><h3>Praktisch</h3><dl className="facts">
-      <dt>Entree</dt><dd>{m.entree === 'gratis' ? 'Gratis' : m.entree}</dd>
+      <dt>Entree</dt><dd>{m.entree === 'gratis' ? 'Gratis' : m.entree === 'onbekend' ? 'Staat niet in de agenda' : m.entree}</dd>
       {!m.end && <><dt>Eindtijd</dt><dd>Onbekend; de organisator noemt er geen</dd></>}
-      <dt>{m.indoor ? 'Binnen' : 'Buiten'}</dt><dd>{m.indoor ? 'Overdekt' : 'Niet overdekt'}</dd>
+      <dt>Overdekt</dt><dd>{m.indoor === undefined ? 'Onbekend' : m.indoor ? 'Ja, binnen' : 'Nee, buiten'}</dd>
+      {m.addr !== undefined && <><dt>Adres</dt><dd>{m.addr ?? `${m.place}; de precieze plek staat bij de organisator`}</dd></>}
+      {m.kraamhuur && <><dt>Kraam huren</dt><dd>{m.kraamhuur}</dd></>}
       {m.area && <><dt>Waar</dt><dd>{m.area}</dd></>}
       {m.kramen && <><dt>Kramen</dt><dd className="tnum">±{m.kramen}</dd></>}
-      <dt>Schema</dt><dd>{m.schema}</dd></dl></section>
-    <section className="dv-sec"><h3>Organisator</h3><div className="inforow"><Ic n="user" /><span>{m.org}</span></div></section>
+      {m.schema && <><dt>Schema</dt><dd>{m.schema}</dd></>}</dl></section>
+    <section className="dv-sec"><h3>Organisator</h3><div className="inforow"><Ic n="user" /><span>{m.org}</span></div>
+      {m.url && <div className="inforow"><Ic n="globe" /><a href={m.url} target="_blank" rel="noopener">Bekijk bij {m.org}: ook kraam boeken en doorgaan bij slecht weer</a></div>}
+      {m.url && <p className="src"><Ic n="info" /><span>Bron: website van {m.org}, gecontroleerd op {m.checked && dDay(m.checked)}.</span></p>}</section>
   </article>);
 }
 
@@ -237,6 +242,8 @@ export function PlanView({ c, items, plan, setPlan, optimizeSeen }: { c: Ctx; it
       <button className="btn" disabled={isBest} onClick={() => setPlan({ stops: bestOrder(stops, plan.day, plan.start, c.origin).map(x => x.id) })}><Ic n={isBest ? 'check' : 'wand'} />{isBest ? 'Dit is al de slimste volgorde' : 'Slimste volgorde'}</button>
       <div className="row2"><a className="btn primary" href={routeUrl('google', c.me ?? c.origin, stops)} target="_blank" rel="noopener"><Ic n="ext" />Google Maps</a><a className="btn primary" href={routeUrl('apple', c.me ?? c.origin, stops)} target="_blank" rel="noopener"><Ic n="ext" />Apple Maps</a></div>
     </div>
+    {c.install && stops.length > 0 && <div className="install"><span className="brand-mark"><Ic n="tag" /></span><div><b>Zet Snuffelkaart op je beginscherm</b><p>Dan open je dit bonnetje ook zonder bereik, bijvoorbeeld in een sporthal.</p>
+      <div className="btns"><button className="btn sm primary" onClick={c.install.add}>Toevoegen</button><button className="btn sm ghost" onClick={c.install.no}>Niet nu</button></div></div></div>}
     {sugg.length > 0 && stops.length < 8 && <div className="sugg"><h3>Past ook in je {dayName}</h3><p className="sub">Open of bevestigd, vlak bij je route</p><ul className="rows">{sugg.map(x => <Row key={x.it.id} it={x.it} d={km(c.origin, x.it)} c={c} />)}</ul></div>}
   </>);
 }

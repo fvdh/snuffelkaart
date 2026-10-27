@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import type { Item } from '../lib/model';
+import { dDay } from '../lib/model';
 import type { Status } from '../lib/hours';
 
 export const Ic = ({ n, className = '' }: { n: string; className?: string }) => (
@@ -31,7 +32,7 @@ const CONF = { org: ['org', 'check', 'Bevestigd'], chk: ['chk', 'check', 'Gecont
 export function Conf({ it }: { it: Item }) {
   if (it.t !== 'm' || it.status === 'cancel') return null;
   const [cls, icon, txt] = CONF[it.status];
-  return <span className={`conf ${cls}`}><Ic n={icon} />{it.status === 'chk' && it.checked ? `Gecontroleerd ${it.checked}` : txt}</span>;
+  return <span className={`conf ${cls}`}><Ic n={icon} />{it.status === 'chk' && it.checked ? `Gecontroleerd ${dDay(it.checked)}` : txt}</span>;
 }
 
 export const Banner = ({ kind = '', icon, children }: { kind?: string; icon: string; children: ReactNode }) => (

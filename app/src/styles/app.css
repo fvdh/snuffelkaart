@@ -46,3 +46,7 @@ a.btn.primary{color:var(--on-ink)}
 /* lijst → detail: de naam vliegt naar de titel */
 ::view-transition-group(vt-title){animation-duration:.3s;animation-timing-function:cubic-bezier(0.22,1,0.36,1)}
 ::view-transition-old(root),::view-transition-new(root){animation-duration:.2s}
+
+/* ?nu= staat aan: altijd zichtbaar, zodat niemand "alles open om 19:38" voor echt aanziet */
+.testclock{position:fixed;top:calc(env(safe-area-inset-top,0px) + 10px);right:12px;z-index:40;display:flex;gap:6px;align-items:center;padding:6px 10px;border-radius:999px;background:var(--warn-soft,var(--surface));color:var(--fg);border:1.5px dashed var(--line-strong);font-size:.8125rem;font-weight:600;text-decoration:none;box-shadow:0 2px 8px oklch(0.2 0.02 260 / .12)}
+.testclock svg{width:14px;height:14px}

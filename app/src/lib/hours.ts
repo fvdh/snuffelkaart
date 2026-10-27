@@ -57,7 +57,7 @@ export function placeWeekend(p: Place, [sat, sun]: [string, string]): Status {
   return { cls: a.length || b.length ? 'oday' : 'closed', txt: `Za ${a.length ? rng(a) : 'dicht'} · zo ${b.length ? rng(b) : 'dicht'}` };
 }
 
-export const mSpan = (m: Market) => (m.end ? `${hShort(m.start)}–${hShort(m.end)} uur` : `vanaf ${hShort(m.start)} uur`);
+export const mSpan = (m: Market) => (m.timeKnown === false ? 'tijden bij de organisator' : m.end ? `${hShort(m.start)}–${hShort(m.end)} uur` : `vanaf ${hShort(m.start)} uur`);
 export function marketStatus(m: Market, now: Date): Status {
   const today = isoDay(now), when = m.date === today ? 'Vandaag' : dShort(m.date);
   if (m.status === 'cancel') return { cls: 'cancel', txt: `Afgelast · ${when.toLowerCase()}` };

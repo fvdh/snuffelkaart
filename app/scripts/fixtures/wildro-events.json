@@ -1,0 +1,41 @@
+[
+ {
+  "url": "https://wildro.nl/event/braderie-winkelcentrum-nobellaan-assen/",
+  "title": "Braderie winkelcentrum Nobellaan Assen",
+  "start_date": "2026-10-31 10:00:00",
+  "end_date": "2026-10-31 17:00:00",
+  "categories": [
+   {
+    "name": "Braderieën"
+   }
+  ]
+ },
+ {
+  "url": "https://wildro.nl/event/braderie-zuidbroek-4/",
+  "title": "Braderie en vlooienmarkt Eurohal Zuidbroek",
+  "start_date": "2026-11-08 10:00:00",
+  "end_date": "2026-11-08 16:00:00",
+  "categories": [
+   {
+    "name": "Braderieën"
+   },
+   {
+    "name": "Vlooienmarkten"
+   }
+  ]
+ },
+ {
+  "url": "https://wildro.nl/event/kerstmarktgramsbergen/",
+  "title": "Kerstmarkt Centrum Gramsbergen",
+  "start_date": "2026-12-09 16:00:00",
+  "end_date": "2026-12-09 21:00:00",
+  "categories": [
+   {
+    "name": "Braderieën"
+   },
+   {
+    "name": "Kerstmarkten"
+   }
+  ]
+ }
+]

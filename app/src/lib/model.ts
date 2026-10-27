@@ -7,13 +7,20 @@ export interface Place {
   website: string | null; phone: string | null; src: 'osm' | 'overture';
   /** Overture: nadere soort van een tweedehandswinkel, en hun betrouwbaarheidsscore. */
   sub?: 'antiek' | 'kleding' | 'schroot' | 'pandjeshuis' | 'vlooienmarkt'; conf?: number;
+  /** Openingstijden van de eigen website van de winkel (hs), gelezen van pagina hu. */
+  hs?: 'web'; hu?: string;
 }
 
 export interface Market {
   id: string; t: 'm'; name: string; kind: string; place: string; lat: number; lon: number;
   date: string; start: number; end: number | null; status: Confirm; checked?: string;
-  indoor: boolean; entree: string; kramen?: number; schema: string; org: string;
-  area?: string; cancelWhy?: string; sample: true;
+  /** undefined = we weten niet of het binnen of buiten is (niet raden). */
+  indoor?: boolean; entree: string; kramen?: number; schema: string; org: string;
+  area?: string; cancelWhy?: string; sample?: true;
+  /** Uit de agenda van de organisator: hal, adres, hun marktpagina, kraamhuur. */
+  venue?: string | null; addr?: string | null; url?: string; kraamhuur?: string; exact?: boolean;
+  /** false = de organisator noemt geen tijden; start is dan alleen een plek om mee te rekenen. */
+  timeKnown?: boolean;
 }
 
 export type Item = Place | Market;
@@ -53,6 +60,8 @@ export const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 export const hm = (min: number) => `${Math.floor(min / 60)}:${String(min % 60).padStart(2, '0')}`;
 export const hShort = (min: number) => (min % 60 ? hm(min) : String(min / 60));
 export const fkm = (n: number) => (n < 10 ? n.toFixed(1).replace('.', ',') : String(Math.round(n)));
+/** "2026-10-27" → "27 okt"; oudere waarden (al opgemaakt) blijven zoals ze zijn. */
+export const dDay = (iso: string) => (/^\d{4}-\d\d-\d\d$/.test(iso) ? (d => `${d.getDate()} ${MON[d.getMonth()]}`)(dayStart(iso)) : iso);
 export const dShort = (iso: string) => { const d = dayStart(iso); return `${cap(DAYS[d.getDay()])} ${d.getDate()} ${MON[d.getMonth()]}`; };
 export const dLong = (iso: string) => { const d = dayStart(iso); return `${cap(DAYS_LONG[d.getDay()])} ${d.getDate()} ${MON_LONG[d.getMonth()]}`; };
 export const mEnd = (m: Market) => m.end ?? m.start + 300; // ponytail: onbekende eindtijd = 5 uur na start, alleen om te rekenen

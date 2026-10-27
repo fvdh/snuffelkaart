@@ -5,6 +5,7 @@
 // ponytail: Overpass met een rechthoek; de echte wekelijkse import gaat via het Geofabrik-extract + osmium (§5.1).
 import fs from 'node:fs';
 import { precompute, holidays, todayIso, DAYS_AHEAD } from './hours-precompute.mjs';
+import { siteKey } from './hours-from-web.mjs';
 
 const BBOX = [50.75, 3.35, 53.56, 7.23]; // z, w, n, o: heel Nederland (knippen op de grens gebeurt hieronder)
 const TILES = []; // 3 × 3 vakken: één query voor heel NL loopt op de publieke Overpass-servers vaak in een time-out
@@ -138,6 +139,25 @@ if (fs.existsSync(OV)) {
   ovStat.osmOnly = osmPlaces.filter(p => !ov.rows.some(o => metres(o, p) < 150)).length;
 }
 
+// ---------- Openingstijden van de eigen website van de winkel (fetch-web-hours.mjs) ----------
+const WEB = new URL('../data-raw/web-hours.json', import.meta.url), webStat = { used: 0, shared: 0, market: 0, otherShop: 0 };
+if (fs.existsSync(WEB)) {
+  const web = JSON.parse(fs.readFileSync(WEB, 'utf8')), uses = new Map();
+  for (const p of places) if (p.website) { const k = siteKey(p.website); uses.set(k, (uses.get(k) ?? 0) + 1); }
+  for (const p of places) {
+    const k = !p.h && p.website && siteKey(p.website), w = k && web[k];
+    if (!w?.oh) continue;
+    if (uses.get(k) > 1) { webStat.shared++; continue; } // ketenpagina (bijv. /contact van het hoofdkantoor): hoort niet bij één winkel
+    if (p.sub === 'vlooienmarkt') { webStat.market++; continue; } // vaste markt: tijden gelden alleen op marktdagen, niet elke week
+    const pc = /\b([1-9]\d{3})\s?[A-Z]{2}\b/.exec(p.addr ?? '')?.[1];
+    // Pagina noemt alleen postcodes uit een andere buurt (eerste 3 cijfers): waarschijnlijk een andere winkel of het hoofdkantoor.
+    // Niet exact vergelijken: de postcode in OSM/Overture wijkt vaak een paar huizen af (4131 ↔ 4132).
+    if (pc && w.pc?.length && !w.pc.some(x => x.slice(0, 3) === pc.slice(0, 3))) { webStat.otherShop++; continue; }
+    const h = precompute(w.oh, FROM); if (!h) continue;
+    Object.assign(p, { h, checked: w.read.slice(0, 10), hs: 'web', hu: w.page }); webStat.used++;
+  }
+}
+
 fs.mkdirSync(new URL('../public/data/', import.meta.url), { recursive: true });
 fs.writeFileSync(OUT, JSON.stringify({ generated: new Date().toISOString(), source: '© OpenStreetMap-bijdragers (ODbL); Overture Maps Foundation (CDLA Permissive 2.0)', overture: ovStat.release, bbox: BBOX, from: FROM, days: DAYS_AHEAD, holidays: holidays(FROM), places }, (k, v) => (v === null ? undefined : v))); // lege velden weglaten
 
@@ -150,5 +170,6 @@ console.log(`  met controledatum: ${count(p => p.checked)}  adres: ${pct(count(p
 console.log(`  weggelaten: buiten regio ${dropped.region}, geen tweedehands ${dropped.notSecondHand}, handmatig ${dropped.manual}`);
 console.log(`  soort: kringloop ${count(p => p.kind === 'kringloop')}, goede doelen ${count(p => p.kind === 'goede-doelen')}, tweedehands (soort onbekend of geen kringloop) ${count(p => p.kind === 'tweedehands')}`);
 if (ovStat.release) console.log(`  Overture ${ovStat.release}: ${ovStat.rows} plekken → ${ovStat.added} toegevoegd (dubbel met OSM/Overture ${ovStat.dup}, waarvan ${ovStat.enriched} OSM-winkels aangevuld met website/telefoon, buiten regio ${ovStat.region}, gesloten ${ovStat.closed}, geen tweedehands ${ovStat.notSecondHand}); alleen in OSM: ${ovStat.osmOnly}`);
+if (fs.existsSync(WEB)) console.log(`  tijden van eigen website: ${webStat.used} winkels (overgeslagen: ${webStat.shared} gedeelde ketenpagina, ${webStat.otherShop} andere postcode op de pagina, ${webStat.market} vaste markt)`);
 console.log(`  bron: OSM ${count(p => p.src === 'osm')}, Overture ${count(p => p.src === 'overture')}`);
 console.log(`  geschreven: ${OUT.pathname} (${(fs.statSync(OUT).size / 1024).toFixed(0)} kB)\n`);
