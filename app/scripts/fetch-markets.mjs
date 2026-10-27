@@ -355,6 +355,25 @@ export function liromLocation(html) {
   return a ? { street: a[1].trim(), postcode: a[2].replace(/\s/g, ''), city: a[3].trim() } : null;
 }
 
+// ---------- Twentse Vlooienmarkt, AST-Expo (zie ../sources/twentsevlooienmarkt.md) ----------
+/** Bezoekerspagina → "VOLGENDE EDITIE / ZATERDAG 3 APRIL / ZONDAG 4 APRIL / IJSBAAN TWENTE / COLOSSEUM 90 / 7521 PT ENSCHEDE", openingstijden per dag en entree.
+ *  Het jaar ontbreekt: eerstvolgende datum vanaf `today` waarop de weekdag klopt (`nextDate`). */
+export function twenteEdition(html, today = new Date().toISOString().slice(0, 10)) {
+  const L = toText(html).split('\n').map(l => l.replace(/[​-‍﻿]/g, '').trim()).filter(Boolean), i = L.findIndex(l => /^volgende editie$/i.test(l));
+  if (i < 0) return [];
+  const dRe = new RegExp(`^(${WEEKDAYS.join('|')})\\s+(\\d{1,2})\\s+(${MONTHS.join('|')})$`, 'i'), days = [];
+  let j = i + 1; for (; dRe.test(L[j] ?? ''); j++) days.push(dRe.exec(L[j]));
+  const pc = /^(\d{4}\s?[A-Z]{2})\s+(.+)$/.exec(L[j + 2] ?? ''); if (!days.length || !pc) return [];
+  const city = title(pc[2]), venue = L[j].replace(/\w\S*/g, w => title(w).replace(/^Ij/, 'IJ')), street = title(L[j + 1]), fee = /Entree is\s*€\s*(\d+)(?:,(\d{2}))?/i.exec(L.join(' '));
+  return days.map(([, wd, d, mon]) => {
+    const date = nextDate(+d, MONTHS.indexOf(mon.toLowerCase()), WEEKDAYS.indexOf(wd.toLowerCase()), today); if (!date) return null;
+    const tm = new RegExp(`(?:^|\\n)${wd}\\nvan (\\d{1,2}[:.]\\d{2}) tot (\\d{1,2}[:.]\\d{2})`, 'i').exec(L.join('\n'));
+    return { id: `twente-${date}`, t: 'm', name: 'Twentse Vlooienmarkt', kind: 'Vlooienmarkt', place: city, venue, addr: `${street}, ${pc[1].replace(/\s/g, '').replace(/([A-Z]{2})$/, ' $1')} ${city}`,
+      street, postcode: pc[1].replace(/\s/g, ''), date, start: tm ? mins(tm[1]) : 540, end: tm ? mins(tm[2]) : null, timeKnown: !!tm, indoor: true /* "de markt is overdekt" */,
+      entree: fee ? `€${fee[1]}${fee[2] && fee[2] !== '00' ? `,${fee[2]}` : ''}` : 'onbekend', org: 'Twentse Vlooienmarkt (AST-Expo)', url: 'https://www.twentsevlooienmarkt.nl/', schema: '', status: 'chk' };
+  }).filter(Boolean);
+}
+
 /** Adres → coördinaten via PDOK (adres, anders postcode). Null buiten Nederland. */
 async function geocode(m) {
   for (const [q, type] of [[m.street && `${m.street} ${m.postcode}`, 'adres'], [m.q, '(adres OR weg)'], [m.postcode, 'postcode'], [m.place, 'woonplaats']]) {
@@ -486,7 +505,8 @@ async function lirom() {
   const agenda = await (await get('https://lirom.nl/agenda/')).text(); await sleep(1500);
   return liromAgenda(agenda, liromLocation(await (await get('https://lirom.nl/locatie-markten/')).text()));
 }
-const SOURCES = [['LIROM Kofferbakmarkten', lirom, 'https://lirom.nl/agenda/'], ['Carbootsale Horst (MCC Events)', carboot, 'https://carbootsalehorst.nl/'], ['MDV Evenementen', mdv, 'https://www.mdv-evenementen.nl/'], ['JoJo Vlooienmarkten', jojo, 'https://www.jojovlooienmarkten.nl/agenda-vlooienmarkten'], ['Animo Vlooienmarkten', animo, 'https://animo-vlooienmarkten.nl/kalender'], ['IJ-Hallen', ijHallen, 'https://ijhallen.nl/agenda.php'], ['Organisatieburo Mikki', mikki, 'https://www.mikki.nl/'], ['De Evenementenlijn', evenementenlijn, 'https://www.deevenementenlijn.nl/'], ['Organisatieburo Vitalis', vitalis, 'https://vitalismarkten.nl/agenda/'],['Don Events', donEvents, 'https://donevents.nl/marktkalender/'], ['Organisatieburo Wildro', wildro, 'https://wildro.nl/vlooienmarkten/'], ['Organisatie Bureau VAC', vac, 'https://org-vac.nl/'], ['Van Aerle (vlooienmarkten.nl)', vanAerle, 'https://www.vlooienmarkten.nl/agenda-markten/']];
+async function twente() { return twenteEdition(await (await get('https://www.twentsevlooienmarkt.nl/bezoekers/')).text()); }
+const SOURCES = [['Twentse Vlooienmarkt (AST-Expo)', twente, 'https://www.twentsevlooienmarkt.nl/'], ['LIROM Kofferbakmarkten', lirom, 'https://lirom.nl/agenda/'], ['Carbootsale Horst (MCC Events)', carboot, 'https://carbootsalehorst.nl/'], ['MDV Evenementen', mdv, 'https://www.mdv-evenementen.nl/'], ['JoJo Vlooienmarkten', jojo, 'https://www.jojovlooienmarkten.nl/agenda-vlooienmarkten'], ['Animo Vlooienmarkten', animo, 'https://animo-vlooienmarkten.nl/kalender'], ['IJ-Hallen', ijHallen, 'https://ijhallen.nl/agenda.php'], ['Organisatieburo Mikki', mikki, 'https://www.mikki.nl/'], ['De Evenementenlijn', evenementenlijn, 'https://www.deevenementenlijn.nl/'], ['Organisatieburo Vitalis', vitalis, 'https://vitalismarkten.nl/agenda/'],['Don Events', donEvents, 'https://donevents.nl/marktkalender/'], ['Organisatieburo Wildro', wildro, 'https://wildro.nl/vlooienmarkten/'], ['Organisatie Bureau VAC', vac, 'https://org-vac.nl/'], ['Van Aerle (vlooienmarkten.nl)', vanAerle, 'https://www.vlooienmarkten.nl/agenda-markten/']];
 
 async function main() {
   const today = new Date().toISOString().slice(0, 10), prevAll = fs.existsSync(OUT) ? JSON.parse(fs.readFileSync(OUT, 'utf8')).markets : [];

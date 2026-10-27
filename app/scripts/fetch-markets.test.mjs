@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import fs from 'node:fs';
-import { donCalendar, donProduct, holidayDate, wildroEvent, vacAgenda, vacAddress, aerleAgenda, aerleProduct, vitalisIcs, vitalisPlace, evlAgenda, mikkiEvent, nlDays, ijAgenda, animoCalendar, animoEvent, jojoAgenda, jojoEvent, nextDate, mdvLocations, mdvAgenda, carbootAgenda, liromAgenda, liromLocation } from './fetch-markets.mjs';
+import { donCalendar, donProduct, holidayDate, wildroEvent, vacAgenda, vacAddress, aerleAgenda, aerleProduct, vitalisIcs, vitalisPlace, evlAgenda, mikkiEvent, nlDays, ijAgenda, animoCalendar, animoEvent, jojoAgenda, jojoEvent, nextDate, mdvLocations, mdvAgenda, carbootAgenda, liromAgenda, liromLocation, twenteEdition } from './fetch-markets.mjs';
 
 // Opgeslagen pagina's van Don Events (27 okt 2026): breekt de site-opbouw, dan faalt deze test.
 const fx = f => fs.readFileSync(new URL(`./fixtures/${f}`, import.meta.url), 'utf8');
@@ -220,5 +220,17 @@ describe('uitlezer LIROM', () => {
       timeKnown: false, indoor: true, entree: 'onbekend', org: 'LIROM Kofferbakmarkten', url: 'https://lirom.nl/agenda/', schema: '', status: 'chk' });
     expect(eds.find(e => e.date === '2026-05-14')).toMatchObject({ indoor: false, venue: 'De Paardenvriend' }); // "14 mei (hemelvaartsdag) 2026"
     expect(eds[0].venue).toBe('De Paardenvriend'); // tikfout "Paardenvrend" hersteld
+  });
+});
+
+describe('uitlezer Twentse Vlooienmarkt', () => {
+  it('bezoekerspagina geeft het weekend (jaar afgeleid), tijden, entree en adres', () => {
+    const eds = twenteEdition(fx('twente-bezoekers.html'), '2026-10-27');
+    expect(eds.map(e => e.date)).toEqual(['2027-04-03', '2027-04-04']);
+    expect(eds[1]).toEqual({ id: 'twente-2027-04-04', t: 'm', name: 'Twentse Vlooienmarkt', kind: 'Vlooienmarkt', place: 'Enschede', venue: 'IJsbaan Twente',
+      addr: 'Colosseum 90, 7521 PT Enschede', street: 'Colosseum 90', postcode: '7521PT', date: '2027-04-04', start: 540, end: 960, timeKnown: true, indoor: true,
+      entree: '€5', org: 'Twentse Vlooienmarkt (AST-Expo)', url: 'https://www.twentsevlooienmarkt.nl/', schema: '', status: 'chk' });
+    // Weekdag past niet bij de eerstvolgende datum (3 april 2026 was een vrijdag): niets.
+    expect(twenteEdition(fx('twente-bezoekers.html'), '2026-03-01')).toEqual([]);
   });
 });
