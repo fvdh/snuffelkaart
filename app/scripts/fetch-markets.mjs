@@ -207,6 +207,33 @@ export function mikkiEvent(html, url) {
     org: 'Organisatieburo Mikki', url, schema: '', status: 'chk' };
 }
 
+// ---------- IJ-Hallen (zie ../sources/ijhallen.md) ----------
+/** "31 oktober en 1 november 2026", "12 en 13 december 2026" of "7 maart 2027" → ISO-datums (één per dag). */
+export function nlDays(s) {
+  const parts = s.toLowerCase().split(/\s+(?:en|&)\s+|,\s*/), last = new RegExp(`(\\d{1,2})\\s+(${MONTHS.join('|')})\\s+(\\d{4})`).exec(parts.at(-1) ?? '');
+  if (!last) return [];
+  const y = +last[3], lm = MONTHS.indexOf(last[2]);
+  return parts.map(p => {
+    const m = new RegExp(`^(\\d{1,2})(?:\\s+(${MONTHS.join('|')}))?`).exec(p.trim()); if (!m) return null;
+    const mo = m[2] ? MONTHS.indexOf(m[2]) : lm;
+    return `${mo > lm ? y - 1 : y}-${pad(mo + 1)}-${pad(+m[1])}`; // "30 december en 2 januari 2027": december hoort bij 2026
+  }).filter(Boolean);
+}
+/** Agenda → per weekend "31 oktober en 1 november 2026 / 09:00 - 16:30 / 600 kramen / Binnen", één editie per dag. Altijd dezelfde plek (NDSM-werf). */
+export function ijAgenda(html) {
+  const out = [];
+  for (const ul of html.matchAll(/<ul\b[^>]*>([\s\S]*?)<\/ul>/g)) {
+    const li = k => toText(new RegExp(`<li class="${k}\\b[^"]*">([\\s\\S]*?)<\\/li>`).exec(ul[1])?.[1] ?? '').trim();
+    const days = nlDays(li('date')); if (!days.length) continue;
+    const tm = /(\d{1,2}[:.]\d{2})\s*[-–]\s*(\d{1,2}[:.]\d{2})/.exec(li('time')), io = li('location');
+    for (const date of days) out.push({ id: `ij-${date}`, t: 'm', name: 'Vlooienmarkt IJ-Hallen', kind: 'Vlooienmarkt', place: 'Amsterdam', venue: 'IJ-Hallen, NDSM-werf',
+      addr: 'NDSM-Plein 1, 1033 WC Amsterdam', street: 'NDSM-Plein 1', postcode: '1033WC', date, start: tm ? mins(tm[1]) : 540, end: tm ? mins(tm[2]) : null, timeKnown: !!tm,
+      indoor: /^binnen/i.test(io) ? true : /^buiten/i.test(io) ? false : undefined, entree: 'onbekend', kramen: +(/(\d+)\s*kramen/i.exec(li('stalls'))?.[1] ?? 0) || undefined,
+      org: 'IJ-Hallen', url: 'https://ijhallen.nl/agenda.php', schema: '', status: 'chk' });
+  }
+  return out;
+}
+
 /** Adres → coördinaten via PDOK (adres, anders postcode). Null buiten Nederland. */
 async function geocode(m) {
   for (const [q, type] of [[m.street && `${m.street} ${m.postcode}`, 'adres'], [m.q, '(adres OR weg)'], [m.postcode, 'postcode'], [m.place, 'woonplaats']]) {
@@ -301,7 +328,8 @@ async function mikki(skipped) {
   }
   return out;
 }
-const SOURCES = [['Organisatieburo Mikki', mikki, 'https://www.mikki.nl/'], ['De Evenementenlijn', evenementenlijn, 'https://www.deevenementenlijn.nl/'], ['Organisatieburo Vitalis', vitalis, 'https://vitalismarkten.nl/agenda/'],['Don Events', donEvents, 'https://donevents.nl/marktkalender/'], ['Organisatieburo Wildro', wildro, 'https://wildro.nl/vlooienmarkten/'], ['Organisatie Bureau VAC', vac, 'https://org-vac.nl/'], ['Van Aerle (vlooienmarkten.nl)', vanAerle, 'https://www.vlooienmarkten.nl/agenda-markten/']];
+async function ijHallen() { return ijAgenda(await (await get('https://ijhallen.nl/agenda.php')).text()); }
+const SOURCES = [['IJ-Hallen', ijHallen, 'https://ijhallen.nl/agenda.php'], ['Organisatieburo Mikki', mikki, 'https://www.mikki.nl/'], ['De Evenementenlijn', evenementenlijn, 'https://www.deevenementenlijn.nl/'], ['Organisatieburo Vitalis', vitalis, 'https://vitalismarkten.nl/agenda/'],['Don Events', donEvents, 'https://donevents.nl/marktkalender/'], ['Organisatieburo Wildro', wildro, 'https://wildro.nl/vlooienmarkten/'], ['Organisatie Bureau VAC', vac, 'https://org-vac.nl/'], ['Van Aerle (vlooienmarkten.nl)', vanAerle, 'https://www.vlooienmarkten.nl/agenda-markten/']];
 
 async function main() {
   const today = new Date().toISOString().slice(0, 10), prevAll = fs.existsSync(OUT) ? JSON.parse(fs.readFileSync(OUT, 'utf8')).markets : [];

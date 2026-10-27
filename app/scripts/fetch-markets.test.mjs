@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import fs from 'node:fs';
-import { donCalendar, donProduct, holidayDate, wildroEvent, vacAgenda, vacAddress, aerleAgenda, aerleProduct, vitalisIcs, vitalisPlace, evlAgenda, mikkiEvent } from './fetch-markets.mjs';
+import { donCalendar, donProduct, holidayDate, wildroEvent, vacAgenda, vacAddress, aerleAgenda, aerleProduct, vitalisIcs, vitalisPlace, evlAgenda, mikkiEvent, nlDays, ijAgenda } from './fetch-markets.mjs';
 
 // Opgeslagen pagina's van Don Events (27 okt 2026): breekt de site-opbouw, dan faalt deze test.
 const fx = f => fs.readFileSync(new URL(`./fixtures/${f}`, import.meta.url), 'utf8');
@@ -114,5 +114,24 @@ describe('uitlezer Mikki', () => {
     expect(mikkiEvent(fx('mikki-event.html'), url)).toMatchObject({ id: 'mikki-vlooienmarkt-sporthal-de-vaart-2', name: 'Vlooienmarkt Purmerend', venue: 'Sporthal De Vaart',
       addr: 'Koggenland, 1447 CN Purmerend', date: '2026-11-01', start: 570, end: 960, indoor: true, entree: '€3', kraamhuur: '€32,50', url });
     expect(mikkiEvent('<title>Kerstmarkt, Centrum - Mikki</title>', url)).toBeNull();
+  });
+});
+
+describe('uitlezer IJ-Hallen', () => {
+  it('agenda geeft per dag een editie met tijden, kramen en binnen, op de vaste plek', () => {
+    const eds = ijAgenda(fx('ijhallen-agenda.html'));
+    expect(eds.length).toBe(14);
+    expect(eds.slice(0, 2).map(e => e.date)).toEqual(['2026-10-31', '2026-11-01']);
+    expect(eds[0]).toEqual({ id: 'ij-2026-10-31', t: 'm', name: 'Vlooienmarkt IJ-Hallen', kind: 'Vlooienmarkt', place: 'Amsterdam', venue: 'IJ-Hallen, NDSM-werf',
+      addr: 'NDSM-Plein 1, 1033 WC Amsterdam', street: 'NDSM-Plein 1', postcode: '1033WC', date: '2026-10-31', start: 540, end: 990, timeKnown: true, indoor: true,
+      entree: 'onbekend', kramen: 600, org: 'IJ-Hallen', url: 'https://ijhallen.nl/agenda.php', schema: '', status: 'chk' });
+    expect(new Set(eds.map(e => e.id)).size).toBe(eds.length);
+  });
+  it('datums over de maand- en jaargrens, en één dag', () => {
+    expect(nlDays('31 oktober en 1 november 2026')).toEqual(['2026-10-31', '2026-11-01']);
+    expect(nlDays('12 en 13 december 2026')).toEqual(['2026-12-12', '2026-12-13']);
+    expect(nlDays('31 december en 1 januari 2027')).toEqual(['2026-12-31', '2027-01-01']);
+    expect(nlDays('7 maart 2027')).toEqual(['2027-03-07']);
+    expect(nlDays('Boek een kraam')).toEqual([]);
   });
 });

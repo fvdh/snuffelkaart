@@ -26,7 +26,7 @@ Klein en uitvoerbaar. Elke taak: wat, klaar als, test. Status: ☐ open · ◐ b
 | 15 | ☑ Preview-deploy (Cloudflare) | https://snuffelkaart.ironfront-relay.workers.dev (open link, noindex); account: Freek |
 | 16 | ☐ Testronde op de echte app | testscript draaien met 3 personen |
 | 17 | ☑ Overture als tweede bron | ontbrekende kringlopen (Nunspeet) staan erin, ontdubbeld, met bron |
-| 20 | ◐ Meer organisatoren (7 van ±20 klaar) | lijst uit onderzoek; per organisator een uitlezer + test + `sources/<naam>.md` |
+| 20 | ◐ Meer organisatoren (8 van ±20 klaar) | lijst uit onderzoek; per organisator een uitlezer + test + `sources/<naam>.md` |
 | 18 | ☐ Foursquare OS Places als derde bron | account Hugging Face (Freek); zelfde ontdubbeling |
 | 19 | ☑ Openingstijden van de eigen website | regels + tests, volle run, steekproef van 30 uitkomsten handmatig gecontroleerd |
 

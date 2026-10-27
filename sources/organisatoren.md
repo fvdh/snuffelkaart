@@ -13,7 +13,7 @@ Onderzoek 2026-10-27. Alleen organisatoren die **hun eigen markten** publiceren 
 | 4 | Organisatieburo Vitalis | vitalismarkten.nl/agenda/ (+ /events.ics) | ±40–60 (schatting) | Drenthe, Groningen, Zwolle, Hardenberg | ICS + HTML | ☑ uitgelezen (`vitalis.md`) |
 | 5 | De Evenementenlijn | deevenementenlijn.nl | ±35 | Noord-Brabant | HTML, volledig adres in de lijst | ☑ uitgelezen (`evenementenlijn.md`) |
 | 6 | Organisatieburo Mikki | mikki.nl | ±40 | Noord-Holland, Bollenstreek | HTML met paginering, adres op eventpagina | ☑ uitgelezen (`mikki.md`) |
-| 7 | IJ-Hallen | ijhallen.nl/agenda.php | ±18–20 weekenden | Amsterdam NDSM | simpele HTML, vast adres | ☐ |
+| 7 | IJ-Hallen | ijhallen.nl/agenda.php | ±18–20 weekenden | Amsterdam NDSM | simpele HTML, vast adres | ☑ uitgelezen (`ijhallen.md`) |
 | 8 | Animo Vlooienmarkten | animo-vlooienmarkten.nl/kalender | ±15–20 | Gelderland (Achterhoek, Velp, Elst) | HTML + pagina per markt | ☐ |
 | 9 | JoJo Vlooienmarkten | jojovlooienmarkten.nl/agenda-vlooienmarkten | ±4 + braderieën | Utrecht, 't Gooi | HTML (webshop), jaar ontbreekt | ☐ |
 
