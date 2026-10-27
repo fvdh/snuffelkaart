@@ -10,7 +10,7 @@ npm test             # logica: openingstijden, filters, dagplan
 npm run data         # alles opnieuw: Overture ophalen + OSM ophalen en samenvoegen
 npm run data:overture # alleen Overture (data-raw/overture.json)
 npm run data:web     # openingstijden van de eigen websites lezen (cache 7 dagen; -- --limit=50 als proef)
-npm run data:markets # markten uit de agenda van organisatoren (11, zie ../sources/; -- --only=mikki: alleen die)
+npm run data:markets # markten uit de agenda van organisatoren (12, zie ../sources/; -- --only=mikki: alleen die)
 npm run data:osm     # OSM ophalen en samenvoegen met Overture en websitetijden (-- --cached: zonder downloaden)
 npm run build        # statische site in dist/
 npx wrangler deploy  # dist/ naar de preview op Cloudflare (account Freek, zie wrangler.jsonc)

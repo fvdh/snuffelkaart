@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import fs from 'node:fs';
-import { donCalendar, donProduct, holidayDate, wildroEvent, vacAgenda, vacAddress, aerleAgenda, aerleProduct, vitalisIcs, vitalisPlace, evlAgenda, mikkiEvent, nlDays, ijAgenda, animoCalendar, animoEvent, jojoAgenda, jojoEvent, nextDate, mdvLocations, mdvAgenda } from './fetch-markets.mjs';
+import { donCalendar, donProduct, holidayDate, wildroEvent, vacAgenda, vacAddress, aerleAgenda, aerleProduct, vitalisIcs, vitalisPlace, evlAgenda, mikkiEvent, nlDays, ijAgenda, animoCalendar, animoEvent, jojoAgenda, jojoEvent, nextDate, mdvLocations, mdvAgenda, carbootAgenda } from './fetch-markets.mjs';
 
 // Opgeslagen pagina's van Don Events (27 okt 2026): breekt de site-opbouw, dan faalt deze test.
 const fx = f => fs.readFileSync(new URL(`./fixtures/${f}`, import.meta.url), 'utf8');
@@ -195,5 +195,16 @@ describe('uitlezer MDV Evenementen', () => {
     expect(eds[1]).toEqual({ id: 'mdv-2026-11-22-schiedam', t: 'm', name: 'Rommelmarkt Schiedam', kind: 'Rommelmarkt', place: 'Schiedam', venue: 'Margriethal',
       addr: 'Nieuwe Damlaan 5, 3119 KA Schiedam', street: 'Nieuwe Damlaan 5', postcode: '3119KA', date: '2026-11-22', start: 540, end: 1020, timeKnown: true, indoor: true,
       entree: 'onbekend', org: 'MDV Evenementen', url: 'https://www.mdv-evenementen.nl/event/22-november-2026-mega-rommelmarkt-in-de-margriethal-in-schiedam/', schema: '', status: 'chk' });
+  });
+});
+
+describe('uitlezer Carbootsale Horst', () => {
+  it('homepage geeft per zondag datum, tijden, entree en plek', () => {
+    const eds = carbootAgenda(fx('carbootsalehorst.html'));
+    expect(eds.length).toBe(10);
+    expect(new Set(eds.map(e => e.id)).size).toBe(10);
+    expect(eds[0]).toEqual({ id: 'carboot-horst-2027-04-04', t: 'm', name: 'Carbootsale Horst', kind: 'Kofferbakmarkt', place: 'Horst', venue: 'Evenemententerrein Kasteelpark Ter Horst',
+      addr: 'Peeldijkje, 5961 NK Horst', q: 'Peeldijkje Horst', postcode: '5961NK', date: '2027-04-04', start: 510, end: 930, timeKnown: true, indoor: false, entree: '€5',
+      kramen: 450, org: 'Carbootsale Horst (MCC Events)', url: 'https://carbootsalehorst.nl/data/zondag-4-april-2027/', schema: '', status: 'chk' });
   });
 });

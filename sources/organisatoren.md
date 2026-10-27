@@ -17,7 +17,7 @@ Onderzoek 2026-10-27. Alleen organisatoren die **hun eigen markten** publiceren 
 | 8 | Animo Vlooienmarkten | animo-vlooienmarkten.nl/kalender | ±15–20 | Gelderland (Achterhoek, Velp, Elst) | HTML + pagina per markt | ☑ uitgelezen (`animo.md`) |
 | 9 | JoJo Vlooienmarkten | jojovlooienmarkten.nl/agenda-vlooienmarkten | ±4 + braderieën | Utrecht, 't Gooi | HTML (webshop), jaar ontbreekt | ☑ uitgelezen (`jojo.md`) |
 
-Kleiner (≤ 12/jaar): MDV Evenementen (Schiedam) ☑ uitgelezen (`mdv.md`), Carbootsale Horst (Crawl-delay 10), LIROM Kofferbakmarkten (Reuver), VD-Organisatie (Rivierenland), Twentse Vlooienmarkt, Organisatiebureau De Nijs (antiek, Haarlem), Ferrion Markten, Grote Gestelse Vlooienmarkt, Kofferbakverkoop Budel, Smeets Buitenmarkten, Dynamic Promotions. ReZi (Twente, ±30–45?) staat in lopende tekst: lastig.
+Kleiner (≤ 12/jaar): MDV Evenementen (Schiedam) ☑ uitgelezen (`mdv.md`), Carbootsale Horst (Crawl-delay 10) ☑ uitgelezen (`carbootsalehorst.md`), LIROM Kofferbakmarkten (Reuver), VD-Organisatie (Rivierenland), Twentse Vlooienmarkt, Organisatiebureau De Nijs (antiek, Haarlem), Ferrion Markten, Grote Gestelse Vlooienmarkt, Kofferbakverkoop Budel, Smeets Buitenmarkten, Dynamic Promotions. ReZi (Twente, ±30–45?) staat in lopende tekst: lastig.
 
 ## Niet uitlezen zonder toestemming
 
@@ -28,4 +28,4 @@ Toestemming vragen = contact met buitenstaanders: Freek beslist.
 
 ## Niet geverifieerd
 
-Jaaraantallen Vitalis, ReZi, Mikki, VD-Organisatie zijn schattingen. Voorwaarden van ReZi en Carbootsale Horst niet gelezen. Afgevallen: zie het onderzoeksverslag (dode domeinen, lege agenda's, alleen JavaScript).
+Jaaraantallen Vitalis, ReZi, Mikki, VD-Organisatie zijn schattingen. Voorwaarden van ReZi niet gelezen. Afgevallen: zie het onderzoeksverslag (dode domeinen, lege agenda's, alleen JavaScript).

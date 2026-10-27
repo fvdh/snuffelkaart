@@ -315,6 +315,24 @@ export function mdvAgenda(html, locs = []) {
   return out;
 }
 
+// ---------- Carbootsale Horst, MCC Events (zie ../sources/carbootsalehorst.md) ----------
+/** Homepage → per blok "Zondag 4 april 2027 / MEGA CARBOOTSALE / … / Markt open van 8.30 tot 15.30 uur. / bezoekers € 5,00 / … Peeldijkje, 5961 NK Horst. / 450 standplaatsen". */
+export function carbootAgenda(html) {
+  const L = toText(html).split('\n').map(l => l.trim()).filter(Boolean), out = [], seen = new Set();
+  L.forEach((l, i) => {
+    const d = DATE_NL.exec(l); if (!d || l !== d[0] || !/carbootsale/i.test(L[i + 1] ?? '')) return;
+    const b = L.slice(i + 1, i + 20), end = b.findIndex(x => DATE_NL.test(x) && x === DATE_NL.exec(x)[0]), blk = (end > 0 ? b.slice(0, end) : b).join('\n');
+    const date = `${d[3]}-${pad(MONTHS.indexOf(d[2].toLowerCase()) + 1)}-${pad(+d[1])}`; if (seen.has(date)) return; seen.add(date);
+    const tm = /open van (\d{1,2}[:.]\d{2}) tot (\d{1,2}[:.]\d{2})/i.exec(blk), fee = /bezoekers\s*€\s*(\d+)(?:,(\d{2}))?/i.exec(blk), pc = /([A-Z][\w-]+),\s*(\d{4}\s?[A-Z]{2})\s+Horst/.exec(blk);
+    const slug = `${d[0].toLowerCase().replace(/\s+/g, '-')}`, url = new RegExp(`href="(https://carbootsalehorst\\.nl/data/${slug}/)"`).exec(html)?.[1] ?? 'https://carbootsalehorst.nl/';
+    out.push({ id: `carboot-horst-${date}`, t: 'm', name: 'Carbootsale Horst', kind: 'Kofferbakmarkt', place: 'Horst', venue: 'Evenemententerrein Kasteelpark Ter Horst',
+      addr: pc ? `${pc[1]}, ${pc[2].replace(/\s/g, '').replace(/([A-Z]{2})$/, ' $1')} Horst` : null, q: pc ? `${pc[1]} Horst` : null, postcode: pc?.[2].replace(/\s/g, ''),
+      date, start: tm ? mins(tm[1]) : 540, end: tm ? mins(tm[2]) : null, timeKnown: !!tm, indoor: false, entree: fee ? `€${fee[1]}${fee[2] && fee[2] !== '00' ? `,${fee[2]}` : ''}` : 'onbekend',
+      kramen: +(/(\d+)\s*(?:grote\s+)?standplaatsen/i.exec(blk)?.[1] ?? 0) || undefined, org: 'Carbootsale Horst (MCC Events)', url, schema: '', status: 'chk' });
+  });
+  return out;
+}
+
 /** Adres → coördinaten via PDOK (adres, anders postcode). Null buiten Nederland. */
 async function geocode(m) {
   for (const [q, type] of [[m.street && `${m.street} ${m.postcode}`, 'adres'], [m.q, '(adres OR weg)'], [m.postcode, 'postcode'], [m.place, 'woonplaats']]) {
@@ -441,7 +459,8 @@ async function mdv() {
   const home = await (await get('https://www.mdv-evenementen.nl/')).text(); await sleep(1500);
   return mdvAgenda(home, mdvLocations(await (await get('https://www.mdv-evenementen.nl/locaties/')).text()));
 }
-const SOURCES = [['MDV Evenementen', mdv, 'https://www.mdv-evenementen.nl/'], ['JoJo Vlooienmarkten', jojo, 'https://www.jojovlooienmarkten.nl/agenda-vlooienmarkten'], ['Animo Vlooienmarkten', animo, 'https://animo-vlooienmarkten.nl/kalender'], ['IJ-Hallen', ijHallen, 'https://ijhallen.nl/agenda.php'], ['Organisatieburo Mikki', mikki, 'https://www.mikki.nl/'], ['De Evenementenlijn', evenementenlijn, 'https://www.deevenementenlijn.nl/'], ['Organisatieburo Vitalis', vitalis, 'https://vitalismarkten.nl/agenda/'],['Don Events', donEvents, 'https://donevents.nl/marktkalender/'], ['Organisatieburo Wildro', wildro, 'https://wildro.nl/vlooienmarkten/'], ['Organisatie Bureau VAC', vac, 'https://org-vac.nl/'], ['Van Aerle (vlooienmarkten.nl)', vanAerle, 'https://www.vlooienmarkten.nl/agenda-markten/']];
+async function carboot() { return carbootAgenda(await (await get('https://carbootsalehorst.nl/')).text()); } // één pagina; hun robots.txt vraagt Crawl-delay 10
+const SOURCES = [['Carbootsale Horst (MCC Events)', carboot, 'https://carbootsalehorst.nl/'], ['MDV Evenementen', mdv, 'https://www.mdv-evenementen.nl/'], ['JoJo Vlooienmarkten', jojo, 'https://www.jojovlooienmarkten.nl/agenda-vlooienmarkten'], ['Animo Vlooienmarkten', animo, 'https://animo-vlooienmarkten.nl/kalender'], ['IJ-Hallen', ijHallen, 'https://ijhallen.nl/agenda.php'], ['Organisatieburo Mikki', mikki, 'https://www.mikki.nl/'], ['De Evenementenlijn', evenementenlijn, 'https://www.deevenementenlijn.nl/'], ['Organisatieburo Vitalis', vitalis, 'https://vitalismarkten.nl/agenda/'],['Don Events', donEvents, 'https://donevents.nl/marktkalender/'], ['Organisatieburo Wildro', wildro, 'https://wildro.nl/vlooienmarkten/'], ['Organisatie Bureau VAC', vac, 'https://org-vac.nl/'], ['Van Aerle (vlooienmarkten.nl)', vanAerle, 'https://www.vlooienmarkten.nl/agenda-markten/']];
 
 async function main() {
   const today = new Date().toISOString().slice(0, 10), prevAll = fs.existsSync(OUT) ? JSON.parse(fs.readFileSync(OUT, 'utf8')).markets : [];
