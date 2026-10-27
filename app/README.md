@@ -13,6 +13,7 @@ npm run data:web     # openingstijden van de eigen websites lezen (cache 7 dagen
 npm run data:markets # markten uit de agenda van organisatoren (7, zie ../sources/; -- --only=mikki: alleen die)
 npm run data:osm     # OSM ophalen en samenvoegen met Overture en websitetijden (-- --cached: zonder downloaden)
 npm run build        # statische site in dist/
+npx wrangler deploy  # dist/ naar de preview op Cloudflare (account Freek, zie wrangler.jsonc)
 ```
 
 Handig bij testen: `?nu=2026-10-31T09:10` zet de klok op een vast moment (de app is tijdsbewust).

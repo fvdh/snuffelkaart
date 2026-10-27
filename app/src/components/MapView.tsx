@@ -55,8 +55,10 @@ export default function MapView(p: MapProps) {
   useEffect(() => {
     let map: ML.Map | null = null, gone = false;
     (async () => {
-      const [lib, style] = await Promise.all([import('maplibre-gl'), fetch(STYLE).then(r => r.json())]);
+      const [lib, style, worker] = await Promise.all([import('maplibre-gl'), fetch(STYLE).then(r => r.json()), import('maplibre-gl/dist/maplibre-gl-worker.mjs?url')]);
       maplibregl = lib;
+      // MapLibre 6 zoekt zijn worker naast zijn eigen bestand; na bundelen staat die er niet, dus wijzen we hem aan.
+      maplibregl.setWorkerUrl(worker.default);
       if (gone || !box.current) return;
       map = new maplibregl.Map({ container: box.current, style, center: [DEFAULT_CENTER.lon, DEFAULT_CENTER.lat], zoom: 11.5, attributionControl: false, pitchWithRotate: false, dragRotate: false });
       map.touchZoomRotate.disableRotation();

@@ -86,3 +86,10 @@ Keuzes en waarom. Nieuwste onderaan. "Freek" = besloten door Freek; anders voorl
 - **Wat**: de lijst en kaart starten met alle winkels en markten. "Nu open", "Vandaag", "Dit weekend" en "Kies datum" zijn aan/uit-chips; nog eens tikken zet het filter uit. Elke regel blijft zeggen of een winkel nu open is (of wanneer hij opengaat) en op welke dag een markt is.
 - **Waarom**: Freek: "je moet ook gewoon alle winkels / markten kunnen zien". Het tijdsbewuste startpunt (doordeweeks "Nu open") verborg 's avonds bijna alles.
 - **Pins bij uitzoomen**: markers hielden hun positie niet omdat `className` de klasse `maplibregl-marker` (position:absolute) wiste. Nu `classList`.
+
+## Preview op Cloudflare (2026-10-27)
+
+- **Waar**: https://snuffelkaart.ironfront-relay.workers.dev, account van Freek. Uitrollen: `npm run build && npx wrangler deploy` in `app/`.
+- **Workers, niet Pages**: Cloudflare stuurt nieuwe projecten naar Workers met statische bestanden (`wrangler.jsonc`, geen eigen code). Zelfde resultaat, gratis.
+- **Open link** (Freek): wie de link heeft, kan erin. Niet vindbaar: `X-Robots-Tag: noindex` via `_headers` en `robots.txt` met `Disallow: /`. Achter een login (Cloudflare Access) kan later.
+- **MapLibre-worker**: MapLibre 6 zoekt `maplibre-gl-worker.mjs` naast zijn eigen bestand; na bundelen staat die er niet en blijft de kaart leeg. We wijzen hem aan met `setWorkerUrl` en een `?url`-import.
