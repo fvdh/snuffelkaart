@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import fs from 'node:fs';
-import { donCalendar, donProduct, holidayDate, wildroEvent, vacAgenda, vacAddress, aerleAgenda, aerleProduct, vitalisIcs, vitalisPlace, evlAgenda, mikkiEvent, nlDays, ijAgenda, animoCalendar, animoEvent, jojoAgenda, jojoEvent, nextDate, mdvLocations, mdvAgenda, carbootAgenda } from './fetch-markets.mjs';
+import { donCalendar, donProduct, holidayDate, wildroEvent, vacAgenda, vacAddress, aerleAgenda, aerleProduct, vitalisIcs, vitalisPlace, evlAgenda, mikkiEvent, nlDays, ijAgenda, animoCalendar, animoEvent, jojoAgenda, jojoEvent, nextDate, mdvLocations, mdvAgenda, carbootAgenda, liromAgenda, liromLocation } from './fetch-markets.mjs';
 
 // Opgeslagen pagina's van Don Events (27 okt 2026): breekt de site-opbouw, dan faalt deze test.
 const fx = f => fs.readFileSync(new URL(`./fixtures/${f}`, import.meta.url), 'utf8');
@@ -206,5 +206,19 @@ describe('uitlezer Carbootsale Horst', () => {
     expect(eds[0]).toEqual({ id: 'carboot-horst-2027-04-04', t: 'm', name: 'Carbootsale Horst', kind: 'Kofferbakmarkt', place: 'Horst', venue: 'Evenemententerrein Kasteelpark Ter Horst',
       addr: 'Peeldijkje, 5961 NK Horst', q: 'Peeldijkje Horst', postcode: '5961NK', date: '2027-04-04', start: 510, end: 930, timeKnown: true, indoor: false, entree: '€5',
       kramen: 450, org: 'Carbootsale Horst (MCC Events)', url: 'https://carbootsalehorst.nl/data/zondag-4-april-2027/', schema: '', status: 'chk' });
+  });
+});
+
+describe('uitlezer LIROM', () => {
+  it('agenda geeft binnen- en buitenmarkten met datum en plek; adres van de locatiepagina', () => {
+    const loc = liromLocation(fx('lirom-locatie.html'));
+    expect(loc).toEqual({ street: 'Bergerhofweg 1', postcode: '5953NR', city: 'Reuver' });
+    const eds = liromAgenda(fx('lirom-agenda.html'), loc);
+    expect(eds.length).toBe(10);
+    expect(eds.find(e => e.date === '2026-11-08')).toEqual({ id: 'lirom-2026-11-08', t: 'm', name: 'Kofferbakmarkt Reuver', kind: 'Kofferbakmarkt', place: 'Reuver',
+      venue: 'De Paardenvriend', addr: 'Bergerhofweg 1, 5953 NR Reuver', street: 'Bergerhofweg 1', postcode: '5953NR', date: '2026-11-08', start: 540, end: null,
+      timeKnown: false, indoor: true, entree: 'onbekend', org: 'LIROM Kofferbakmarkten', url: 'https://lirom.nl/agenda/', schema: '', status: 'chk' });
+    expect(eds.find(e => e.date === '2026-05-14')).toMatchObject({ indoor: false, venue: 'De Paardenvriend' }); // "14 mei (hemelvaartsdag) 2026"
+    expect(eds[0].venue).toBe('De Paardenvriend'); // tikfout "Paardenvrend" hersteld
   });
 });

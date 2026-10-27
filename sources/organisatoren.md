@@ -17,7 +17,7 @@ Onderzoek 2026-10-27. Alleen organisatoren die **hun eigen markten** publiceren 
 | 8 | Animo Vlooienmarkten | animo-vlooienmarkten.nl/kalender | ±15–20 | Gelderland (Achterhoek, Velp, Elst) | HTML + pagina per markt | ☑ uitgelezen (`animo.md`) |
 | 9 | JoJo Vlooienmarkten | jojovlooienmarkten.nl/agenda-vlooienmarkten | ±4 + braderieën | Utrecht, 't Gooi | HTML (webshop), jaar ontbreekt | ☑ uitgelezen (`jojo.md`) |
 
-Kleiner (≤ 12/jaar): MDV Evenementen (Schiedam) ☑ uitgelezen (`mdv.md`), Carbootsale Horst (Crawl-delay 10) ☑ uitgelezen (`carbootsalehorst.md`), LIROM Kofferbakmarkten (Reuver), VD-Organisatie (Rivierenland), Twentse Vlooienmarkt, Organisatiebureau De Nijs (antiek, Haarlem), Ferrion Markten, Grote Gestelse Vlooienmarkt, Kofferbakverkoop Budel, Smeets Buitenmarkten, Dynamic Promotions. ReZi (Twente, ±30–45?) staat in lopende tekst: lastig.
+Kleiner (≤ 12/jaar): MDV Evenementen (Schiedam) ☑ uitgelezen (`mdv.md`), Carbootsale Horst (Crawl-delay 10) ☑ uitgelezen (`carbootsalehorst.md`), LIROM Kofferbakmarkten (Reuver) ☑ uitgelezen (`lirom.md`), VD-Organisatie (Rivierenland), Twentse Vlooienmarkt, Organisatiebureau De Nijs (antiek, Haarlem), Ferrion Markten, Grote Gestelse Vlooienmarkt, Kofferbakverkoop Budel, Smeets Buitenmarkten, Dynamic Promotions. ReZi (Twente, ±30–45?) staat in lopende tekst: lastig.
 
 ## Niet uitlezen zonder toestemming
 
