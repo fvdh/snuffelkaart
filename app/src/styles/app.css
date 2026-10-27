@@ -33,6 +33,7 @@ a.btn.primary{color:var(--on-ink)}
   .shell .sheet-scroll{padding-bottom:calc(var(--barpad,0px) + 24px)}
   .shell .handle{display:none}
   .shell .lv-head{padding-top:16px}
+  .shell .brand{display:flex}
   .shell .dv-head,.shell .pv-head{padding-top:8px}
   .shell .map{left:400px}
   .shell .planbar{left:416px;right:auto;width:340px}
@@ -42,6 +43,10 @@ a.btn.primary{color:var(--on-ink)}
 
 /* eerste keer openen */
 .brand-mark{width:40px;height:40px;border-radius:12px;background:var(--ink);color:var(--on-ink);display:grid;place-items:center}
+/* merk bovenaan het paneel; alleen op desktop, op de telefoon telt elke pixel van de sheet */
+.brand{display:none;align-items:center;gap:9px;font-weight:780;font-size:1.0625rem;letter-spacing:-.015em;color:var(--fg);text-decoration:none;margin-bottom:2px;width:max-content}
+.brand .brand-mark{width:28px;height:28px;border-radius:8px}
+.brand .brand-mark svg{width:16px;height:16px}
 
 /* lijst → detail: de naam vliegt naar de titel */
 ::view-transition-group(vt-title){animation-duration:.3s;animation-timing-function:cubic-bezier(0.22,1,0.36,1)}

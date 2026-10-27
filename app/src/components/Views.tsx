@@ -88,6 +88,7 @@ export function ListView({ c, list, total, limit, more, counts, nPlaces }: { c: 
   const P = (b: boolean) => ({ 'aria-pressed': b });
   return (<>
     <div className="lv-head" data-peek data-drag>
+      <a className="brand" href="/" aria-label="Snuffelkaart, naar het begin"><span className="brand-mark"><Ic n="tag" /></span>Snuffelkaart</a>
       <div className="greet"><div><h2>{title}</h2>
         <p className="counts">{weekend
           ? <button onClick={() => c.setF({ time: 'today' })}><span className="cdot" />{counts.kToday} kringlopen open vandaag</button>
