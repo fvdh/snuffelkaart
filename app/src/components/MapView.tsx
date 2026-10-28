@@ -39,7 +39,8 @@ function paint(map: ML.Map) {
 
 export interface MapProps {
   items: Item[]; sel: string | null; planIds: string[]; me: LatLon | null; bottomPad: number;
-  focus: { lat: number; lon: number; key: number } | null; fit: { pts: LatLon[]; key: number } | null; route: LatLon[];
+  /** Waar de kaart begint: de onthouden plaats, anders het standaardmidden. Alleen bij het aanmaken gebruikt. */
+  home?: LatLon; focus: { lat: number; lon: number; key: number } | null; fit: { pts: LatLon[]; key: number } | null; route: LatLon[];
   pinClass: (it: Item) => string; onSelect: (id: string) => void; onLocate: () => void;
 }
 
@@ -61,7 +62,7 @@ export default function MapView(p: MapProps) {
       // MapLibre 6 zoekt zijn worker naast zijn eigen bestand; na bundelen staat die er niet, dus wijzen we hem aan.
       maplibregl.setWorkerUrl(worker.default);
       if (gone || !box.current) return;
-      map = new maplibregl.Map({ container: box.current, style, center: [DEFAULT_CENTER.lon, DEFAULT_CENTER.lat], zoom: 11.5, attributionControl: false, pitchWithRotate: false, dragRotate: false });
+      map = new maplibregl.Map({ container: box.current, style, center: [(p.home ?? DEFAULT_CENTER).lon, (p.home ?? DEFAULT_CENTER).lat], zoom: 11.5, attributionControl: false, pitchWithRotate: false, dragRotate: false });
       map.touchZoomRotate.disableRotation();
       map.addControl(new maplibregl.AttributionControl({ compact: true }), 'top-left'); // bovenin: onderin ligt het paneel
       map.on('load', () => {
