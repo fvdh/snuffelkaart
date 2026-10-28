@@ -1,14 +1,15 @@
-# M4: elke nacht een back-up van Supabase naar R2 (privé bucket snuffelkaart-backup, na 30 dagen automatisch weg), en de RLS-test.
-# Secrets: SUPABASE_ACCESS_TOKEN (supabase.com → Account → Access Tokens), CLOUDFLARE_API_TOKEN (met "Workers R2 Storage: Edit").
-# Terugzetten (nieuw Supabase-project, of lokaal om te oefenen):
-#   npx wrangler r2 object get snuffelkaart-backup/<datum>/schema.sql.gz --remote --file schema.sql.gz  (en data.sql.gz)
-#   gunzip *.gz && psql "<connection string>" -f schema.sql && psql "<connection string>" -f data.sql
+# M4: elke nacht een back-up van Supabase, versleuteld (AES-256) als GitHub Actions-artifact, 30 dagen bewaard; plus de RLS-test.
+# Geen R2: daarvoor is een creditcard nodig (DECISIONS.md). De repo is publiek, dus het bestand is alleen bruikbaar met het wachtwoord.
+# Secrets: SUPABASE_ACCESS_TOKEN (supabase.com → Account → Access Tokens) en BACKUP_WACHTWOORD
+#          (ook in je wachtwoordmanager bewaren: GitHub laat het nooit meer zien, en zonder is de back-up waardeloos).
+# Terugzetten: Actions → deze workflow → run → artifact "backup-<datum>" downloaden en uitpakken, dan
+#   WACHTWOORD='…' openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -md sha256 -pass env:WACHTWOORD -in backup.tar.gz.enc | tar xz
+#   psql "<connection string van een (nieuw) Supabase-project>" -f schema.sql && psql "<…>" -f data.sql
 # Geoefend op 2026-10-28 in een lege supabase/postgres-container: alle public-tabellen exact terug (zie DECISIONS.md).
 name: Nachtelijke back-up
 on:
-  # Schema gaat aan zodra de secrets er staan (anders elke nacht een rode run):
-  # schedule:
-  #   - cron: '0 2 * * *' # 03:00 of 04:00 Nederlandse tijd, vóór de verversing
+  schedule:
+    - cron: '0 2 * * *' # 03:00 of 04:00 Nederlandse tijd, vóór de verversing
   workflow_dispatch:
 permissions:
   contents: read
@@ -17,21 +18,32 @@ jobs:
     runs-on: ubuntu-latest
     env:
       SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      WACHTWOORD: ${{ secrets.BACKUP_WACHTWOORD }}
       REF: gldbcdrlojsgcltpxctj
     steps:
+      - name: Secrets aanwezig?
+        id: ok
+        run: |
+          if [ -n "$SUPABASE_ACCESS_TOKEN" ] && [ -n "$WACHTWOORD" ]; then echo aan=ja >> "$GITHUB_OUTPUT"
+          else echo "::notice::Back-up staat uit: SUPABASE_ACCESS_TOKEN en/of BACKUP_WACHTWOORD ontbreken in de GitHub-secrets."; fi
       - uses: actions/checkout@v5
-      - name: Dump (schema, en data van public en auth)
+        if: steps.ok.outputs.aan
+      - name: Dump (schema, en data van public en auth), versleuteld
+        if: steps.ok.outputs.aan
         run: |
           npx --yes supabase@2 db dump --project-ref "$REF" -f schema.sql
           npx --yes supabase@2 db dump --project-ref "$REF" --data-only --use-copy -s public,auth -f data.sql
           test -s schema.sql && test -s data.sql
-          gzip -9 schema.sql data.sql
-      - name: Naar R2
-        working-directory: app
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-        run: |
-          d=$(date +%F)
-          for f in schema data; do npx --yes wrangler@4 r2 object put "snuffelkaart-backup/$d/$f.sql.gz" --file "../$f.sql.gz" --remote; done
+          tar czf - schema.sql data.sql | openssl enc -aes-256-cbc -pbkdf2 -iter 200000 -md sha256 -salt -pass env:WACHTWOORD -out backup.tar.gz.enc
+          rm schema.sql data.sql
+          echo "d=$(date +%F)" >> "$GITHUB_ENV"
+      - uses: actions/upload-artifact@v4
+        if: steps.ok.outputs.aan
+        with:
+          name: backup-${{ env.d }}
+          path: backup.tar.gz.enc
+          retention-days: 30
+          if-no-files-found: error
       - name: RLS-test
+        if: steps.ok.outputs.aan
         run: npx --yes supabase@2 db query --project-ref "$REF" -f supabase/tests/rls.sql
