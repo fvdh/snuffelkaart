@@ -248,3 +248,6 @@ Review (impeccable critique, 26/40) → Freek koos: eerst het mobiele lijstscher
 - **Tellers** in de kop tellen binnen 25 km van de gekozen plek (stond "893 nu open" bij "rond Amersfoort").
 - **Sloop en restpartijen:** petrol i.p.v. olijfgroen (groen = alleen open). Greep van het paneel 24 px hoog (raakvlak).
 - Nog open uit de review (P2): rustiger kaart, markten op datum en herhalingen samenvoegen, dubbele winkels OSM/Overture, datumfout Gemeenteblad-uitlezer (inzagedatum als marktdatum).
+
+## Lijstbreedte versleepbaar (2026-10-28)
+Op desktop/iPad (≥ 980 px) is de rand tussen lijst en kaart versleepbaar (300–680 px, kaart houdt ≥ 320 px), met pijltjestoetsen (±24 px) en dubbelklik = 400 px. Onthouden per apparaat (`snuffel-breedte`). CSS-variabele `--side` stuurt lijst, kaart, dagplanbalk en toast. MapLibre past de kaart zelf aan (ResizeObserver).

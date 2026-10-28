@@ -88,6 +88,9 @@ export default function App() {
   const setPlan = (p: Partial<typeof plan>) => { const n = { ...planRef.current, ...p }; planRef.current = n; setPlanRaw(n); if (p.stops) setOptimized(false); };
   const [optimized, setOptimized] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
+  // Breedte van de lijst op desktop/iPad: versleepbaar, onthouden per apparaat. Kaart houdt minstens 320 px.
+  const [side, setSideRaw] = useLocal('snuffel-breedte', 400), [resizing, setResizing] = useState(false), dragging = useRef(false);
+  const setSide = (w: number) => setSideRaw(Math.round(Math.max(300, Math.min(w, 680, innerWidth - 320))));
   const [focus, setFocus] = useState<{ lat: number; lon: number; key: number } | null>(null), [fit, setFit] = useState<{ pts: LatLon[]; key: number } | null>(null);
   useEffect(() => { if (!toast) return; const t = setTimeout(() => setToast(null), 3200); return () => clearTimeout(t); }, [toast]);
 
@@ -266,7 +269,7 @@ export default function App() {
   const selItem = sel ? byId.get(sel) : null;
 
   return (
-    <div className="shell" ref={shell}>
+    <div className="shell" ref={shell} style={{ ['--side' as string]: `${Math.max(300, Math.min(side, 680))}px` }}>
       <MapView items={mapItems} sel={view === 'detail' ? sel : null} planIds={view === 'plan' ? plan.stops : []} me={me} bottomPad={bottomPad}
         focus={focus} fit={fit} route={view === 'plan' && planItems.length ? [origin, ...planItems] : []} pinClass={pinClass} onSelect={open} onLocate={() => locate()} />
       <main className={`sheet${dragTop == null ? ' snapping' : ''}`} ref={sheet} style={desktop ? undefined : { transform: `translateY(${top - 12}px)` }}
@@ -286,6 +289,13 @@ export default function App() {
           </div>
         </div>
       </main>
+      {desktop && <div className={`resizer${resizing ? ' on' : ''}`} role="separator" aria-orientation="vertical" aria-label="Breedte van de lijst" tabIndex={0}
+        aria-valuemin={300} aria-valuemax={680} aria-valuenow={side} title="Sleep om de lijst breder of smaller te maken; dubbelklik voor de standaardbreedte"
+        onPointerDown={e => { try { e.currentTarget.setPointerCapture(e.pointerId); } catch { /* zonder capture werkt slepen ook */ } dragging.current = true; setResizing(true); }}
+        onPointerMove={e => { if (dragging.current) setSide(e.clientX); }}
+        onPointerUp={() => { dragging.current = false; setResizing(false); }} onPointerCancel={() => { dragging.current = false; setResizing(false); }}
+        onDoubleClick={() => setSide(400)}
+        onKeyDown={e => { const d = e.key === 'ArrowLeft' ? -24 : e.key === 'ArrowRight' ? 24 : 0; if (d) { e.preventDefault(); setSide(side + d); } }} />}
       <aside aria-label="Mijn dagplan"><button className={`planbar${barOn ? '' : ' off'}`} onClick={openPlan} aria-label={`Open mijn dagplan: ${plan.stops.length} stops`}>
         <span className="pb-n tnum" key={plan.stops.length}>{plan.stops.length}</span>
         <span className="pb-t"><b>Mijn {DAYS_LONG[dayStart(plan.day).getDay()]}</b><span>{sim.bad ? <><i className="pb-warn" style={{ background: 'var(--bad)' }} />{sim.bad} klopt niet · </> : sim.warn ? <><i className="pb-warn" />{sim.warn} aandachtspunt{sim.warn > 1 ? 'en' : ''} · </> : null}{plan.stops.length} stop{plan.stops.length > 1 ? 's' : ''} · klaar ±{hm(sim.end)}</span></span>
