@@ -226,10 +226,13 @@ svg.i{width:20px;height:20px;flex:none;fill:none;stroke:currentColor;stroke-widt
 .banner.ok svg{color:var(--open-ink)}
 
 .rows{list-style:none;margin:0;padding:0}
-.rowli{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;border-bottom:1px solid var(--line)}
+.rowli{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;border-bottom:1px solid var(--line);position:relative;isolation:isolate}
+/* Hover over de hele regel (ook de +), met lucht rondom en vrij van de scheidingslijnen */
+.rowli::before{content:"";position:absolute;inset:3px -8px;border-radius:12px;background:transparent;z-index:-1;transition:background .15s var(--ease)}
+.rowli:has(.row:hover)::before,.rowli:has(.row.hl)::before{background:var(--surface-2)}
 .rowli:last-child{border-bottom:0}
 .row{display:grid;grid-template-columns:40px minmax(0,1fr) auto;gap:12px;align-items:center;padding:12px 6px 12px 0;border:0;background:none;text-align:left;width:100%;border-radius:10px;transition:background .15s var(--ease)}
-.row:hover,.row.hl{background:color-mix(in oklch,var(--surface-2) 70%,transparent)}
+.add:hover span{border-color:var(--fg-3)}
 .tile{width:40px;height:40px;display:grid;place-items:center;flex:none}
 .tile.k{border-radius:11px;background:var(--c-soft);color:var(--c-ink)}
 .tile.m{border-radius:50%;background:var(--markt-soft);color:var(--markt-ink)}
