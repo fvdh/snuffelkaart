@@ -1,11 +1,14 @@
 # Elke nacht (§6.1): markten opnieuw uitlezen → Supabase; Supabase → kaartdata (tijden vooruitgerekend); testen, bouwen, uitrollen.
 # Secrets: CLOUDFLARE_API_TOKEN, SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY. Handmatig starten kan via "Run workflow".
 # De dagelijkse schrijfactie houdt het gratis Supabase-project wakker.
+# Elk kwartier: alleen als iemand in /beheer iets wijzigde (updated_at na de laatste export) exporteren, bouwen en uitrollen.
+# ponytail: polling via cron (repo is publiek, minuten gratis; GitHub-cron loopt soms wat achter). Sneller = Supabase-webhook → repository_dispatch.
 # ponytail: OSM, Overture en websitetijden ververst dit niet; die import draait nog met de hand (wekelijks: Geofabrik, §5.1).
 name: Nachtelijke verversing
 on:
   schedule:
     - cron: '30 2 * * *' # 03:30 of 04:30 Nederlandse tijd
+    - cron: '*/15 * * * *' # wijzigingen uit /beheer
   workflow_dispatch:
 permissions:
   contents: write
@@ -18,39 +21,58 @@ jobs:
         working-directory: app
     steps:
       - uses: actions/checkout@v5
+      - name: Wat te doen
+        id: w
+        env: &supabase
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          if [ "${{ github.event.schedule }}" != '*/15 * * * *' ]; then echo doe=alles >> "$GITHUB_OUTPUT"; exit 0; fi
+          since=$(jq -r .generated public/data/markets.json)
+          for t in markets places; do
+            curl -sf "$SUPABASE_URL/rest/v1/$t?select=id&updated_at=gt.$since&limit=1" -H "apikey: $SUPABASE_SERVICE_ROLE_KEY"
+          done | grep -q '"id"' && echo doe=publiceer >> "$GITHUB_OUTPUT" || echo "Niets gewijzigd sinds $since"
       - uses: actions/setup-node@v5
+        if: steps.w.outputs.doe
         with:
           node-version: 22
           cache: npm
           cache-dependency-path: app/package-lock.json
       - run: npm ci
+        if: steps.w.outputs.doe
       - name: Markten opnieuw uitlezen
+        if: steps.w.outputs.doe == 'alles'
         run: node scripts/fetch-markets.mjs
         continue-on-error: true # gaat één organisator mis, dan blijft zijn vorige stand staan; de rest gaat door
       - name: Markten naar Supabase
+        if: steps.w.outputs.doe == 'alles'
         run: node scripts/db.mjs push markets
-        env: &supabase
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        env: *supabase
       - name: Gemeenteblad → kandidaten (keuren in /beheer)
+        if: steps.w.outputs.doe == 'alles'
         run: node scripts/fetch-gemeenteblad.mjs
         continue-on-error: true
         env: *supabase
       - name: Kaartdata uit Supabase (tijden vooruit vanaf vandaag)
+        if: steps.w.outputs.doe
         run: node scripts/db.mjs export
         env: *supabase
       - run: npm test
+        if: steps.w.outputs.doe
       - run: npm run build
+        if: steps.w.outputs.doe
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }} # publishable key voor /beheer; niet geheim
       - name: Uitrollen naar Cloudflare
+        if: steps.w.outputs.doe
         run: npx --yes wrangler@4 deploy
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       - name: Gegevens bewaren in de repo
+        if: steps.w.outputs.doe
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add public/data
-          git diff --cached --quiet || { git commit -m "Gegevens ververst $(date +%F)" && git push; }
+          git diff --cached --quiet || { git commit -m "Gegevens ververst $(date +%F) (${{ steps.w.outputs.doe }})" && git push; }

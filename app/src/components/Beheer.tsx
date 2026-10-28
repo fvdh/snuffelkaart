@@ -58,7 +58,7 @@ function Panel({ s, out }: { s: Session; out: () => void }) {
   return (<>
     <header className="bh-head"><h1>Beheer</h1><span>{s.email}</span><button className="btn sm" onClick={out}>Uitloggen</button></header>
     <div className="typeseg"><button aria-pressed={tab === 'm'} onClick={() => setTab('m')}>Markten</button><button aria-pressed={tab === 'k'} onClick={() => setTab('k')}>Winkels</button></div>
-    <p className="bh-note">Wijzigingen staan na de nachtelijke verversing (03:30) op de kaart. Wat je hier zet, overschrijft een import niet meer.</p>
+    <p className="bh-note">Wijzigingen staan binnen ±15 minuten op de kaart. Wat je hier zet, overschrijft een import niet meer.</p>
     {tab === 'm' ? <Markets s={s} /> : <Shops s={s} />}
   </>);
 }

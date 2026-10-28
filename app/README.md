@@ -18,6 +18,7 @@ npm run db:push:places   # na data:osm: winkels naar Supabase (bron van waarheid
 npm run db:push:markets  # na data:markets: markten naar Supabase (verdwenen edities → nog niet bevestigd)
 npm run db:export        # Supabase → public/data/*.json, openingstijden vooruit vanaf vandaag
 # Elke nacht doet .github/workflows/nachtelijk.yml: markten → Supabase → export, test, build, deploy.
+# Elk kwartier: alleen export → build → deploy, als er in /beheer iets gewijzigd is.
 # Schema: ../supabase/migrations (npx supabase db push --linked).
 # Beheer: /beheer (inloglink per e-mail; beheerders in tabel admins). Auth-URL's: ../supabase/config.toml (npx supabase config push).
 ```
