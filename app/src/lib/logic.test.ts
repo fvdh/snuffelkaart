@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import type { Place, Cat } from './model';
 import { weekendOf, DEFAULT_CENTER, catOf } from './model';
 import { placeNow, placeDay, isHoliday, week, setWindow, intervals } from './hours';
-import { simulate, bestOrder, routeUrl } from './plan';
+import { simulate, bestOrder, routeUrl, dayProposals } from './plan';
 import { matches } from './filter';
 import { sampleMarkets } from './markets';
 import { parsePdok } from './pdok';
@@ -138,5 +138,23 @@ describe('plaats zoeken (PDOK)', () => {
     expect(parsePdok([pc('Appelmarkt, 3811CT Amersfoort')], '3811ct')[0]).toMatchObject({ label: '3811CT', sub: 'Appelmarkt, Amersfoort' });
     const w = (n: string) => ({ type: 'woonplaats', weergavenaam: n, centroide_ll: 'POINT(5.25 52.09)' });
     expect(parsePdok([w('Zeist, Zeist, Utrecht'), w('Den Dolder, Zeist, Utrecht')], 'z').map(s => s.sub)).toEqual(['Utrecht', 'Gemeente Zeist, Utrecht']);
+  });
+});
+
+describe('dag voor me', () => {
+  const at = (id: string, lat: number, oh: string | null) => P(oh, { id, name: id, lat, lon: 5.388 });
+  const shops = [at('a', 52.156, 'Sa 10:00-17:00'), at('b', 52.160, 'Sa 10:00-17:00'), at('c', 52.165, 'Mo-Fr 10:00-17:00'), at('d', 52.170, null), at('e', 52.175, 'Sa 09:00-17:00'), at('ver', 53.5, 'Sa 10:00-17:00')];
+  const from = { lat: 52.156, lon: 5.388 }, ids = (x: { id: string }[]) => x.map(i => i.id).sort();
+  it('alleen wat die dag open is, met bekende tijden, binnen bereik', () => {
+    expect(ids(dayProposals(shops, '2026-10-31', 570, from)[0])).toEqual(['a', 'b', 'e']);
+  });
+  it('doordeweeks andere winkels; niets open = geen voorstel', () => {
+    expect(ids(dayProposals(shops, '2026-10-27', 570, from)[0])).toEqual(['c']);
+    expect(dayProposals(shops, '2026-11-01', 570, from)).toEqual([]);
+  });
+  it('geen dubbele voorstellen', () => {
+    const p = dayProposals(shops, '2026-10-31', 570, from, 2).map(x => ids(x).join());
+    expect(p.length).toBeGreaterThan(1);
+    expect(new Set(p).size).toBe(p.length);
   });
 });

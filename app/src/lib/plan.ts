@@ -1,5 +1,5 @@
 import { type Item, type LatLon, km, DAYS_LONG, dayStart, hm, mEnd } from './model';
-import { intervals } from './hours';
+import { intervals, openOn } from './hours';
 
 export interface Issue { lv: 'bad' | 'warn'; txt: string }
 export interface Stop { id: string; arrive: number; drive: number; km: number; issue: Issue | null; note: string; wait: number }
@@ -60,6 +60,23 @@ export function bestOrder(stops: Item[], iso: string, start: number, from: LatLo
     if (c < bc - 0.001) { bc = c; best = p; }
   }
   return best;
+}
+
+/** "Maak een dag voor me": voorstellen van een paar plekken dicht bij elkaar die op `iso` zeker open zijn (bekende tijden; markten
+ *  alleen bevestigd). Voorstel i begint bij de i-de dichtstbijzijnde kandidaat en pakt diens buren; dubbele voorstellen vallen weg,
+ *  zodat "Ander voorstel" echt iets anders geeft. ponytail: hemelsbreed clusteren, hooguit 12 startpunten; een routeplanner pas als dit veel gebruikt wordt. */
+export function dayProposals(items: Item[], iso: string, start: number, from: LatLon, n = 4, maxKm = 20): Item[][] {
+  const cand = items.filter(i => (i.t === 'k' ? openOn(i, iso) : i.date === iso && (i.status === 'org' || i.status === 'chk')) && km(from, i) < maxKm)
+    .sort((a, b) => km(from, a) - km(from, b));
+  const out: Item[][] = [], seen = new Set<string>();
+  for (const seed of cand.slice(0, 12)) {
+    const pick = [...cand].sort((a, b) => km(seed, a) - km(seed, b)).slice(0, n);
+    const order = bestOrder(pick, iso, start, from), sim = simulate(order, iso, start, from);
+    const ok = order.filter((_, i) => sim.stops[i].issue?.lv !== 'bad'); // wat die dag toch niet past (al dicht als je aankomt) valt af
+    const key = ok.map(x => x.id).sort().join();
+    if (ok.length && !seen.has(key)) { seen.add(key); out.push(ok); }
+  }
+  return out;
 }
 
 /** Route-links met tussenstops. Google: tot 9 tussenstops in de url (te verifiëren op mobiel, A3). */

@@ -287,6 +287,8 @@ svg.i{width:20px;height:20px;flex:none;fill:none;stroke:currentColor;stroke-widt
 .dp-l{font-size:.8125rem;font-weight:650;color:var(--fg-2)}
 .daypick .typeseg{display:flex;width:100%}
 .daypick .typeseg button{flex:1 1 auto;justify-content:center;padding:0 6px}
+.dag-btn{align-self:stretch;justify-content:center}
+.dag-h{font-size:1.5rem;font-weight:750;letter-spacing:-.015em}
 .daystrip{display:flex;gap:6px;overflow-x:auto;margin:0 -16px;padding:0 16px;scrollbar-width:none}
 .day{flex:none;width:50px;border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:6px 0 5px;display:flex;flex-direction:column;align-items:center;font-size:.75rem;color:var(--fg-2)}
 .day b{font-size:1.0625rem;color:var(--fg);font-weight:700;line-height:1.2}

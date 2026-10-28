@@ -260,3 +260,8 @@ Op ≥ 980 px toont de lijst alleen wat op de kaart in beeld is ("N plekken in b
 - De app opent op **vandaag** met het filter **"Open vandaag"** aan (nu open of gaat vandaag nog open): de meeste mensen openen de kaart als ze in de buurt zijn. Met een dagplan opent hij op de dag van dat plan.
 - De tijdchips "Nu open", "Vandaag", "Dit weekend" en "Kies datum" zijn vervangen door de dagkeuze plus één filter dat meebeweegt ("Open vandaag" / "Open op za"). Winkels zonder bekende tijden vallen buiten dat filter (A6).
 - Weekend als twee dagen tegelijk: nog niet; eerst kijken of za en zo los kiezen onhandig is.
+
+## "Maak een dag voor me" (28 okt 2026)
+- Voorstel voor de gekozen dag: tot 4 plekken binnen 20 km die die dag zeker open zijn (bekende tijden; markten alleen bevestigd), rond één startpunt geclusterd en in de slimste volgorde. Wat bij aankomst al dicht is, valt af.
+- "Ander voorstel" bladert door verschillende voorstellen (startpunt 1 t/m 12, dubbele weg), met teller.
+- Het huidige dagplan blijft staan tot je bevestigt; bij een bestaand plan vragen we eerst of het vervangen mag.

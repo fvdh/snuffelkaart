@@ -1,8 +1,8 @@
-import { useEffect, useLayoutEffect, useRef, useState, type ReactElement } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactElement } from 'react';
 import type { Item, LatLon, Place, Market } from '../lib/model';
 import { dDay, dShort, dLong, fkm, hm, isoDay, addDays, dayStart, DAYS, DAYS_LONG, km, cap, CATS } from '../lib/model';
 import { placeNow, placeDay, marketStatus, week, isHoliday, openOn, type Status } from '../lib/hours';
-import { simulate, bestOrder, routeUrl } from '../lib/plan';
+import { simulate, bestOrder, routeUrl, dayProposals } from '../lib/plan';
 import type { Filters } from '../lib/filter';
 import { searchSpots, type Spot } from '../lib/pdok';
 import { providers, oauthUrl, verifyCode, SB, KEY, type Session } from '../lib/auth';
@@ -14,7 +14,7 @@ export interface Ctx {
   now: Date; f: Filters; online: boolean; dataFrom: string | null; install: { add: () => void; no: () => void } | null; origin: LatLon; originLabel: string | null; locDenied: boolean; welcome: boolean; spot: boolean; me: LatLon | null;
   pickSpot: (s: Spot) => void; pickPlace: () => void; favs: string[]; bij: Bij; planStops: string[]; day: string; setDay: (iso: string) => void;
   setF: (p: Partial<Filters>) => void; open: (id: string, from?: HTMLElement | null) => void; toggleStop: (id: string) => void; toggleFav: (id: string) => void;
-  locate: (quiet?: boolean) => void; back: () => void; openPlan: () => void; openMe: () => void; user: string | null;
+  locate: (quiet?: boolean) => void; back: () => void; openPlan: () => void; openMe: () => void; openDag: () => void; user: string | null;
 }
 
 /** Status op de gekozen dag: vandaag "open, sluit 17:00", een andere dag "Za 10–17". Ga je zaterdag, dan zegt "dicht, opent morgen"
@@ -112,6 +112,7 @@ export function ListView({ c, inView, list, total, limit, more, counts, nPlaces 
           <span aria-hidden="true">·</span><button onClick={() => c.setF({ type: 'm', open: true })}>{counts.mDay} {counts.mDay === 1 ? 'markt' : 'markten'} {isToday ? 'vandaag' : `op ${dn}`}</button></p></div>
         <button className={`me-btn${c.user ? ' in' : ''}`} onClick={c.openMe} aria-label="Jij: bewaard, bijdragen en account"><span className="me-av" aria-hidden="true">{c.user ? (c.bij.name ?? c.user)[0].toUpperCase() : <Ic n="user" />}</span>Jij</button></div>
       <DayPick day={day} now={now} set={c.setDay} />
+      <button className="btn dag-btn" onClick={c.openDag}><Ic n="wand" />Maak een dag {c.originLabel ? `in ${c.originLabel}` : 'in de buurt'} voor me</button>
     </div>
     {/* Alleen zoeken en filters blijven staan bij scrollen: op de stoep wil je regels zien, geen bediening (UX-review 28 okt). */}
     <div className="lv-tools" data-peek data-drag>
@@ -305,6 +306,44 @@ export function PlanView({ c, items, plan, setPlan, optimizeSeen }: { c: Ctx; it
     {c.install && stops.length > 0 && <div className="install"><span className="brand-mark"><Ic n="tag" /></span><div><b>Zet Snuffelkaart op je beginscherm</b><p>Dan open je dit bonnetje ook zonder bereik, bijvoorbeeld in een sporthal.</p>
       <div className="btns"><button className="btn sm primary" onClick={c.install.add}>Toevoegen</button><button className="btn sm ghost" onClick={c.install.no}>Niet nu</button></div></div></div>}
     {sugg.length > 0 && stops.length < 8 && <div className="sugg"><h3>Past ook in je {dayName}</h3><p className="sub">Open of bevestigd, vlak bij je route</p><ul className="rows">{sugg.map(x => <Row key={x.it.id} it={x.it} d={km(c.origin, x.it)} c={c} />)}</ul></div>}
+  </>);
+}
+
+/** "Maak een dag voor me": een voorstel als bonnetje voor de gekozen dag. Je huidige dagplan blijft staan tot je bevestigt. */
+export function DagView({ c, items, plan, setPlan }: { c: Ctx; items: Item[]; plan: { day: string; start: number; stops: string[] }; setPlan: (p: Partial<{ stops: string[] }>) => void }) {
+  const [k, setK] = useState(0), [sure, setSure] = useState(false), where = c.originLabel ?? 'de buurt', dayName = DAYS_LONG[dayStart(c.day).getDay()];
+  const props = useMemo(() => dayProposals(items, c.day, plan.start, c.origin), [items, c.day, plan.start, c.origin]);
+  const stops = props.length ? props[k % props.length] : [], sim = simulate(stops, c.day, plan.start, c.origin);
+  const take = () => { setPlan({ stops: stops.map(x => x.id) }); c.openPlan(); };
+  return (<>
+    <div className="pv-head" data-peek data-drag>
+      <div className="dv-top"><button className="back" onClick={c.back}><Ic n="back" />Lijst</button></div>
+      <h2 className="dag-h">Een dag in {where}</h2>
+      <DayPick day={c.day} now={c.now} set={d => { c.setDay(d); setK(0); }} label="Welke dag?" />
+    </div>
+    {stops.length ? <>
+      <p className="prose-s">{stops.length === 1 ? 'Eén plek' : `${cap(['', '', 'twee', 'drie', 'vier'][stops.length])} plekken`} die op {dLong(c.day).toLowerCase()} open {stops.length === 1 ? 'is' : 'zijn'}, dicht bij elkaar en in de slimste volgorde.</p>
+      <div className="rc-wrap"><div className="receipt print" key={stops.map(x => x.id).join()} aria-label="Voorstel als bon">
+        <p className="rc-shop"><Ic n="tag" />SNUFFELKAART · VOORSTEL</p>
+        <p className="rc-sub">{dShort(c.day)} · vertrek {hm(plan.start)} · {where}</p>
+        <hr className="rc-rule" />
+        <ol className="rc-list">{sim.stops.map((x, i) => { const it = stops[i]; return [
+          <li key={`l${x.id}`} className="leg" aria-hidden="true">↓ ±{x.drive} min · {fkm(x.km)} km</li>,
+          <li key={x.id} className="rc-stop"><span className="rc-n">{i + 1}</span><span className="rc-t">{hm(x.arrive)}</span>
+            <div className="rc-m"><button className="st-name" onClick={() => c.open(it.id)}>{it.name}</button>{x.note && <span className="rc-note">{x.note}</span>}
+              {x.issue && <p className={`issue ${x.issue.lv}`}><Ic n="alert" /><span>{x.issue.txt}</span></p>}</div></li>]; })}</ol>
+        <hr className="rc-rule" />
+        <dl className="rc-tot"><dt>Rijden</dt><dd>±{fkm(sim.km)} km</dd><dt className="big">Klaar rond</dt><dd className="big">{hm(sim.end)}</dd></dl>
+      </div></div>
+      <div className="plan-actions">
+        {sure ? <div className="unknown-box"><p><b>Je dagplan vervangen?</b> Er {plan.stops.length === 1 ? 'staat 1 stop' : `staan ${plan.stops.length} stops`} in. Die gaan eruit.</p>
+          <div className="btns"><button className="btn sm primary" onClick={take}>Ja, vervangen</button><button className="btn sm" onClick={() => setSure(false)}>Toch niet</button></div></div>
+          : <button className="btn primary" onClick={() => plan.stops.length && plan.stops.join() !== stops.map(x => x.id).join() ? setSure(true) : take()}><Ic n="check" />Zet in mijn dagplan</button>}
+        {props.length > 1 && <button className="btn" onClick={() => { setK(k + 1); setSure(false); }}><Ic n="wand" />Ander voorstel <span className="tnum" style={{ color: 'var(--fg-3)', fontWeight: 500 }}>{k % props.length + 1}/{props.length}</span></button>}
+      </div>
+      <p className="src"><Ic n="info" /><span>We kiezen alleen winkels waarvan we de tijden weten, en markten die bevestigd zijn. Je huidige dagplan blijft staan tot je op “Zet in mijn dagplan” tikt.</span></p>
+    </> : <div className="empty"><h3>Op {dayName} is er rond {where} niets dat zeker open is</h3><p>Kies een andere dag, of kijk in de lijst: van veel winkels weten we de tijden nog niet.</p>
+      <div className="btns"><button className="btn sm primary" onClick={c.back}>Naar de lijst</button></div></div>}
   </>);
 }
 

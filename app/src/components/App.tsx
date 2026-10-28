@@ -7,7 +7,7 @@ import { visible, matches, type Filters } from '../lib/filter';
 import { simulate } from '../lib/plan';
 import type { Spot } from '../lib/pdok';
 import MapView, { type Bounds } from './MapView';
-import { ListView, DetailView, PlanView, MeView, LoginView, type Ctx } from './Views';
+import { ListView, DetailView, PlanView, MeView, LoginView, DagView, type Ctx } from './Views';
 import { ReviewView, PhotoView, SuggestView, ContribView, type Bij, type BijView } from './Bijdragen';
 import { applyExtra, NO_EXTRA, type Extra, type Contribution, type Kind } from '../lib/bijdragen';
 import { readSession, returnError, api, sendLink, userId, logout as authLogout, mergeFavs, LoggedOut, SB, KEY, type Session } from '../lib/auth';
@@ -29,7 +29,7 @@ function useLocal<T>(key: string, init: T): [T, (v: T) => void] {
 }
 const useDesktop = () => { const q = '(min-width: 980px)'; const [d, setD] = useState(() => matchMedia(q).matches); useEffect(() => { const m = matchMedia(q), f = () => setD(m.matches); m.addEventListener('change', f); return () => m.removeEventListener('change', f); }, []); return d; };
 
-type View = 'list' | 'detail' | 'plan' | 'me' | 'login' | BijView;
+type View = 'list' | 'detail' | 'plan' | 'me' | 'login' | 'dag' | BijView;
 type Snap = 'collapsed' | 'half' | 'full';
 
 watchErrors(); // één keer bij het laden van de module
@@ -223,10 +223,11 @@ export default function App() {
   useEffect(() => { navigator.permissions?.query({ name: 'geolocation' }).then(s => s.state === 'granted' && locate(true)).catch(() => {}); }, []);
   const pickSpot = (s: Spot) => { setSpot(s); setMe(null); setWelcomed(true); setFState(o => ({ ...o, q: '' })); setFocus({ lat: s.lat, lon: s.lon, key: Date.now() }); scrollTop(); };
   const pickPlace = () => { setWelcomed(true); setSnap('full'); requestAnimationFrame(() => sheet.current?.querySelector<HTMLInputElement>('input[type=search]')?.focus()); };
+  const openDag = () => { setDir('fwd'); setPrev(view); setView('dag'); setSnap('full'); scrollTop(); };
   const openPlan = () => { setDir('fwd'); setPrev(view); setView('plan'); setSnap(desktop ? 'half' : 'half'); scrollTop(); };
   useEffect(() => { if (view === 'plan') setFit({ pts: [origin, ...plan.stops.map(id => byId.get(id)).filter(Boolean) as Item[]], key: Date.now() }); }, [view, plan.stops.join(), plan.day]);
 
-  const c: Ctx = { now, f, online, dataFrom, install, origin, originLabel, locDenied, welcome: !welcomed && !spot && !me, spot: !!spot, pickSpot, pickPlace, me, favs, bij, planStops: plan.stops, day, setDay: (d: string) => setDay(d === today ? null : d), setF, open, toggleStop, toggleFav, locate, back, openPlan, openMe, user: sess?.email ?? null };
+  const c: Ctx = { now, f, online, dataFrom, install, origin, originLabel, locDenied, welcome: !welcomed && !spot && !me, spot: !!spot, pickSpot, pickPlace, me, favs, bij, planStops: plan.stops, day, setDay: (d: string) => setDay(d === today ? null : d), setF, open, toggleStop, toggleFav, locate, back, openPlan, openMe, openDag, user: sess?.email ?? null };
 
   // ---------- bottom sheet (mobiel) ----------
   const shell = useRef<HTMLDivElement>(null), sheet = useRef<HTMLElement>(null), scroller = useRef<HTMLDivElement>(null);
@@ -293,6 +294,7 @@ export default function App() {
               : view === 'login' ? <LoginView c={c} send={email => sendLink(email, location.origin + '/')} done={s => { sessionStorage.setItem('snuffel-samenvoegen', '1'); setSess(s); setDir('back'); setView('me'); scrollTop(); }} />
               : (view === 'review' || view === 'photo' || view === 'suggest') && selItem?.t === 'k' ? (view === 'review' ? <ReviewView p={selItem} b={bij} back={back} /> : view === 'photo' ? <PhotoView p={selItem} b={bij} back={back} /> : <SuggestView p={selItem} b={bij} back={back} />)
               : view === 'contrib' ? <ContribView b={bij} items={items} back={back} open={id => { setPrev('contrib'); go(id); }} />
+              : view === 'dag' ? <DagView c={c} items={items} plan={plan} setPlan={setPlan} />
               : view === 'plan' ? <PlanView c={c} items={items} plan={plan} setPlan={p => { setPlan(p); if (p.stops && !p.day && p.stops.length === plan.stops.length) setOptimized(true); }} optimizeSeen={optimized} />
               : <ListView c={c} inView={inView ? { nearest: () => setFit({ pts: [origin, ...all.slice(0, 5).map(x => x.it)], key: Date.now() }) } : null} list={list} total={list.length} limit={limit} more={() => setLimit(limit + 40)} counts={counts} nPlaces={places.length} />}
           </div>
