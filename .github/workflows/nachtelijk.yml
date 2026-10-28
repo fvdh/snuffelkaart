@@ -37,6 +37,9 @@ jobs:
         env: *supabase
       - run: npm test
       - run: npm run build
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }} # publishable key voor /beheer; niet geheim
       - name: Uitrollen naar Cloudflare
         run: npx --yes wrangler@4 deploy
         env:

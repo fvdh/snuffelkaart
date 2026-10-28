@@ -1,0 +1,38 @@
+---
+import '../styles/design.css';
+import Beheer from '../components/Beheer.tsx';
+---
+<html lang="nl">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <title>Beheer · Snuffelkaart</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400..800&display=swap" />
+    <style is:global>
+      body { background: var(--bg); color: var(--fg); font-family: Figtree, system-ui, sans-serif; margin: 0 }
+      .bh { max-width: 880px; margin: 0 auto; padding: 24px 16px 64px; display: flex; flex-direction: column; gap: 14px }
+      .bh h1 { font-size: 1.5rem; font-weight: 750 }
+      .bh-head { display: flex; align-items: center; gap: 12px } .bh-head span { margin-left: auto; color: var(--fg-3); font-size: .875rem }
+      .bh-note { color: var(--fg-2); font-size: .875rem }
+      .bh-login { display: flex; flex-direction: column; gap: 12px; max-width: 360px; margin-top: 10vh }
+      .bh-login label { display: flex; flex-direction: column; gap: 6px; font-weight: 600 }
+      .bh input, .bh select { font: inherit; padding: 8px 10px; border: 1px solid var(--line-strong); border-radius: 10px; background: var(--surface); color: var(--fg) }
+      .bh .search input { width: 100%; box-sizing: border-box }
+      .bh .chips { margin: 0; padding: 0; flex-wrap: wrap }
+      .bh-list { list-style: none; margin: 0; padding: 0 }
+      .bh-list li { display: flex; flex-wrap: wrap; gap: 8px 16px; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid var(--line) }
+      .bh-list li.off { opacity: .55 }
+      .bh-list p { margin: 2px 0 0; color: var(--fg-3); font-size: .875rem }
+      .bh-acts { display: flex; flex-wrap: wrap; gap: 6px; align-items: center }
+      .bh-acts input { width: 170px; font-size: .875rem }
+      .bh-st { margin-left: 6px; font-size: .75rem; font-weight: 700; padding: 2px 8px; border-radius: 10px; background: var(--surface-2); color: var(--fg-2) }
+      .bh-st.org, .bh-st.chk { background: color-mix(in srgb, var(--open) 15%, var(--surface)); color: var(--open-ink) }
+      .bh-st.cancel, .bh-st.afgewezen { background: var(--bad-soft); color: var(--bad-ink) }
+      .bh-st.kandidaat, .bh-st.unconf { background: var(--warn-soft); color: var(--warn-ink) }
+      .bh-err { color: var(--bad-ink) }
+    </style>
+  </head>
+  <body><Beheer client:only="react" /></body>
+</html>

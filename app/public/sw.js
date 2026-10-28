@@ -1,6 +1,6 @@
 // Snuffelkaart offline: app en gegevens werken zonder bereik (bijv. in een sporthal), met de laatst geladen stand.
 // Verhoog VERSION bij een wijziging in dit bestand; de app-bestanden zelf hebben al een hash in hun naam.
-const VERSION = 'v1', APP = `app-${VERSION}`, DATA = 'data', TILES = 'tiles', MAX_TILES = 1500;
+const VERSION = 'v2', APP = `app-${VERSION}`, DATA = 'data', TILES = 'tiles', MAX_TILES = 1500;
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(APP).then(c => c.addAll(['/', '/manifest.webmanifest', '/icons/icon-192.png', '/favicon.svg'])).then(() => self.skipWaiting()));
@@ -31,6 +31,7 @@ self.addEventListener('fetch', e => {
   const req = e.request, u = new URL(req.url);
   if (req.method !== 'GET') return;
   if (u.origin === location.origin) {
+    if (u.pathname.startsWith('/beheer')) return; // altijd vers, en niet bewaren als '/' (dan opent de app offline als beheer)
     if (req.mode === 'navigate') return e.respondWith(networkFirst(req, APP, '/'));
     if (u.pathname.startsWith('/data/')) return e.respondWith(networkFirst(req, DATA));
     if (u.pathname.startsWith('/_astro/') || u.pathname.startsWith('/icons/')) return e.respondWith(cacheFirst(req, APP));
