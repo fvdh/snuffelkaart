@@ -1,6 +1,7 @@
 ---
 import '../styles/design.css';
 import Beheer from '../components/Beheer.tsx';
+import Sprite from '../components/Sprite.astro';
 ---
 <html lang="nl">
   <head>
@@ -11,29 +12,88 @@ import Beheer from '../components/Beheer.tsx';
     <title>Beheer · Snuffelkaart</title>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400..800&display=swap" />
     <style is:global>
-      body { background: var(--bg); color: var(--fg); font-family: Figtree, system-ui, sans-serif; margin: 0 }
-      .bh { max-width: 880px; margin: 0 auto; padding: 24px 16px 64px; display: flex; flex-direction: column; gap: 14px }
-      .bh h1 { font-size: 1.5rem; font-weight: 750 }
-      .bh-head { display: flex; align-items: center; gap: 12px } .bh-head span { margin-left: auto; color: var(--fg-3); font-size: .875rem }
-      .bh-note { color: var(--fg-2); font-size: .875rem }
-      .bh-login { display: flex; flex-direction: column; gap: 12px; max-width: 360px; margin-top: 10vh }
-      .bh-login label { display: flex; flex-direction: column; gap: 6px; font-weight: 600 }
-      .bh input, .bh select { font: inherit; padding: 8px 10px; border: 1px solid var(--line-strong); border-radius: 10px; background: var(--surface); color: var(--fg) }
-      .bh .search input { width: 100%; box-sizing: border-box }
-      .bh .chips { margin: 0; padding: 0; flex-wrap: wrap }
-      .bh-list { list-style: none; margin: 0; padding: 0 }
-      .bh-list li { display: flex; flex-wrap: wrap; gap: 8px 16px; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid var(--line) }
-      .bh-list li.off { opacity: .55 }
-      .bh-list p { margin: 2px 0 0; color: var(--fg-3); font-size: .875rem }
-      .bh-acts { display: flex; flex-wrap: wrap; gap: 6px; align-items: center }
-      .bh-acts input { width: 170px; font-size: .875rem }
-      .bh-st { margin-left: 6px; font-size: .75rem; font-weight: 700; padding: 2px 8px; border-radius: 10px; background: var(--surface-2); color: var(--fg-2) }
+      /* Opbouw en maten uit het ontwerp (§07 Beheer): zijbalk 210px, lijst, detail 440px; lijst en detail scrollen los. */
+      body { background: var(--bg); color: var(--fg); font-family: var(--font); margin: 0 }
+      .admin { display: grid; grid-template-columns: 210px minmax(340px, 560px) minmax(420px, 1fr); height: 100dvh; background: var(--surface) }
+      .adm-nav { background: var(--surface-2); padding: 18px 12px; display: flex; flex-direction: column; gap: 2px; font-size: .9375rem; overflow-y: auto }
+      .adm-nav > button { display: flex; justify-content: space-between; padding: 8px 10px; border-radius: 9px; border: 0; background: none; color: var(--fg-2); font-weight: 560; text-align: left }
+      .adm-nav > button:hover { color: var(--fg) }
+      .adm-nav > button.on { background: var(--surface); color: var(--fg); box-shadow: var(--shadow) }
+      .adm-nav > button span { font-variant-numeric: tabular-nums; color: var(--fg-3) }
+      .adm-me { margin-top: auto; padding: 12px 10px 0; display: flex; flex-direction: column; gap: 4px; font-size: .8125rem; color: var(--fg-3); overflow-wrap: anywhere }
+      .adm-me .link { align-self: flex-start; font-size: .8125rem }
+      .bh-brand { display: flex; align-items: center; gap: 10px; font-weight: 750; font-size: 1rem; margin: 0 8px 18px }
+      .bh-mark { width: 26px; height: 26px; border-radius: 8px; background: var(--ink); color: var(--on-ink); display: grid; place-items: center }
+      .bh-mark svg.i { width: 16px; height: 16px }
+      .adm-q { border-right: 1px solid var(--line); display: flex; flex-direction: column; min-height: 0 }
+      .adm-q header { padding: 18px 20px 12px; display: flex; flex-direction: column; gap: 10px; border-bottom: 1px solid var(--line) }
+      .adm-q h2, .adm-wide h2 { font-size: 1.25rem; font-weight: 720 }
+      .adm-filters { display: flex; gap: 6px; flex-wrap: wrap }
+      .adm-list { list-style: none; margin: 0; padding: 0; overflow-y: auto; flex: 1 }
+      .adm-item { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 12px; padding: 14px 20px; border: 0; border-bottom: 1px solid var(--line); align-items: start; font-size: .9375rem; width: 100%; background: none; text-align: left }
+      .adm-item:hover { background: color-mix(in srgb, var(--surface-2) 50%, transparent) }
+      .adm-item.on { background: var(--surface-2) }
+      .adm-item.off { opacity: .55 }
+      .adm-item b { font-weight: 650; display: block }
+      .adm-item > span:nth-child(2) > span:not(.ai):not(.bh-st) { display: block; color: var(--fg-2); font-size: .875rem }
+      .adm-item time { font-size: .8125rem; color: var(--fg-3); white-space: nowrap }
+      .admin .tile { width: 32px; height: 32px; border-radius: 9px; background: var(--markt-soft); color: var(--markt-ink); display: grid; place-items: center }
+      .admin .tile svg.i { width: 17px; height: 17px }
+      .admin .tile.crit { background: var(--bad-soft); color: var(--bad-ink) }
+      .admin .tile[class*=" c-"] { background: var(--c-soft); color: var(--c-ink) }
+      .adm-item .ai, .adm-item .bh-st { margin-top: 6px; display: inline-flex }
+      .ai { display: inline-flex; align-items: center; gap: 5px; font-size: .75rem; font-weight: 700; padding: 3px 8px; border-radius: 999px; align-self: flex-start }
+      .ai svg.i { width: 13px; height: 13px }
+      .ai.good { background: color-mix(in srgb, var(--open) 16%, var(--surface)); color: var(--open-ink) }
+      .ai.doubt { background: var(--warn-soft); color: var(--warn-ink) }
+      .ai.rej { background: var(--bad-soft); color: var(--bad-ink) }
+      .adm-detail > * { max-width: 680px }
+      .adm-detail { padding: 20px; display: flex; flex-direction: column; gap: 16px; font-size: .9375rem; overflow-y: auto; min-height: 0 }
+      .adm-detail h3 { font-size: 1.125rem; font-weight: 720; margin-top: 6px }
+      .adm-detail .eyebrow .tile { width: 24px; height: 24px; border-radius: 7px } .adm-detail .eyebrow .tile svg.i { width: 14px; height: 14px }
+      .adm-sub { color: var(--fg-2); font-size: .875rem; margin-top: 2px }
+      .adm-detail .facts { padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; font-size: .875rem }
+      .adm-detail .facts dd { font-weight: 500; min-width: 0; overflow-wrap: anywhere }
+      .adm-detail a { color: var(--fg); font-weight: 600 } .adm-detail a svg.i { width: 13px; height: 13px; vertical-align: -1px }
+      .adm-quote { margin: 0; padding: 12px 14px; border-left: 3px solid var(--line-strong); background: var(--surface-2); border-radius: 0 12px 12px 0; color: var(--fg-2); font-size: .875rem; max-height: 220px; overflow-y: auto }
+      .aibox { border-radius: 12px; background: var(--surface-2); padding: 12px 14px; display: flex; flex-direction: column; gap: 8px }
+      .aibox ul { margin: 0; padding-left: 18px; color: var(--fg-2); font-size: .875rem }
+      .adm-btns { display: flex; gap: 8px; flex-wrap: wrap }
+      .btn.bad { background: var(--bad); border-color: var(--bad); color: oklch(0.99 0 0) }
+      .kbd { font-family: ui-monospace, Menlo, monospace; font-size: .75rem; border: 1px solid var(--line-strong); border-bottom-width: 2px; border-radius: 5px; padding: 0 5px; color: var(--fg-2) }
+      .btn .kbd { color: inherit; border-color: currentColor; opacity: .55 }
+      .adm-edit { display: flex; flex-direction: column; gap: 12px }
+      .adm-edit label { display: flex; flex-direction: column; gap: 6px; font-size: .875rem; font-weight: 650 }
+      .adm-edit .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 12px }
+      .muted { color: var(--fg-3); font-weight: 400 }
+      .adm-empty, .adm-loading { padding: 20px; color: var(--fg-2) }
+      .adm-err { position: fixed; left: 50%; bottom: 16px; transform: translateX(-50%); background: var(--bad-soft); padding: 10px 14px; border-radius: 12px; box-shadow: var(--shadow); z-index: 5; max-width: 90vw }
+      .bh-err { color: var(--bad-ink) }
+      .bh-st { font-size: .75rem; font-weight: 700; padding: 2px 8px; border-radius: 10px; background: var(--surface-2); color: var(--fg-2) }
       .bh-st.org, .bh-st.chk { background: color-mix(in srgb, var(--open) 15%, var(--surface)); color: var(--open-ink) }
       .bh-st.cancel, .bh-st.afgewezen { background: var(--bad-soft); color: var(--bad-ink) }
       .bh-st.kandidaat, .bh-st.unconf { background: var(--warn-soft); color: var(--warn-ink) }
-      .bh-err { color: var(--bad-ink) }
-      .bh-list details { margin-top: 4px; max-width: 60ch } .bh-list summary { cursor: pointer; color: var(--fg-2); font-size: .875rem }
+      .adm-wide > * { max-width: 1000px }
+      .adm-wide { grid-column: 2 / -1; padding: 18px 28px 48px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px }
+      .adm-wide h3 { font-size: 1rem; font-weight: 700; margin-top: 16px }
+      .adm-table { border-collapse: collapse; font-size: .875rem; width: 100% }
+      .adm-table th, .adm-table td { text-align: left; padding: 8px 14px 8px 0; border-bottom: 1px solid var(--line); vertical-align: top }
+      .adm-table th { font-size: .75rem; color: var(--fg-3); font-weight: 650 }
+      .bh-login { min-height: 100dvh; display: grid; place-items: center; padding: 16px }
+      .bh-login form { display: flex; flex-direction: column; gap: 14px; width: min(360px, 100%) }
+      .bh-login .bh-brand { margin: 0 0 8px; font-size: 1.25rem }
+      .bh-login label { display: flex; flex-direction: column; gap: 6px; font-weight: 600 }
+      @media (max-width: 1000px) {
+        .admin { grid-template-columns: 1fr; height: auto; min-height: 100dvh }
+        .adm-nav { flex-direction: row; flex-wrap: wrap; align-items: center; gap: 4px; padding: 12px 16px }
+        .adm-nav .bh-brand { margin: 0 8px 0 0; width: 100% }
+        .adm-me { margin: 0 0 0 auto; padding: 0; flex-direction: row; gap: 8px }
+        .adm-q { border-right: 0 } .adm-list { max-height: 50dvh }
+        .adm-detail { border-top: 1px solid var(--line); padding: 16px }
+        .adm-wide { grid-column: 1; padding: 16px; overflow-x: auto }
+        .adm-q header, .adm-item { padding-inline: 16px }
+      }
     </style>
   </head>
-  <body><Beheer client:only="react" /></body>
+  <body><Sprite /><Beheer client:only="react" /></body>
 </html>

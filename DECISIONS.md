@@ -147,3 +147,9 @@ Keuzes en waarom. Nieuwste onderaan. "Freek" = besloten door Freek; anders voorl
 - **Regels, geen AI**: datums met jaar (termijnen als "bezwaar … tot en met" niet), eerste tijdvak, soort uit de zoekterm, plek uit de coördinaat in de metadata, anders het midden van de gemeente (PDOK, `exact: false`). Hooguit ruim een jaar vooruit.
 - **Dubbel** = zelfde dag binnen 1 km van een bekende markt (organisator of eerdere publicatie): overslaan. Bestaande kandidaten worden nooit overschreven, ook afgewezen niet (`ignore-duplicates`).
 - **Bekend zwak punt**: verzamellijsten (Landgraaf, Rhenen) geven ook datums van andere evenementen (Sinterklaas). De beheerder wijst die af; AI-extractie pas als het afwijzen te veel werk wordt.
+
+## Beheer volgens het ontwerp (2026-10-28)
+- **/beheer heeft de opbouw uit het ontwerp (§07):** zijbalk (Wachtrij, Kandidaten, Markten deze week, Winkels, Bronnen, Moderatielog), lijst en detail. Sneltoetsen: J/K bladeren, A goedkeuren, U nog niet bevestigd, E aanpassen, R afwijzen of afgelasten. Bij R is een reden verplicht; die staat in het moderatielog.
+- **Wachtrij** = kandidaten uit het Gemeenteblad en markten die van de site van hun organisator verdwenen (niet vastgezet). Kritiek = binnen 7 dagen.
+- **Voorbeoordeling met vaste regels** (`src/lib/beheer.ts`): dubbel (zelfde dag, < 1 km van een markt op de kaart) → waarschijnlijk afwijzen; verleend of melding, met plek en tijden → waarschijnlijk goed; anders twijfel. ponytail: de AI-voorbeoordeling (M5) vervangt dit achter dezelfde vorm.
+- **Nog niet:** meldingen, reviews, foto's en wijzigingsvoorstellen (M5); een fout per uitlezer (de nachtrun gaat bij een fout door, maar legt hem nog niet vast); de pin verplaatsen.
