@@ -1,0 +1,60 @@
+# Elke week (§5.1): winkels opnieuw uit OpenStreetMap en Overture, openingstijden van hun websites → Supabase.
+# De nachtelijke run van 02:30 UTC zet het daarna op de kaart (export, bouwen, uitrollen); deze job schrijft alleen naar Supabase.
+# Verdwenen winkels worden verborgen (niet gewist); meer dan 10% weg = fout, dan schrijft db.mjs niets. Zie placeRows in db.mjs.
+# Caches: Overture per release (maandelijks nieuw), websitetijden doorlopend (fetch-web-hours leest alleen wat ouder is dan 7 dagen).
+# ponytail: Overpass in 9 vakken i.p.v. het Geofabrik-extract + osmium; overstappen als Overpass vaak weigert.
+name: Winkels wekelijks
+on:
+  schedule:
+    - cron: '30 0 * * 1' # maandagnacht, ruim vóór de nachtelijke export
+  workflow_dispatch:
+jobs:
+  winkels:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+      - run: npm ci
+      - name: Nieuwste Overture-release
+        id: ov
+        run: echo "release=$(curl -sf https://stac.overturemaps.org/catalog.json | jq -r .latest)" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache@v4
+        id: ovcache
+        with:
+          path: app/data-raw/overture.json
+          key: overture-${{ steps.ov.outputs.release }}
+      - name: Overture ophalen (alleen bij een nieuwe release)
+        if: steps.ovcache.outputs.cache-hit != 'true'
+        run: node scripts/fetch-overture.mjs "${{ steps.ov.outputs.release }}"
+      - uses: actions/cache/restore@v4
+        with:
+          path: app/data-raw/web-hours.json
+          key: web-hours-${{ github.run_id }}
+          restore-keys: web-hours-
+      - name: Openingstijden van websites
+        run: node scripts/fetch-web-hours.mjs
+        timeout-minutes: 45
+        continue-on-error: true # deels gelezen is ook goed; de cache wordt tussendoor bewaard
+      - uses: actions/cache/save@v4
+        if: always()
+        with:
+          path: app/data-raw/web-hours.json
+          key: web-hours-${{ github.run_id }}
+      - name: OpenStreetMap + samenvoegen
+        run: |
+          test -s data-raw/overture.json && test -s data-raw/web-hours.json || { echo "::error::Overture of websitetijden ontbreekt; niets geschreven"; exit 1; }
+          node scripts/fetch-osm.mjs
+      - run: npm test
+      - name: Winkels naar Supabase
+        run: node scripts/db.mjs push places
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}

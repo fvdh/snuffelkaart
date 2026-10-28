@@ -39,6 +39,20 @@ export function toFiles(places, markets, from) {
   };
 }
 
+/** Winkels na een import (§5.1). Niet meer in OSM/Overture → verborgen met `gone`; komt hij terug, dan weer actief.
+ *  Met de hand verborgen (zonder `gone`) of vastgezet in beheer: blijft zoals het is. */
+export function placeRows(existing, incoming, today) {
+  const old = new Map(existing.map(r => [r.id, r])), seen = new Set(incoming.map(r => r.id));
+  const kept = r => r.locked.includes('status');
+  const rows = incoming.map(r => {
+    const o = old.get(r.id), m = merge(o, r);
+    return { ...m, status: !o ? 'actief' : kept(o) || (o.status === 'verborgen' && !o.data.gone) ? o.status : 'actief' };
+  });
+  const gone = existing.filter(r => !seen.has(r.id) && r.status === 'actief' && !kept(r))
+    .map(r => ({ id: r.id, data: { ...r.data, gone: today }, status: 'verborgen', seen_at: r.seen_at }));
+  return { rows, gone };
+}
+
 // ---------- Supabase REST ----------
 function env() {
   const f = new URL('../.env', import.meta.url);
@@ -67,11 +81,15 @@ const read = name => JSON.parse(fs.readFileSync(FILE(name), 'utf8'));
 async function push(what) {
   const now = new Date().toISOString(), today = todayIso();
   if (what === 'places') {
-    const old = new Map((await all('places')).map(r => [r.id, r]));
-    const rows = read('places').places.map(({ id, h, ...data }) => merge(old.get(id), { id, data, seen_at: now }));
-    await upsert('places', rows.map(({ id, data, seen_at }) => ({ id, data, seen_at })));
-    await req('import_runs', { method: 'POST', body: JSON.stringify({ source: 'places', counts: { rows: rows.length, new: rows.filter(r => !old.has(r.id)).length } }) });
-    console.log(`places: ${rows.length} rijen (${rows.filter(r => !old.has(r.id)).length} nieuw)`);
+    const existing = await all('places'), old = new Map(existing.map(r => [r.id, r]));
+    const { rows, gone } = placeRows(existing, read('places').places.map(({ id, h, ...data }) => ({ id, data, seen_at: now })), today);
+    // Halve import (Overpass-vak leeg, Overture niet gelezen): niets wegzetten. Meer dan 10% weg is eerder een fout dan echt.
+    const active = existing.filter(r => r.status === 'actief').length;
+    if (gone.length > active * 0.1) throw new Error(`Import zou ${gone.length} van ${active} winkels verbergen; dat lijkt een fout in de import. Niets geschreven.`);
+    await upsert('places', [...rows, ...gone].map(({ id, data, status, seen_at }) => ({ id, data, status, seen_at })));
+    const fresh = rows.filter(r => !old.has(r.id)).length;
+    await req('import_runs', { method: 'POST', body: JSON.stringify({ source: 'places', counts: { rows: rows.length, new: fresh, gone: gone.length } }) });
+    console.log(`places: ${rows.length} rijen (${fresh} nieuw), ${gone.length} niet meer in de bronnen → verborgen`);
   } else if (what === 'markets') {
     const file = read('markets'), existing = await all('markets'), old = new Map(existing.map(r => [r.id, r]));
     const rows = file.markets.map(({ id, status, ...data }) => merge(old.get(id), { id, date: data.date, source: data.org, data, status, seen_at: now }));

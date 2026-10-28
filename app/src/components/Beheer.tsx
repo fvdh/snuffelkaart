@@ -4,7 +4,7 @@
 // een import overschrijft het niet meer. Sessie en REST: lib/auth.ts.
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { CATS, type Cat } from '../lib/model';
-import { queue, alerts, type MRow, type Judged, type Run } from '../lib/beheer';
+import { queue, alerts, parseLatLon, type MRow, type Judged, type Run } from '../lib/beheer';
 import { CAT, Ic } from './ui';
 import { SB, KEY, readSession, sendLink, logout, api as authApi, type Session } from '../lib/auth';
 
@@ -16,7 +16,13 @@ const plusDays = (n: number) => new Date(Date.now() + n * 864e5).toLocaleDateStr
 const day = (iso: string) => new Date(iso + 'T12:00').toLocaleDateString('nl-NL', { weekday: 'short', day: 'numeric', month: 'short' });
 const hm = (m: number) => `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
 const toMin = (t: string) => { const [h, m] = t.split(':').map(Number); return h * 60 + m; };
-const typing = (e: KeyboardEvent) => e.target instanceof HTMLElement && /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName);
+// Sneltoets alleen als losse toetsaanslag: letters die snel na elkaar komen zijn typen (bijv. buiten een zoekveld), geen besluit.
+let lastKey = 0;
+const bursts = new WeakMap<KeyboardEvent, boolean>(); // per toetsaanslag één keer bepalen; meerdere luisteraars vragen het
+const typing = (e: KeyboardEvent) => {
+  if (!bursts.has(e)) { bursts.set(e, e.timeStamp - lastKey < 350); lastKey = e.timeStamp; }
+  return bursts.get(e) || (e.target instanceof HTMLElement && /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName));
+};
 
 export default function Beheer() {
   const [s, setS] = useState<Session | null>(null), [ready, setReady] = useState(false);
@@ -49,12 +55,22 @@ function Panel({ s, out }: { s: Session; out: () => void }) {
   const [view, setView] = useState<View>('wachtrij'), [rows, setRows] = useState<MRow[] | null>(null), [err, setErr] = useState('');
   // ponytail: alle markten vanaf vandaag in één keer (±300; PostgREST geeft er max. 1000). Pagineren als het er meer worden.
   useEffect(() => { api(s, `markets?select=id,date,status,locked,data,updated_at&date=gte.${today()}&order=date,id`).then(setRows).catch(e => setErr(e.message)); }, []);
-  const save = async (r: Row, body: Partial<Row>) => {
-    try {
-      const [n] = await api(s, `markets?id=eq.${encodeURIComponent(r.id)}`, { method: 'PATCH', body: JSON.stringify({ ...body, updated_at: new Date().toISOString() }) });
-      setRows(rs => rs!.map(x => x.id === r.id ? n : x)); setErr('');
-    } catch (e) { setErr((e as Error).message); }
+  const [undo, setUndo] = useState<{ before: Row; what: string } | null>(null);
+  const patch = async (r: Row, body: Partial<Row>) => {
+    const [n] = await api(s, `markets?id=eq.${encodeURIComponent(r.id)}`, { method: 'PATCH', body: JSON.stringify({ ...body, updated_at: new Date().toISOString() }) });
+    setRows(rs => rs!.map(x => x.id === r.id ? n : x)); setErr('');
   };
+  // Elk besluit kan 10 seconden terug (knop of Z): de vorige status, gegevens en vastgezette velden komen terug.
+  const save = async (r: Row, body: Partial<Row>) => {
+    try { await patch(r, body); setUndo({ before: r, what: body.status && body.status !== r.status ? `${r.data.name}: ${STATUS[body.status] ?? body.status}` : `${r.data.name} aangepast` }); }
+    catch (e) { setErr((e as Error).message); }
+  };
+  const revert = () => { if (!undo) return; const { before: b } = undo; setUndo(null); patch(b, { status: b.status, data: b.data, locked: b.locked }).catch(e => setErr(e.message)); };
+  useEffect(() => { if (!undo) return; const t = setTimeout(() => setUndo(null), 10000); return () => clearTimeout(t); }, [undo]);
+  useEffect(() => {
+    const k = (e: KeyboardEvent) => { if (e.key === 'z' && undo && !typing(e) && !e.metaKey && !e.ctrlKey) { e.preventDefault(); revert(); } };
+    addEventListener('keydown', k); return () => removeEventListener('keydown', k);
+  });
   const [runs, setRuns] = useState<Run[]>([]), [reps, setReps] = useState<Rep[]>([]);
   useEffect(() => { api(s, 'reports?select=*&done_at=is.null&order=created_at').then(setReps).catch(() => {}); }, []);
   useEffect(() => { api(s, 'import_runs?select=*&order=at.desc&limit=30').then(setRuns).catch(() => {}); }, []);
@@ -83,6 +99,7 @@ function Panel({ s, out }: { s: Session; out: () => void }) {
       : view === 'winkels' ? <Shops s={s} />
       : view === 'bronnen' ? <Sources runs={runs} warn={warn} rows={rows ?? []} />
       : <Log s={s} />}
+    {undo && <div className="adm-undo" role="status"><span>{undo.what}</span><button className="btn sm" onClick={revert}>Ongedaan maken <span className="kbd">Z</span></button></div>}
   </div>);
 }
 
@@ -119,9 +136,11 @@ function Markets({ title, items, filters, save, empty }: { title: string; items:
 }
 
 const EDIT = ['name', 'place', 'addr', 'start', 'end', 'timeKnown'];
+const PIN_HINT = 'Plak coördinaten (52.09, 5.12) of een link van Google Maps of OpenStreetMap';
+const osmAt = (d: Record<string, any>) => `https://www.openstreetmap.org/?mlat=${d.lat}&mlon=${d.lon}#map=18/${d.lat}/${d.lon}`;
 
 function MarketDetail({ item: { row: r, j }, save }: { item: Item; save: (r: Row, b: Partial<Row>) => Promise<void> }) {
-  const d = r.data, [mode, setMode] = useState<'' | 'edit' | 'reject'>(''), [why, setWhy] = useState(''), [form, setForm] = useState({ name: d.name ?? '', place: d.place ?? '', addr: d.addr ?? '', start: d.timeKnown ? hm(d.start) : '', end: d.timeKnown ? hm(d.end) : '' });
+  const d = r.data, [mode, setMode] = useState<'' | 'edit' | 'reject'>(''), [why, setWhy] = useState(''), [form, setForm] = useState({ name: d.name ?? '', place: d.place ?? '', addr: d.addr ?? '', start: d.timeKnown ? hm(d.start) : '', end: d.timeKnown ? hm(d.end) : '', pin: '' });
   const open = r.status === 'kandidaat' || (r.status === 'unconf' && d.vanished && !r.locked.includes('status'));
   const rejectTo = r.status === 'kandidaat' ? 'afgewezen' : 'cancel', whyKey = rejectTo === 'afgewezen' ? 'rejectWhy' : 'cancelWhy';
   const setStatus = (status: string, extra: Record<string, any> = {}) => save(r, { status, data: { ...d, ...extra, ...(status === 'chk' ? { checked: today() } : {}) }, locked: lock(r, 'status', ...Object.keys(extra)) });
@@ -129,7 +148,9 @@ function MarketDetail({ item: { row: r, j }, save }: { item: Item; save: (r: Row
   const reject = () => why.trim() && setStatus(rejectTo, { [whyKey]: why.trim() });
   const saveEdit = () => {
     const t = form.start && form.end ? { start: toMin(form.start), end: toMin(form.end), timeKnown: true } : { timeKnown: false };
-    save(r, { data: { ...d, name: form.name.trim(), place: form.place.trim(), addr: form.addr.trim() || null, ...t }, locked: lock(r, ...EDIT) }).then(() => setMode(''));
+    const pin = form.pin.trim() ? parseLatLon(form.pin) : null;
+    if (form.pin.trim() && !pin) return;
+    save(r, { data: { ...d, name: form.name.trim(), place: form.place.trim(), addr: form.addr.trim() || null, ...t, ...(pin ? { ...pin, exact: true } : {}) }, locked: lock(r, ...EDIT, ...(pin ? ['lat', 'lon', 'exact'] : [])) }).then(() => setMode(''));
   };
   useEffect(() => {
     const k = (e: KeyboardEvent) => {
@@ -152,7 +173,9 @@ function MarketDetail({ item: { row: r, j }, save }: { item: Item; save: (r: Row
         <label>Tot<input className="input" type="time" value={form.end} onChange={e => setForm({ ...form, end: e.target.value })} /></label></div>
       <label>Plaats<input className="input" value={form.place} onChange={e => setForm({ ...form, place: e.target.value })} /></label>
       <label>Adres of locatie<input className="input" value={form.addr} onChange={e => setForm({ ...form, addr: e.target.value })} /></label>
-      <p className="src"><Ic n="info" /><span>Velden die je hier opslaat, overschrijft een import niet meer. De pin verplaatst niet mee.</span></p>
+      <label>Pin verplaatsen <span className="muted">(leeg = blijft staan; <a href={osmAt(d)} target="_blank" rel="noopener">huidige plek</a>)</span><input className="input" value={form.pin} onChange={e => setForm({ ...form, pin: e.target.value })} placeholder={PIN_HINT} /></label>
+      {form.pin.trim() && !parseLatLon(form.pin) && <p className="bh-err">Geen plek in Nederland herkend.</p>}
+      <p className="src"><Ic n="info" /><span>Velden die je hier opslaat, overschrijft een import niet meer.</span></p>
       <div className="adm-btns"><button className="btn primary">Opslaan</button><button type="button" className="btn" onClick={() => setMode('')}>Annuleren <span className="kbd">Esc</span></button></div>
     </form> : <dl className="facts">
       <dt>Status</dt><dd><span className={`bh-st ${r.status}`}>{STATUS[r.status] ?? r.status}</span>{r.locked.includes('status') && <small> · met de hand</small>}</dd>
@@ -231,14 +254,15 @@ function Shops({ s }: { s: Session }) {
     catch (e) { setErr((e as Error).message); }
   };
   const setCat = (r: Row, c: Cat) => { const { sub, ...d } = r.data; save(r, { data: c === 'kringloop' ? { ...d, kind: 'kringloop' } : { ...d, kind: 'tweedehands', ...(c === 'tweedehands' ? {} : { sub: c }) }, locked: lock(r, 'kind', 'sub') }); };
+  const [pin, setPin] = useState(''), spot = parseLatLon(pin);
   const r = rows[sel], site = r?.data.website && (/^https?:/.test(r.data.website) ? r.data.website : `https://${r.data.website}`);
   return (<>
     <section className="adm-q" aria-label="Winkels">
       <header><h2>Winkels</h2><label className="search"><Ic n="search" /><input type="search" placeholder="Zoek op naam of plaats" value={q} onChange={e => setQ(e.target.value)} autoFocus /></label></header>
       {err && <p className="bh-err">{err}</p>}
-      {rows.length ? <ul className="adm-list">{rows.map((x, i) => <li key={x.id}><button className={`adm-item${i === sel ? ' on' : ''}${x.status === 'verborgen' ? ' off' : ''}`} onClick={() => setSel(i)}>
+      {rows.length ? <ul className="adm-list">{rows.map((x, i) => <li key={x.id}><button className={`adm-item${i === sel ? ' on' : ''}${x.status === 'verborgen' ? ' off' : ''}`} onClick={() => { setSel(i); setPin(''); }}>
         <span className={`tile c-${catOfData(x.data)}`}><Ic n={CAT[catOfData(x.data)][2]} /></span>
-        <span><b>{x.data.name}</b><span>{x.data.addr ?? x.data.place}</span>{x.status === 'verborgen' && <span className="bh-st cancel">Verborgen</span>}</span><time>{x.data.place}</time></button></li>)}</ul>
+        <span><b>{x.data.name}</b><span>{x.data.addr ?? x.data.place}</span>{x.status === 'verborgen' && <span className="bh-st cancel">{x.data.gone ? 'Niet meer in de bron' : 'Verborgen'}</span>}</span><time>{x.data.place}</time></button></li>)}</ul>
         : <p className="adm-empty">{q.trim().length < 2 ? 'Typ minstens twee letters.' : 'Niets gevonden.'}</p>}
     </section>
     {r ? <aside className="adm-detail" aria-label="Details">
@@ -246,11 +270,18 @@ function Shops({ s }: { s: Session }) {
       <dl className="facts">
         <dt>Soort</dt><dd><select className="input" value={catOfData(r.data)} onChange={e => setCat(r, e.target.value as Cat)} aria-label="Soort">{CATS.filter(c => c !== 'vlooienmarkt').map(c => <option key={c} value={c}>{CAT[c][0]}</option>)}</select></dd>
         <dt>Website</dt><dd>{site ? <a href={site} target="_blank" rel="noopener">{r.data.website} <Ic n="ext" /></a> : '—'}</dd>
+        <dt>Plek</dt><dd><a href={osmAt(r.data)} target="_blank" rel="noopener">{r.data.lat}, {r.data.lon} <Ic n="ext" /></a></dd>
         <dt>Bron</dt><dd><code>{r.id}</code></dd>
         {r.locked.length > 0 && <><dt>Met de hand</dt><dd>{r.locked.join(', ')}</dd></>}
       </dl>
+      <form className="adm-edit" onSubmit={e => { e.preventDefault(); if (spot) save(r, { data: { ...r.data, ...spot }, locked: lock(r, 'lat', 'lon') }).then(() => setPin('')); }}>
+        <label>Pin verplaatsen<input className="input" value={pin} onChange={e => setPin(e.target.value)} placeholder={PIN_HINT} /></label>
+        {pin.trim() && !spot && <p className="bh-err">Geen plek in Nederland herkend.</p>}
+        {spot && <button className="btn sm">Verplaats naar {spot.lat}, {spot.lon}</button>}
+      </form>
       <p className="src"><Ic n="info" /><span>Wat je hier zet, overschrijft een import niet meer. Zichtbaar binnen ±15 minuten.</span></p>
-      <div className="adm-btns"><button className="btn" onClick={() => save(r, { status: r.status === 'verborgen' ? 'actief' : 'verborgen' })}>{r.status === 'verborgen' ? 'Weer tonen' : 'Verbergen'}</button></div>
+      {r.data.gone && <p className="src"><Ic n="alert" /><span>Verborgen door de import van {r.data.gone}: staat niet meer in OpenStreetMap of Overture. Bestaat hij nog? Dan kun je hem weer tonen (en het liefst op OSM zetten).</span></p>}
+      <div className="adm-btns"><button className="btn" onClick={() => { const { gone, ...data } = r.data; save(r, { status: r.status === 'verborgen' ? 'actief' : 'verborgen', data, locked: lock(r, 'status') }); }}>{r.status === 'verborgen' ? 'Weer tonen' : 'Verbergen'}</button></div>
     </aside> : <aside className="adm-detail" />}
   </>);
 }
@@ -268,7 +299,7 @@ function Sources({ runs, warn, rows }: { runs: Run[]; warn: string[]; rows: MRow
     <h3>Markten vanaf vandaag, per bron</h3>
     <table className="adm-table"><thead><tr><th>Bron</th>{Object.keys(STATUS).map(k => <th key={k}>{STATUS[k].replace(' door organisator', '')}</th>)}</tr></thead>
       <tbody>{per.map(([org, c]) => <tr key={org}><td>{org}</td>{Object.keys(STATUS).map(k => <td key={k} className="tnum">{c[k] ?? ''}</td>)}</tr>)}</tbody></table>
-    <p className="src"><Ic n="info" /><span>Winkels (OSM, Overture, websites) worden nog met de hand geïmporteerd; markten en het Gemeenteblad elke nacht.</span></p>
+    <p className="src"><Ic n="info" /><span>Markten en het Gemeenteblad elke nacht; winkels (OSM, Overture, websites) elke maandagnacht. Een winkel die uit de bronnen verdwijnt, wordt verborgen (zoek hem bij Winkels om hem weer te tonen).</span></p>
   </section>);
 }
 

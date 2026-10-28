@@ -191,3 +191,14 @@ Keuzes en waarom. Nieuwste onderaan. "Freek" = besloten door Freek; anders voorl
 - Gasten krijgen geen toegang tot de tabel `reports`; alleen `report()` (security definer) die het id controleert, de naam erbij zet en een rem heeft van 60 meldingen per uur voor iedereen samen. Geen IP of account opgeslagen (AVG). Per-bezoeker-rem pas als er spam komt.
 - In /beheer: "Meldingen" met Afgehandeld, Bekijk op de kaart en (bij "gesloten") Winkel verbergen. De correctie zelf gaat via Winkels of Markten.
 - OSM-link blijft ernaast ("Zelf aanpassen op OpenStreetMap"): wie het zelf kan, verbetert de bron.
+
+## Winkels wekelijks automatisch (2026-10-28)
+- `.github/workflows/winkels.yml`, maandag 00:30 UTC: OSM (Overpass), Overture (alleen bij een nieuwe release, gecachet), websitetijden (cache doorlopend, alleen ouder dan 7 dagen opnieuw) → `db.mjs push places`. De nachtelijke run zet het om 02:30 UTC op de kaart.
+- Verdwijnt een winkel uit OSM én Overture, dan wordt hij **verborgen** met `gone` (niet gewist). Komt hij terug, dan weer actief. Met de hand verbergen of tonen in /beheer zet de status vast; de import blijft er dan af.
+- Rem: zou een import meer dan 10% van de actieve winkels verbergen, dan schrijft hij niets (halve Overpass-uitkomst of ontbrekende Overture).
+- /beheer → Bronnen waarschuwt als de winkelimport meer dan 8 dagen niet draaide.
+
+## Beheer: pin verplaatsen, ongedaan maken, typen ≠ sneltoets (2026-10-28)
+- Pin verplaatsen: coördinaten of een link van Google Maps/OSM plakken (`parseLatLon`, alleen binnen NL). Vastgezet (`lat`, `lon`); geen sleepkaart (later, als plakken te omslachtig blijkt).
+- Elk besluit 10 seconden terug te draaien (balk onderin, of Z): vorige status, gegevens en vastgezette velden.
+- Sneltoetsen (A/U/E/R/J/K) werken alleen als losse toets: letters binnen 350 ms na elkaar zijn typen. Aanleiding: typen terwijl de pagina laadde keurde per ongeluk een kandidaat goed.

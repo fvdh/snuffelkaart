@@ -31,13 +31,21 @@ export function judge(r: MRow, live: MRow[]): { verdict: Verdict; label: string;
 }
 
 export type Run = { id: number; source: string; at: string; counts: Record<string, any> };
-/** Wat aandacht nodig heeft (M4): problemen uit de laatste marktenrun, en een nachtelijke bron die al ruim een dag niet draaide. */
+/** Wat aandacht nodig heeft (M4): problemen uit de laatste marktenrun, en een bron die niet op tijd draaide (nachtelijk: 36 uur, winkels: 8 dagen). */
 export function alerts(runs: Run[], now: Date): string[] {
   const last = (src: string) => runs.filter(r => r.source === src).sort((a, b) => b.at.localeCompare(a.at))[0];
   const out = (last('markets')?.counts.problems ?? []).map((p: { org: string; why: string }) => `${p.org}: ${p.why}`);
-  for (const [src, name] of [['markets', 'Markten van organisatoren'], ['gemeenteblad', 'Gemeenteblad']]) {
+  for (const [src, name, h, run] of [['markets', 'Markten van organisatoren', 36, 'nachtelijke'], ['gemeenteblad', 'Gemeenteblad', 36, 'nachtelijke'], ['places', 'Winkels (OSM, Overture, websites)', 8 * 24, 'wekelijkse']] as const) {
     const r = last(src);
-    if (!r || now.getTime() - Date.parse(r.at) > 36 * 3600e3) out.push(`${name}: ${r ? `laatste run op ${r.at.slice(0, 10)}` : 'nog nooit gedraaid'}, de nachtelijke run is mislukt`);
+    if (!r || now.getTime() - Date.parse(r.at) > h * 3600e3) out.push(`${name}: ${r ? `laatste run op ${r.at.slice(0, 10)}` : 'nog nooit gedraaid'}, de ${run} run is mislukt`);
   }
   return out;
+}
+
+/** Plek uit wat je plakt: "52.09, 5.12", of een link van Google Maps / OpenStreetMap. Alleen binnen (ruim) Nederland. */
+export function parseLatLon(t: string): { lat: number; lon: number } | null {
+  const m = /@(-?\d+\.\d+),(-?\d+\.\d+)/.exec(t) ?? /[?&#](?:q|query|ll|mlat)=(-?\d+\.\d+)(?:,|&mlon=)(-?\d+\.\d+)/.exec(t) ?? /map=\d+\/(-?\d+\.\d+)\/(-?\d+\.\d+)/.exec(t) ?? /^\s*(-?\d+\.\d+)\s*[,;\s]\s*(-?\d+\.\d+)\s*$/.exec(t);
+  if (!m) return null;
+  const lat = +m[1], lon = +m[2];
+  return lat > 50.7 && lat < 53.7 && lon > 3.2 && lon < 7.3 ? { lat: +lat.toFixed(5), lon: +lon.toFixed(5) } : null;
 }

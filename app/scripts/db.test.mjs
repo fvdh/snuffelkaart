@@ -1,5 +1,5 @@
 import { it, expect } from 'vitest';
-import { merge, vanished, toFiles } from './db.mjs';
+import { merge, vanished, toFiles, placeRows } from './db.mjs';
 
 it('import laat met de hand gezette velden en status staan', () => {
   const old = { id: 'a', status: 'cancel', locked: ['status', 'name'], data: { name: 'Goede naam', place: 'Oud' } };
@@ -25,4 +25,13 @@ it('export: verborgen en kandidaten niet op de kaart, tijden vooruitgerekend', (
   expect(f.places.places[0].h[0]).toEqual([[600, 1020]]);
   expect(f.places.places[0].oh).toBeUndefined();
   expect(f.markets.markets.map(m => m.id)).toEqual(['m']);
+});
+
+it('winkels: verdwenen uit de bron → verborgen; terug → actief; met de hand verborgen blijft verborgen', () => {
+  const r = (id, extra = {}) => ({ id, status: 'actief', locked: [], data: { name: id }, ...extra });
+  const existing = [r('blijft'), r('weg'), r('vast', { locked: ['status'] }), r('terug', { status: 'verborgen', data: { gone: '2026-10-01' } }), r('beheer', { status: 'verborgen' })];
+  const { rows, gone } = placeRows(existing, ['blijft', 'terug', 'beheer', 'nieuw'].map(id => ({ id, data: { name: id } })), '2026-10-28');
+  expect(Object.fromEntries(rows.map(x => [x.id, x.status]))).toEqual({ blijft: 'actief', terug: 'actief', beheer: 'verborgen', nieuw: 'actief' });
+  expect(rows.find(x => x.id === 'terug').data.gone).toBeUndefined();
+  expect(gone.map(x => [x.id, x.status, x.data.gone])).toEqual([['weg', 'verborgen', '2026-10-28']]); // 'vast' is vastgezet in beheer
 });

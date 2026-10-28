@@ -71,6 +71,8 @@ import Sprite from '../components/Sprite.astro';
       .adm-empty, .adm-loading { padding: 20px; color: var(--fg-2) }
       .adm-err { position: fixed; left: 50%; bottom: 16px; transform: translateX(-50%); background: var(--bad-soft); padding: 10px 14px; border-radius: 12px; box-shadow: var(--shadow); z-index: 5; max-width: 90vw }
       .bh-err { color: var(--bad-ink) }
+  .adm-undo { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); z-index: 50; display: flex; align-items: center; gap: 14px; background: var(--ink); color: var(--on-ink); border-radius: 14px; padding: 10px 10px 10px 16px; font-size: .875rem; font-weight: 600; box-shadow: 0 8px 24px rgb(0 0 0 / .2) }
+  .adm-undo .btn { background: var(--surface); color: var(--fg) }
       .bh-st { font-size: .75rem; font-weight: 700; padding: 2px 8px; border-radius: 10px; background: var(--surface-2); color: var(--fg-2) }
       .bh-st.org, .bh-st.chk { background: color-mix(in srgb, var(--open) 15%, var(--surface)); color: var(--open-ink) }
       .bh-st.cancel, .bh-st.afgewezen { background: var(--bad-soft); color: var(--bad-ink) }

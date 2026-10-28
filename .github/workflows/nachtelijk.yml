@@ -3,7 +3,7 @@
 # De dagelijkse schrijfactie houdt het gratis Supabase-project wakker.
 # Elk kwartier: alleen als iemand in /beheer iets wijzigde (updated_at na de laatste export) exporteren, bouwen en uitrollen.
 # ponytail: polling via cron (repo is publiek, minuten gratis; GitHub-cron loopt soms wat achter). Sneller = Supabase-webhook → repository_dispatch.
-# ponytail: OSM, Overture en websitetijden ververst dit niet; die import draait nog met de hand (wekelijks: Geofabrik, §5.1).
+# Winkels (OSM, Overture, websitetijden) ververst winkels.yml op maandagnacht; deze run zet ze daarna op de kaart.
 name: Nachtelijke verversing
 on:
   schedule:
