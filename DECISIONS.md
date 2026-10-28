@@ -210,3 +210,9 @@ Getest met de productiebuild, server uit na één bezoek:
 - **Werkt niet:** zoeken op plaats of postcode (PDOK) geeft geen resultaten; inloggen geeft een nette melding; kaarttegels alleen van gebieden die je al bekeek.
 - ponytail: de offline-banner leunt op `navigator.onLine`; bij heel slecht bereik ("wel verbonden, niets komt door") verschijnt hij niet. De app werkt dan wel met de bewaarde gegevens. Beter detecteren als testers het missen.
 - Gebruiksvoorwaarden en colofon toegevoegd. Nog te doen bij een onderneming: adres en KvK-nummer in het colofon (art. 3:15d BW).
+
+## M6: toegankelijkheid (2026-10-28)
+- axe-core (WCAG 2.2 AA + best practices) op lijst, winkel, markt, meldformulier, dagplan, Jij, plaats-, winkel- en tekstpagina's en /beheer: **0 bevindingen** na deze ronde.
+- Opgelost: geen landmarks in de app (paneel is nu `<main>`, dagplanbalk `<aside>`, kaart was al een region); `--fg-3` licht 0.55 → 0.53 (was 4,47:1, nu ≥ 4,6:1 op alle achtergronden); meldkeuzes waren role=radio met aria-pressed (nu gewone aan/uit-knoppen in een groep); tellerknoppen 21 → 24 px hoog; /beheer zonder `main` en `h1`; scrollend citaat in beheer niet met toetsenbord bereikbaar.
+- Focus: na een schermwissel door de gebruiker gaat de focus naar de titel van het nieuwe scherm (schermlezer leest hem voor). Terug gaat naar de titel van de lijst, niet naar de rij waar je vandaan kwam (ponytail: rij onthouden als testers het missen).
+- Niet automatisch te testen, nog met de hand te doen met VoiceOver op een telefoon: de bottom sheet slepen (alternatief: de greep is een knop) en de kaartpins (de lijst toont dezelfde winkels).

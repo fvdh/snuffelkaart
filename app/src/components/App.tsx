@@ -175,7 +175,7 @@ export default function App() {
   const c: Ctx = { now, f, online, dataFrom, install, origin, originLabel, locDenied, welcome: !welcomed && !spot && !me, spot: !!spot, pickSpot, pickPlace, me, favs, planStops: plan.stops, planDay: plan.day, setF, open, toggleStop, toggleFav, locate, back, openPlan, openMe, user: sess?.email ?? null };
 
   // ---------- bottom sheet (mobiel) ----------
-  const shell = useRef<HTMLDivElement>(null), sheet = useRef<HTMLDivElement>(null), scroller = useRef<HTMLDivElement>(null);
+  const shell = useRef<HTMLDivElement>(null), sheet = useRef<HTMLElement>(null), scroller = useRef<HTMLDivElement>(null);
   const [tops, setTops] = useState({ full: 12, half: 400, collapsed: 600 }), [dragTop, setDragTop] = useState<number | null>(null);
   const scrollTop = () => requestAnimationFrame(() => scroller.current && (scroller.current.scrollTop = 0));
   const barOn = plan.stops.length > 0 && view !== 'plan' && (welcomed || !!spot || !!me);
@@ -184,6 +184,12 @@ export default function App() {
     const ph = (peek ? peek.offsetTop + peek.offsetHeight : 180) + (barOn ? 78 : 0), half = Math.round(H * 0.5);
     setTops({ full: 12, half, collapsed: Math.max(half + 40, H - ph) });
   }, [view, sel, f.time, barOn, places, desktop, welcomed, locDenied, me, spot]);
+  // Toegankelijkheid: na een wissel van scherm (door de gebruiker) gaat de focus naar de titel, zodat een schermlezer het nieuwe scherm voorleest.
+  useEffect(() => {
+    if (!dir) return;
+    const h = sheet.current?.querySelector<HTMLElement>('.view h1, .view h2');
+    if (h) { h.tabIndex = -1; h.focus({ preventScroll: true }); }
+  }, [view, sel]);
   const top = dragTop ?? tops[snap];
   const bottomPad = desktop || !shell.current ? 0 : Math.max(0, shell.current.clientHeight - Math.min(top, tops.half));
   const drag = useRef<{ y: number; top: number; last: number; t: number; v: number; moved: boolean; id: number; handle: boolean } | null>(null);
@@ -220,7 +226,7 @@ export default function App() {
     <div className="shell" ref={shell}>
       <MapView items={mapItems} sel={view === 'detail' ? sel : null} planIds={view === 'plan' ? plan.stops : []} me={me} bottomPad={bottomPad}
         focus={focus} fit={fit} route={view === 'plan' && planItems.length ? [origin, ...planItems] : []} pinClass={pinClass} onSelect={open} onLocate={() => locate()} />
-      <div className={`sheet${dragTop == null ? ' snapping' : ''}`} ref={sheet} style={desktop ? undefined : { transform: `translateY(${top - 12}px)` }}
+      <main className={`sheet${dragTop == null ? ' snapping' : ''}`} ref={sheet} style={desktop ? undefined : { transform: `translateY(${top - 12}px)` }}
         onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp}>
         <button className="handle" aria-label="Paneel groter of kleiner" onClick={e => { if (e.detail === 0) setSnap(snap === 'collapsed' ? 'half' : snap === 'half' ? 'full' : 'collapsed'); }} />
         <div className="sheet-scroll" ref={scroller} style={{ ['--hid' as string]: desktop ? '0px' : `${top - 12}px`, ['--barpad' as string]: barOn ? '74px' : '0px' }}>
@@ -234,12 +240,12 @@ export default function App() {
               : <ListView c={c} list={list} total={list.length} limit={limit} more={() => setLimit(limit + 40)} counts={counts} nPlaces={places.length} />}
           </div>
         </div>
-      </div>
-      <button className={`planbar${barOn ? '' : ' off'}`} onClick={openPlan} aria-label={`Open mijn dagplan: ${plan.stops.length} stops`}>
+      </main>
+      <aside aria-label="Mijn dagplan"><button className={`planbar${barOn ? '' : ' off'}`} onClick={openPlan} aria-label={`Open mijn dagplan: ${plan.stops.length} stops`}>
         <span className="pb-n tnum" key={plan.stops.length}>{plan.stops.length}</span>
         <span className="pb-t"><b>Mijn {DAYS_LONG[dayStart(plan.day).getDay()]}</b><span>{sim.bad ? <><i className="pb-warn" style={{ background: 'var(--bad)' }} />{sim.bad} klopt niet · </> : sim.warn ? <><i className="pb-warn" />{sim.warn} aandachtspunt{sim.warn > 1 ? 'en' : ''} · </> : null}{plan.stops.length} stop{plan.stops.length > 1 ? 's' : ''} · klaar ±{hm(sim.end)}</span></span>
         <Ic n="chev" />
-      </button>
+      </button></aside>
       {testClock && <a className="testclock" href={location.pathname} title="Terug naar de echte tijd"><Ic n="clock" />Testtijd: {dShort(isoDay(now))} {hm(now.getHours() * 60 + now.getMinutes())} · <u>naar nu</u></a>}
       <div className={`toast${toast ? ' on' : ''}`} role="status" aria-live="polite">{toast && <><Ic n="info" /><span>{toast}</span></>}</div>
     </div>

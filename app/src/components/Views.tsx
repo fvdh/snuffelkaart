@@ -201,7 +201,7 @@ function Report({ id, what }: { id: string; what: [string, string][] }) {
   if (!open) return <button className="report-btn" onClick={() => setOpen(true)}><Ic n="flag" />Klopt er iets niet?</button>;
   return (<form className="login-card report" onSubmit={send}>
     <b>Wat klopt er niet?</b>
-    <div className="btns" role="radiogroup">{what.map(([k, l]) => <button key={k} type="button" role="radio" className="chip" aria-checked={w === k} aria-pressed={w === k} onClick={() => setW(k)}>{l}</button>)}</div>
+    <div className="btns" role="group" aria-label="Wat klopt er niet?">{what.map(([k, l]) => <button key={k} type="button" className="chip" aria-pressed={w === k} onClick={() => setW(k)}>{l}</button>)}</div>
     <textarea className="textarea" maxLength={500} placeholder="Wat weet je? Bijv. de nieuwe tijden of waar je het zag (mag leeg)" value={note} onChange={e => setNote(e.target.value)} aria-label="Toelichting" />
     <p className="src"><Ic n="info" /><span>Anoniem: we bewaren alleen je melding, niet wie je bent.</span></p>
     {state && state !== 'busy' && <p role="alert" style={{ color: 'var(--bad-ink)', fontSize: '.875rem' }}>{state}</p>}

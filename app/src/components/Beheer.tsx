@@ -27,7 +27,7 @@ const typing = (e: KeyboardEvent) => {
 export default function Beheer() {
   const [s, setS] = useState<Session | null>(null), [ready, setReady] = useState(false);
   useEffect(() => { setS(readSession()); setReady(true); }, []);
-  if (!SB || !KEY) return <main className="bh-login"><p>Beheer is niet ingesteld: SUPABASE_URL en SUPABASE_ANON_KEY ontbreken bij de build.</p></main>;
+  if (!SB || !KEY) return <main className="bh-login"><h1 className="bh-brand">Beheer</h1><p>Beheer is niet ingesteld: SUPABASE_URL en SUPABASE_ANON_KEY ontbreken bij de build.</p></main>;
   if (!ready) return null;
   return s ? <Panel s={s} out={() => { logout(s); setS(null); }} /> : <Login />;
 }
@@ -39,7 +39,7 @@ function Login() {
     try { await sendLink(email, location.origin + '/beheer'); setSent(true); } catch (x) { setErr((x as Error).message); }
   };
   return (<main className="bh-login"><form onSubmit={send}>
-    <div className="bh-brand"><span className="bh-mark"><Ic n="tag" /></span>Beheer</div>
+    <h1 className="bh-brand"><span className="bh-mark"><Ic n="tag" /></span>Beheer</h1>
     {sent ? <p>Er is een inloglink gestuurd naar <b>{email}</b>. Open hem in deze browser.</p> : <>
       <label>E-mailadres<input className="input" type="email" required value={email} onChange={e => setEmail(e.target.value)} autoComplete="email" /></label>
       <button className="btn primary">Stuur inloglink</button></>}
@@ -82,10 +82,11 @@ function Panel({ s, out }: { s: Session; out: () => void }) {
 
   return (<div className="admin">
     <nav className="adm-nav" aria-label="Beheer">
-      <div className="bh-brand"><span className="bh-mark"><Ic n="tag" /></span>Beheer</div>
+      <h1 className="bh-brand"><span className="bh-mark"><Ic n="tag" /></span>Beheer</h1>
       {NAV.map(([k, l]) => <button key={k} className={view === k ? 'on' : ''} aria-current={view === k ? 'page' : undefined} onClick={() => setView(k)}>{l}{k === 'bronnen' && warn.length ? <span className="adm-bad">{warn.length} fout</span> : <span>{count[k] ?? ''}</span>}</button>)}
       <div className="adm-me"><span>{s.email}</span><button className="link" onClick={out}>Uitloggen</button></div>
     </nav>
+    <main style={{ display: 'contents' }}>
     {err && <p className="bh-err adm-err" role="alert">{err}</p>}
     {!rows && !err ? <p className="adm-loading">Laden…</p>
       : view === 'wachtrij' ? <Markets key="q" title="Wachtrij" items={q.map(j => ({ row: j.row, j }))} save={save}
@@ -99,6 +100,7 @@ function Panel({ s, out }: { s: Session; out: () => void }) {
       : view === 'winkels' ? <Shops s={s} />
       : view === 'bronnen' ? <Sources runs={runs} warn={warn} rows={rows ?? []} />
       : <Log s={s} />}
+    </main>
     {undo && <div className="adm-undo" role="status"><span>{undo.what}</span><button className="btn sm" onClick={revert}>Ongedaan maken <span className="kbd">Z</span></button></div>}
   </div>);
 }
@@ -185,7 +187,7 @@ function MarketDetail({ item: { row: r, j }, save }: { item: Item; save: (r: Row
       {(d.cancelWhy || d.rejectWhy) && <><dt>Reden</dt><dd>{d.cancelWhy ?? d.rejectWhy}</dd></>}
     </dl>}
 
-    {d.snippet && <blockquote className="adm-quote">{d.snippet}</blockquote>}
+    {d.snippet && <blockquote className="adm-quote" tabIndex={0}>{d.snippet}</blockquote>}
     {j && <div className="aibox"><span className={`ai ${j.verdict}`}><Ic n="sparkle" />{j.label}</span><ul>{j.why.map(w => <li key={w}>{w}</li>)}</ul></div>}
 
     {mode === 'reject' ? <form className="adm-edit" onSubmit={e => { e.preventDefault(); reject(); }}>
@@ -228,7 +230,7 @@ function Reports({ s, reps, setReps, rows }: { s: Session; reps: Rep[]; setReps:
     {r ? <aside className="adm-detail" aria-label="Details">
       <div><p className="eyebrow"><span className="tile"><Ic n="flag" /></span>{market ? 'Markt' : 'Winkel'}</p><h3>{r.name}</h3>
         <p className="adm-sub">{WHAT[r.what]} · gemeld op {new Date(r.created_at).toLocaleString('nl-NL', { dateStyle: 'medium', timeStyle: 'short' })}</p></div>
-      {r.note ? <blockquote className="adm-quote">{r.note}</blockquote> : <p className="muted">Geen toelichting.</p>}
+      {r.note ? <blockquote className="adm-quote" tabIndex={0}>{r.note}</blockquote> : <p className="muted">Geen toelichting.</p>}
       {err && <p className="bh-err">{err}</p>}
       <p className="src"><Ic n="info" /><span>{market ? `Corrigeer de markt onder “Markten deze week” of de wachtrij (status nu: ${STATUS[market.status] ?? market.status}).` : 'Corrigeer de winkel onder “Winkels” (zoek op naam), of verberg hem hier als hij echt dicht is.'}</span></p>
       <div className="adm-btns">
