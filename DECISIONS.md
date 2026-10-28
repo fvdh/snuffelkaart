@@ -134,7 +134,7 @@ Keuzes en waarom. Nieuwste onderaan. "Freek" = besloten door Freek; anders voorl
 
 ## M2 deel 2: beheer (2026-10-28)
 
-- **/beheer** (noindex, niet in de service worker): inloggen met een link per e-mail (Supabase Auth). Beheerder: info@freekvanderhorst.nl (tabel `admins`; Freek). Wie geen beheerder is, ziet niets (RLS, getest).
+- **/beheer** (noindex, niet in de service worker): inloggen met een link per e-mail (Supabase Auth). Beheerders: info@freekvanderhorst.nl en freekfc@gmail.com (tabel `admins`; Freek). De ingebouwde mail van Supabase stuurt alleen naar leden van het Supabase-team (Gmail); voor andere adressen is eigen SMTP nodig. Noodweg: `node scripts/inloglink.mjs` opent een inloglink zonder mail. Wie geen beheerder is, ziet niets (RLS, getest).
 - **Markten**: status zetten (bevestigd, gecontroleerd, nog niet bevestigd, afgelast met reden, kandidaat afwijzen). **Winkels**: zoeken, soort wijzigen, verbergen. Alles wat je zet, komt in `locked`: een import overschrijft het niet.
 - **Zichtbaar na de nachtelijke run.** ponytail: geen directe herbouw na een wijziging (§6.1 noemt ±15 min); toevoegen met een kleine Worker die de workflow start, als wachten tot de nacht te traag blijkt.
 - **Geen supabase-js**: login (`/auth/v1/otp`) en data (REST) met fetch; na een uur opnieuw inloggen.
