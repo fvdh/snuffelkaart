@@ -216,3 +216,9 @@ Getest met de productiebuild, server uit na één bezoek:
 - Opgelost: geen landmarks in de app (paneel is nu `<main>`, dagplanbalk `<aside>`, kaart was al een region); `--fg-3` licht 0.55 → 0.53 (was 4,47:1, nu ≥ 4,6:1 op alle achtergronden); meldkeuzes waren role=radio met aria-pressed (nu gewone aan/uit-knoppen in een groep); tellerknoppen 21 → 24 px hoog; /beheer zonder `main` en `h1`; scrollend citaat in beheer niet met toetsenbord bereikbaar.
 - Focus: na een schermwissel door de gebruiker gaat de focus naar de titel van het nieuwe scherm (schermlezer leest hem voor). Terug gaat naar de titel van de lijst, niet naar de rij waar je vandaan kwam (ponytail: rij onthouden als testers het missen).
 - Niet automatisch te testen, nog met de hand te doen met VoiceOver op een telefoon: de bottom sheet slepen (alternatief: de greep is een knop) en de kaartpins (de lijst toont dezelfde winkels).
+
+## M6: monitoring (2026-10-28)
+- **Van buitenaf** (`controle.yml`, elk half uur): kaart laadt, `places/markets.json` < 36 uur oud, Supabase-statusbestand antwoordt. Rood = GitHub mailt.
+- **Bij bezoekers**: JS-fouten (error, unhandledrejection) anoniem via `log_error()` → `client_errors` (tekst, pagina, browser; geen IP/account; 30 dagen; rem 200/uur, max. 3 per paginabezoek). In /beheer → Bronnen per fout gegroepeerd, en in de dagelijkse mail. Niet in dev.
+- Geen Sentry e.d.: dit is genoeg om te zien dát er iets stukgaat; een bibliotheek pas als we stacktraces nodig hebben.
+- **Gevonden bij het inrichten:** de geplande GitHub-runs (kwartier, nacht) zijn sinds het toevoegen (07:28 UTC) nog niet één keer gestart; alleen handmatige runs. Workflows staan aan, repo is publiek. Waarschijnlijk de bekende vertraging bij nieuwe repositories; `controle.yml` laat het zien als het zo blijft.

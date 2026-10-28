@@ -11,6 +11,7 @@ import { ListView, DetailView, PlanView, MeView, LoginView, type Ctx } from './V
 import { readSession, returnError, api, sendLink, logout as authLogout, mergeFavs, LoggedOut, SB, KEY, type Session } from '../lib/auth';
 import { applyStatus, type Live } from '../lib/markets';
 import { Ic, reduced } from './ui';
+import { watchErrors } from '../lib/errors';
 
 /** "Nu", met ?nu=2026-10-31T09:10 om tijdsbewust gedrag te testen. */
 function useNow(): [Date, boolean] {
@@ -28,6 +29,8 @@ const useDesktop = () => { const q = '(min-width: 980px)'; const [d, setD] = use
 
 type View = 'list' | 'detail' | 'plan' | 'me' | 'login';
 type Snap = 'collapsed' | 'half' | 'full';
+
+watchErrors(); // één keer bij het laden van de module
 
 export default function App() {
   const [now, testClock] = useNow(), desktop = useDesktop(), today = isoDay(now);

@@ -7,6 +7,7 @@ import { CATS, type Cat } from '../lib/model';
 import { queue, alerts, parseLatLon, type MRow, type Judged, type Run } from '../lib/beheer';
 import { CAT, Ic } from './ui';
 import { SB, KEY, readSession, sendLink, logout, api as authApi, type Session } from '../lib/auth';
+import { watchErrors } from '../lib/errors';
 
 type Row = { id: string; status: string; locked: string[]; data: Record<string, any>; date?: string; updated_at?: string };
 const api = (s: Session, path: string, init: RequestInit = {}) => authApi(s, `rest/v1/${path}`, init);
@@ -23,6 +24,8 @@ const typing = (e: KeyboardEvent) => {
   if (!bursts.has(e)) { bursts.set(e, e.timeStamp - lastKey < 350); lastKey = e.timeStamp; }
   return bursts.get(e) || (e.target instanceof HTMLElement && /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName));
 };
+
+watchErrors(); // één keer bij het laden van de module
 
 export default function Beheer() {
   const [s, setS] = useState<Session | null>(null), [ready, setReady] = useState(false);
@@ -98,7 +101,7 @@ function Panel({ s, out }: { s: Session; out: () => void }) {
         filters={[['Alles', () => true], ...(['org', 'chk', 'unconf', 'cancel'] as const).map(k => [STATUS[k].replace(' door organisator', ''), (i: Item) => i.row.status === k] as Filter)]} empty="Geen markten de komende 7 dagen." />
       : view === 'meldingen' ? <Reports s={s} reps={reps} setReps={setReps} rows={rows ?? []} />
       : view === 'winkels' ? <Shops s={s} />
-      : view === 'bronnen' ? <Sources runs={runs} warn={warn} rows={rows ?? []} />
+      : view === 'bronnen' ? <Sources s={s} runs={runs} warn={warn} rows={rows ?? []} />
       : <Log s={s} />}
     </main>
     {undo && <div className="adm-undo" role="status"><span>{undo.what}</span><button className="btn sm" onClick={revert}>Ongedaan maken <span className="kbd">Z</span></button></div>}
@@ -288,7 +291,12 @@ function Shops({ s }: { s: Session }) {
   </>);
 }
 
-function Sources({ runs, warn, rows }: { runs: Run[]; warn: string[]; rows: MRow[] }) {
+type Fout = { msg: string; src: string | null; ua: string | null; at: string };
+
+function Sources({ s, runs, warn, rows }: { s: Session; runs: Run[]; warn: string[]; rows: MRow[] }) {
+  const [errs, setErrs] = useState<Fout[]>([]);
+  useEffect(() => { api(s, `client_errors?select=msg,src,ua,at&at=gte.${new Date(Date.now() - 7 * 864e5).toISOString()}&order=at.desc&limit=500`).then(setErrs).catch(() => {}); }, []);
+  const byMsg = Object.values(errs.reduce<Record<string, { e: Fout; n: number }>>((a, e) => { (a[e.msg] ??= { e, n: 0 }).n++; return a; }, {})).sort((a, b) => b.n - a.n);
   const per = Object.entries(rows.reduce<Record<string, Record<string, number>>>((a, r) => { const k = r.data.org ?? '?'; (a[k] ??= {})[r.status] = (a[k][r.status] ?? 0) + 1; return a; }, {}))
     .sort((a, b) => Object.values(b[1]).reduce((x, y) => x + y) - Object.values(a[1]).reduce((x, y) => x + y));
   return (<section className="adm-wide" aria-label="Bronnen">
@@ -298,6 +306,10 @@ function Sources({ runs, warn, rows }: { runs: Run[]; warn: string[]; rows: MRow
     <h3>Laatste imports</h3>
     <table className="adm-table"><thead><tr><th>Wanneer</th><th>Bron</th><th>Aantallen</th></tr></thead>
       <tbody>{runs.map(r => <tr key={r.id}><td>{new Date(r.at).toLocaleString('nl-NL', { dateStyle: 'short', timeStyle: 'short' })}</td><td>{r.source}</td><td>{Object.entries(r.counts).map(([k, v]) => `${k}: ${Array.isArray(v) ? v.length : v}`).join(' · ')}</td></tr>)}</tbody></table>
+    <h3>Fouten bij bezoekers (7 dagen)</h3>
+    {byMsg.length ? <table className="adm-table"><thead><tr><th>Laatst</th><th>Fout</th><th>Waar</th><th>Aantal</th></tr></thead>
+      <tbody>{byMsg.map(({ e, n }) => <tr key={e.msg}><td>{new Date(e.at).toLocaleString('nl-NL', { dateStyle: 'short', timeStyle: 'short' })}</td><td>{e.msg}</td><td><span className="muted">{e.src}</span></td><td className="tnum">{n}</td></tr>)}</tbody></table>
+      : <p className="adm-sub">Geen fouten. Gaat er bij een bezoeker iets stuk in de app, dan staat het hier (zonder wie het was).</p>}
     <h3>Markten vanaf vandaag, per bron</h3>
     <table className="adm-table"><thead><tr><th>Bron</th>{Object.keys(STATUS).map(k => <th key={k}>{STATUS[k].replace(' door organisator', '')}</th>)}</tr></thead>
       <tbody>{per.map(([org, c]) => <tr key={org}><td>{org}</td>{Object.keys(STATUS).map(k => <td key={k} className="tnum">{c[k] ?? ''}</td>)}</tr>)}</tbody></table>

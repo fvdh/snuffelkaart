@@ -11,3 +11,9 @@ it('mail alleen bij nieuwe meldingen, met toelichting ontsmet', () => {
   expect(m.html).toContain('&lt;script&gt;');
   expect(m.html).not.toContain('Oud');
 });
+
+it('alleen fouten: korte mail met het aantal', () => {
+  const m = digest([], Date.parse('2026-10-29T03:00:00Z'), 3);
+  expect(m.subject).toBe('Snuffelkaart: 3 fouten bij bezoekers');
+  expect(m.html).toContain('3 fouten');
+});

@@ -35,6 +35,9 @@ begin
   -- Meldingen: gast mag melden via report(), maar niet direct in de tabel schrijven of lezen; onzin wordt geweigerd.
   perform report(pid, 'dicht', 'rls-test');
   select count(*) into n from reports; if n <> 0 then raise exception 'gast ziet % meldingen', n; end if;
+  perform log_error('rls-test', '/test', 'test');
+  select count(*) into n from client_errors; if n <> 0 then raise exception 'gast ziet % foutmeldingen', n; end if;
+  begin insert into client_errors (msg) values ('x'); raise exception 'gast schreef direct in client_errors'; exception when insufficient_privilege then null; when raise_exception then raise; end;
   begin insert into reports (item_id, name, what) values ('x', 'x', 'dicht'); raise exception 'gast schreef direct in reports'; exception when insufficient_privilege then null; when raise_exception then raise; end;
   begin perform report('bestaat-niet', 'dicht'); raise exception 'melding over onbekend item geaccepteerd'; exception when invalid_parameter_value then null; when raise_exception then raise; end;
   begin perform report(pid, 'hack'); raise exception 'melding met onbekende soort geaccepteerd'; exception when check_violation then null; when raise_exception then raise; end;
@@ -48,6 +51,7 @@ begin
   select count(*) into n from markets; if n <> 0 then raise exception 'gebruiker ziet % markten via de database', n; end if;
   select count(*) into n from admins;  if n <> 0 then raise exception 'gebruiker ziet de beheerderslijst'; end if;
   select count(*) into n from reports; if n <> 0 then raise exception 'gebruiker ziet % meldingen', n; end if;
+  select count(*) into n from client_errors; if n <> 0 then raise exception 'gebruiker ziet % foutmeldingen', n; end if;
   update markets set status = 'cancel'; get diagnostics n = row_count; if n <> 0 then raise exception 'gebruiker wijzigde % markten', n; end if;
   update places set status = 'verborgen'; get diagnostics n = row_count; if n <> 0 then raise exception 'gebruiker verborg % winkels', n; end if;
   select count(*) into n from favorites where item_id like 'rls-test-%'; if n <> 1 then raise exception 'gebruiker ziet % testfavorieten (verwacht alleen de eigen)', n; end if;
@@ -63,6 +67,7 @@ begin
   select count(*) into n from places;  if n < 1000 then raise exception 'beheerder ziet maar % winkels', n; end if;
   select count(*) into n from markets; if n = 0 then raise exception 'beheerder ziet geen markten'; end if;
   update markets set seen_at = seen_at where id = (select id from markets limit 1); get diagnostics n = row_count; if n <> 1 then raise exception 'beheerder kan geen markt wijzigen'; end if;
+  select count(*) into n from client_errors where msg = 'rls-test'; if n <> 1 then raise exception 'beheerder ziet de foutmelding van de gast niet'; end if;
   update reports set done_at = now() where note = 'rls-test'; get diagnostics n = row_count; if n <> 1 then raise exception 'beheerder kan een melding niet afhandelen'; end if;
   begin insert into admins values ('indringer@example.com'); raise exception 'beheerder kon zelf een beheerder toevoegen'; exception when insufficient_privilege then null; when raise_exception then raise; end;
   begin delete from markets where true; get diagnostics n = row_count; if n <> 0 then raise exception 'beheerder kon % markten verwijderen', n; end if; exception when insufficient_privilege then null; end;
