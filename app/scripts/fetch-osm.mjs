@@ -22,10 +22,11 @@ async function fetchTile(QUERY) {
   for (const url of ENDPOINTS) {
     for (let attempt = 1; attempt <= 2; attempt++) {
       try {
-        const res = await fetch(url, { method: 'POST', headers: { 'User-Agent': UA, 'Content-Type': 'application/x-www-form-urlencoded' }, body: 'data=' + encodeURIComponent(QUERY) });
+        const res = await fetch(url, { method: 'POST', headers: { 'User-Agent': UA, 'Content-Type': 'application/x-www-form-urlencoded' }, body: 'data=' + encodeURIComponent(QUERY), signal: AbortSignal.timeout(240_000) }); // query zelf max. 180 s; daarna volgende server
         const text = await res.text();
-        if (res.ok && text.startsWith('{')) return JSON.parse(text);
-        console.warn(`${url} gaf ${res.status}, poging ${attempt}`);
+        const j = res.ok && text.startsWith('{') ? JSON.parse(text) : null;
+        if (j && !j.remark) return j; // remark = time-out of fout op de server: uitkomst onvolledig, dus niet gebruiken
+        console.warn(`${url} gaf ${j?.remark ?? res.status}, poging ${attempt}`);
       } catch (e) { console.warn(`${url}: ${e.message}`); }
       await new Promise(r => setTimeout(r, 4000 * attempt));
     }
