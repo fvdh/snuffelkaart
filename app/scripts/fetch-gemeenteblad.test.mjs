@@ -32,3 +32,8 @@ it('dubbel: zelfde dag binnen 1 km', () => {
   expect(dupOf(e, [{ date: '2026-11-01', data: { lat: 51.183, lon: 5.902 } }])).toBe(true);
   expect(dupOf(e, [{ date: '2026-11-08', data: { lat: 51.18, lon: 5.9 } }])).toBe(false);
 });
+
+it('een termijn na "voor" is geen marktdag (Best: bezwaar … Dat doet u voor 29 oktober)', () => {
+  expect(dates('houden vlooienmarkt op 22-11-2026 en 14-2-2027. Bezwaar maken. Dat doet u voor 29 oktober 2026 via de site')).toEqual(['2026-11-22', '2027-02-14']);
+  expect(dates('Rommelmarkt op 7 november 2026 van 9.00 tot 15.00 uur')).toEqual(['2026-11-07']);
+});

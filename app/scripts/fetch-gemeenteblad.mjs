@@ -15,7 +15,8 @@ const iso = (y, m, d) => `${y}-${String(m).padStart(2, '0')}-${String(d).padStar
 
 /** Alle datums met jaar in de tekst ("25 oktober 2026", "10-1-2027", "Zo. 17-01-2027"), uniek en gesorteerd. */
 // Termijnen, geen marktdag: "bezwaar … tot en met 26 november", "ter inzage tot", "uiterlijk", besluit- en verzenddatum.
-const NOT_EVENT = /(bezwaar|beroep|inzage|uiterlijk|zienswijze|besluitdatum|datum besluit|verzenddatum|ontvangen|bekendgemaakt)[^.•/]{0,60}$/i;
+// En een datum direct na "voor"/"vóór" ("Dat doet u voor 29 oktober"): een markt is "op" een datum, niet ervoor.
+const NOT_EVENT = /(bezwaar|beroep|inzage|uiterlijk|zienswijze|besluitdatum|datum besluit|verzenddatum|ontvangen|bekendgemaakt)[^.•/]{0,60}$|\bv[oó]{2}r\s*$/i;
 export function dates(text) {
   const out = new Set(), keep = m => !NOT_EVENT.test(text.slice(Math.max(0, m.index - 90), m.index));
   for (const m of text.matchAll(/\b(\d{1,2})\s+(jan|feb|mrt|maart|apr|mei|jun|jul|aug|sep|okt|nov|dec)[a-z]*\.?\s+(20\d\d)\b/gi)) if (keep(m)) out.add(iso(m[3], month(m[2]), m[1]));

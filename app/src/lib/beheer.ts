@@ -29,3 +29,15 @@ export function judge(r: MRow, live: MRow[]): { verdict: Verdict; label: string;
   ];
   return d.stage !== 'aanvraag' && d.exact && d.timeKnown ? { verdict: 'good', label: 'Waarschijnlijk goed', why } : { verdict: 'doubt', label: 'Twijfel', why };
 }
+
+export type Run = { id: number; source: string; at: string; counts: Record<string, any> };
+/** Wat aandacht nodig heeft (M4): problemen uit de laatste marktenrun, en een nachtelijke bron die al ruim een dag niet draaide. */
+export function alerts(runs: Run[], now: Date): string[] {
+  const last = (src: string) => runs.filter(r => r.source === src).sort((a, b) => b.at.localeCompare(a.at))[0];
+  const out = (last('markets')?.counts.problems ?? []).map((p: { org: string; why: string }) => `${p.org}: ${p.why}`);
+  for (const [src, name] of [['markets', 'Markten van organisatoren'], ['gemeenteblad', 'Gemeenteblad']]) {
+    const r = last(src);
+    if (!r || now.getTime() - Date.parse(r.at) > 36 * 3600e3) out.push(`${name}: ${r ? `laatste run op ${r.at.slice(0, 10)}` : 'nog nooit gedraaid'}, de nachtelijke run is mislukt`);
+  }
+  return out;
+}

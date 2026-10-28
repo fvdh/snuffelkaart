@@ -77,7 +77,7 @@ async function push(what) {
     const rows = file.markets.map(({ id, status, ...data }) => merge(old.get(id), { id, date: data.date, source: data.org, data, status, seen_at: now }));
     const gone = vanished(existing, new Set(rows.map(r => r.id)), file.fresh ?? [], today);
     await upsert('markets', [...rows, ...gone].map(({ id, date, source, data, status, seen_at }) => ({ id, date, source, data, status, seen_at })));
-    await req('import_runs', { method: 'POST', body: JSON.stringify({ source: 'markets', counts: { rows: rows.length, new: rows.filter(r => !old.has(r.id)).length, vanished: gone.length } }) });
+    await req('import_runs', { method: 'POST', body: JSON.stringify({ source: 'markets', counts: { rows: rows.length, new: rows.filter(r => !old.has(r.id)).length, vanished: gone.length, problems: file.problems ?? [] } }) });
     console.log(`markets: ${rows.length} edities (${rows.filter(r => !old.has(r.id)).length} nieuw), ${gone.length} verdwenen → nog niet bevestigd`);
   } else throw new Error('push places | push markets');
 }

@@ -41,14 +41,16 @@ jobs:
       - run: npm ci
         if: steps.w.outputs.doe
       - name: Markten opnieuw uitlezen
+        id: markten
         if: steps.w.outputs.doe == 'alles'
         run: node scripts/fetch-markets.mjs
         continue-on-error: true # gaat één organisator mis, dan blijft zijn vorige stand staan; de rest gaat door
       - name: Markten naar Supabase
         if: steps.w.outputs.doe == 'alles'
-        run: node scripts/db.mjs push markets
+        run: cp public/data/markets.json "$RUNNER_TEMP/gelezen.json" && node scripts/db.mjs push markets # kopie: de export overschrijft het bestand
         env: *supabase
       - name: Gemeenteblad → kandidaten (keuren in /beheer)
+        id: gemeenteblad
         if: steps.w.outputs.doe == 'alles'
         run: node scripts/fetch-gemeenteblad.mjs
         continue-on-error: true
@@ -76,3 +78,12 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add public/data
           git diff --cached --quiet || { git commit -m "Gegevens ververst $(date +%F) (${{ steps.w.outputs.doe }})" && git push; }
+      # M4: een uitlezer die stukgaat, wordt gemeld. De rest is dan al uitgerold; de run wordt rood en GitHub mailt.
+      - name: Uitlezers gecontroleerd
+        if: steps.w.outputs.doe == 'alles'
+        run: |
+          fout=0
+          [ "${{ steps.markten.outcome }}" = failure ] && { echo "::error::fetch-markets is mislukt"; fout=1; }
+          [ "${{ steps.gemeenteblad.outcome }}" = failure ] && { echo "::error::Gemeenteblad-uitlezer is mislukt"; fout=1; }
+          jq -r '.problems[]? | "::error::\(.org): \(.why)"' "$RUNNER_TEMP/gelezen.json" | tee /dev/stderr | grep -q . && fout=1
+          exit $fout

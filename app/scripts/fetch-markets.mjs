@@ -508,25 +508,34 @@ async function lirom() {
 async function twente() { return twenteEdition(await (await get('https://www.twentsevlooienmarkt.nl/bezoekers/')).text()); }
 const SOURCES = [['Twentse Vlooienmarkt (AST-Expo)', twente, 'https://www.twentsevlooienmarkt.nl/'], ['LIROM Kofferbakmarkten', lirom, 'https://lirom.nl/agenda/'], ['Carbootsale Horst (MCC Events)', carboot, 'https://carbootsalehorst.nl/'], ['MDV Evenementen', mdv, 'https://www.mdv-evenementen.nl/'], ['JoJo Vlooienmarkten', jojo, 'https://www.jojovlooienmarkten.nl/agenda-vlooienmarkten'], ['Animo Vlooienmarkten', animo, 'https://animo-vlooienmarkten.nl/kalender'], ['IJ-Hallen', ijHallen, 'https://ijhallen.nl/agenda.php'], ['Organisatieburo Mikki', mikki, 'https://www.mikki.nl/'], ['De Evenementenlijn', evenementenlijn, 'https://www.deevenementenlijn.nl/'], ['Organisatieburo Vitalis', vitalis, 'https://vitalismarkten.nl/agenda/'],['Don Events', donEvents, 'https://donevents.nl/marktkalender/'], ['Organisatieburo Wildro', wildro, 'https://wildro.nl/vlooienmarkten/'], ['Organisatie Bureau VAC', vac, 'https://org-vac.nl/'], ['Van Aerle (vlooienmarkten.nl)', vanAerle, 'https://www.vlooienmarkten.nl/agenda-markten/']];
 
+/** Moet iemand naar deze uitlezer kijken (§M4)? Een fout, of niets/veel minder dan vorige keer terwijl er markten waren.
+ *  Een organisator zonder komende markten (vorige keer ook niets) is geen probleem. */
+export function problem(org, broke, found, prev, keep) {
+  if (broke) return { org, why: `fout: ${broke}` };
+  if (keep && prev > 0) return { org, why: `${found} edities gevonden, vorige keer ${prev}: vorige stand behouden` };
+  return null;
+}
+
 async function main() {
   const today = new Date().toISOString().slice(0, 10), prevAll = fs.existsSync(OUT) ? JSON.parse(fs.readFileSync(OUT, 'utf8')).markets : [];
-  const markets = [], report = [], fresh = []; // fresh: vers gelezen organisatoren (db.mjs markeert wat bij hen verdween)
+  const markets = [], report = [], fresh = [], problems = []; // fresh: vers gelezen organisatoren (db.mjs markeert wat bij hen verdween)
   // --only=<woord>: alleen die organisator(en) opnieuw lezen, de rest houdt de vorige stand (hooguit één keer per dag per site).
   const only = process.argv.find(a => a.startsWith('--only='))?.slice(7).toLowerCase();
   for (const [org, read] of SOURCES) {
     if (only && !org.toLowerCase().includes(only)) { markets.push(...prevAll.filter(m => m.org === org && m.date >= today)); continue; }
-    const skipped = []; let eds = [];
-    try { eds = await read(skipped); } catch (e) { skipped.push(`hele bron: ${e.message}`); }
+    const skipped = []; let eds = [], broke = null;
+    try { eds = await read(skipped); } catch (e) { broke = e.message; skipped.push(`hele bron: ${e.message}`); }
     const placed = [];
     for (const e of eds) { const geo = await geocode(e); if (!geo) { skipped.push(`${e.url} (adres niet in NL)`); continue; } if (e.date >= today) { const { postcode, street, q, ...m } = e; placed.push({ ...m, ...geo, checked: today }); } }
     // Veilige import (§6.1) per organisator: niets, of veel minder dan vorige keer → de vorige stand houden.
     const prev = prevAll.filter(m => m.org === org && m.date >= today);
     const keep = !placed.length || (prev.length && placed.length < prev.length / 2 && !process.argv.includes('--force'));
     markets.push(...(keep ? prev : placed)); if (!keep) fresh.push(org);
+    const p = problem(org, broke, placed.length, prev.length, keep); if (p) problems.push(p);
     report.push(`${org}: ${keep ? `TEGENGEHOUDEN (${placed.length}, vorige keer ${prev.length}), vorige stand behouden` : `${placed.length} edities`}, overgeslagen ${skipped.length}`, ...skipped.map(s => '  - ' + s));
   }
   if (!markets.length) { console.error('Geen enkele markt. Niets geschreven.'); process.exit(1); }
-  fs.writeFileSync(OUT, JSON.stringify({ generated: new Date().toISOString(), sources: SOURCES.map(([org, , url]) => ({ org, url })), fresh, markets }));
+  fs.writeFileSync(OUT, JSON.stringify({ generated: new Date().toISOString(), sources: SOURCES.map(([org, , url]) => ({ org, url })), fresh, problems, markets }));
   console.log(report.join('\n') + `\nTotaal ${markets.length} edities (${markets.filter(m => !m.exact).length} zonder exacte plek).`);
 }
 if (import.meta.url === `file://${process.argv[1]}`) await main();

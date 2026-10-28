@@ -4,7 +4,7 @@
 // een import overschrijft het niet meer. Sessie en REST: lib/auth.ts.
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { CATS, type Cat } from '../lib/model';
-import { queue, type MRow, type Judged } from '../lib/beheer';
+import { queue, alerts, type MRow, type Judged, type Run } from '../lib/beheer';
 import { CAT, Ic } from './ui';
 import { SB, KEY, readSession, sendLink, logout, api as authApi, type Session } from '../lib/auth';
 
@@ -55,6 +55,9 @@ function Panel({ s, out }: { s: Session; out: () => void }) {
       setRows(rs => rs!.map(x => x.id === r.id ? n : x)); setErr('');
     } catch (e) { setErr((e as Error).message); }
   };
+  const [runs, setRuns] = useState<Run[]>([]);
+  useEffect(() => { api(s, 'import_runs?select=*&order=at.desc&limit=30').then(setRuns).catch(() => {}); }, []);
+  const warn = alerts(runs, new Date());
   const q = useMemo(() => rows ? queue(rows, today()) : [], [rows]);
   const week = useMemo(() => (rows ?? []).filter(r => r.date <= plusDays(7) && STATUS[r.status] && !['kandidaat', 'afgewezen'].includes(r.status)), [rows]);
   const cands = useMemo(() => (rows ?? []).filter(r => r.status === 'kandidaat' || r.status === 'afgewezen'), [rows]);
@@ -63,7 +66,7 @@ function Panel({ s, out }: { s: Session; out: () => void }) {
   return (<div className="admin">
     <nav className="adm-nav" aria-label="Beheer">
       <div className="bh-brand"><span className="bh-mark"><Ic n="tag" /></span>Beheer</div>
-      {NAV.map(([k, l]) => <button key={k} className={view === k ? 'on' : ''} aria-current={view === k ? 'page' : undefined} onClick={() => setView(k)}>{l}<span>{count[k] ?? ''}</span></button>)}
+      {NAV.map(([k, l]) => <button key={k} className={view === k ? 'on' : ''} aria-current={view === k ? 'page' : undefined} onClick={() => setView(k)}>{l}{k === 'bronnen' && warn.length ? <span className="adm-bad">{warn.length} fout</span> : <span>{count[k] ?? ''}</span>}</button>)}
       <div className="adm-me"><span>{s.email}</span><button className="link" onClick={out}>Uitloggen</button></div>
     </nav>
     {err && <p className="bh-err adm-err" role="alert">{err}</p>}
@@ -76,7 +79,7 @@ function Panel({ s, out }: { s: Session; out: () => void }) {
       : view === 'week' ? <Markets key="w" title="Markten deze week" items={week.map(row => ({ row }))} save={save}
         filters={[['Alles', () => true], ...(['org', 'chk', 'unconf', 'cancel'] as const).map(k => [STATUS[k].replace(' door organisator', ''), (i: Item) => i.row.status === k] as Filter)]} empty="Geen markten de komende 7 dagen." />
       : view === 'winkels' ? <Shops s={s} />
-      : view === 'bronnen' ? <Sources s={s} rows={rows ?? []} />
+      : view === 'bronnen' ? <Sources runs={runs} warn={warn} rows={rows ?? []} />
       : <Log s={s} />}
   </div>);
 }
@@ -214,16 +217,16 @@ function Shops({ s }: { s: Session }) {
   </>);
 }
 
-function Sources({ s, rows }: { s: Session; rows: MRow[] }) {
-  const [runs, setRuns] = useState<{ id: number; source: string; at: string; counts: Record<string, any> }[]>([]);
-  useEffect(() => { api(s, 'import_runs?select=*&order=at.desc&limit=30').then(setRuns).catch(() => {}); }, []);
+function Sources({ runs, warn, rows }: { runs: Run[]; warn: string[]; rows: MRow[] }) {
   const per = Object.entries(rows.reduce<Record<string, Record<string, number>>>((a, r) => { const k = r.data.org ?? '?'; (a[k] ??= {})[r.status] = (a[k][r.status] ?? 0) + 1; return a; }, {}))
     .sort((a, b) => Object.values(b[1]).reduce((x, y) => x + y) - Object.values(a[1]).reduce((x, y) => x + y));
   return (<section className="adm-wide" aria-label="Bronnen">
     <h2>Bronnen</h2>
+    {warn.length > 0 && <div className="aibox adm-warn"><span className="ai rej"><Ic n="alert" />Aandacht nodig</span><ul>{warn.map(w => <li key={w}>{w}</li>)}</ul>
+      <p className="src"><Ic n="info" /><span>Een uitlezer met een probleem houdt zijn vorige stand; de rest is gewoon bijgewerkt. Meestal is de site van de organisator veranderd en moet de uitlezer worden aangepast.</span></p></div>}
     <h3>Laatste imports</h3>
     <table className="adm-table"><thead><tr><th>Wanneer</th><th>Bron</th><th>Aantallen</th></tr></thead>
-      <tbody>{runs.map(r => <tr key={r.id}><td>{new Date(r.at).toLocaleString('nl-NL', { dateStyle: 'short', timeStyle: 'short' })}</td><td>{r.source}</td><td>{Object.entries(r.counts).map(([k, v]) => `${k}: ${v}`).join(' · ')}</td></tr>)}</tbody></table>
+      <tbody>{runs.map(r => <tr key={r.id}><td>{new Date(r.at).toLocaleString('nl-NL', { dateStyle: 'short', timeStyle: 'short' })}</td><td>{r.source}</td><td>{Object.entries(r.counts).map(([k, v]) => `${k}: ${Array.isArray(v) ? v.length : v}`).join(' · ')}</td></tr>)}</tbody></table>
     <h3>Markten vanaf vandaag, per bron</h3>
     <table className="adm-table"><thead><tr><th>Bron</th>{Object.keys(STATUS).map(k => <th key={k}>{STATUS[k].replace(' door organisator', '')}</th>)}</tr></thead>
       <tbody>{per.map(([org, c]) => <tr key={org}><td>{org}</td>{Object.keys(STATUS).map(k => <td key={k} className="tnum">{c[k] ?? ''}</td>)}</tr>)}</tbody></table>

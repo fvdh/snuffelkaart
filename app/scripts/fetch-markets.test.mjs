@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import fs from 'node:fs';
-import { donCalendar, donProduct, holidayDate, wildroEvent, vacAgenda, vacAddress, aerleAgenda, aerleProduct, vitalisIcs, vitalisPlace, evlAgenda, mikkiEvent, nlDays, ijAgenda, animoCalendar, animoEvent, jojoAgenda, jojoEvent, nextDate, mdvLocations, mdvAgenda, carbootAgenda, liromAgenda, liromLocation, twenteEdition } from './fetch-markets.mjs';
+import { donCalendar, donProduct, holidayDate, wildroEvent, vacAgenda, vacAddress, aerleAgenda, aerleProduct, vitalisIcs, vitalisPlace, evlAgenda, mikkiEvent, nlDays, ijAgenda, animoCalendar, animoEvent, jojoAgenda, jojoEvent, nextDate, mdvLocations, mdvAgenda, carbootAgenda, liromAgenda, liromLocation, twenteEdition, problem } from './fetch-markets.mjs';
 
 // Opgeslagen pagina's van Don Events (27 okt 2026): breekt de site-opbouw, dan faalt deze test.
 const fx = f => fs.readFileSync(new URL(`./fixtures/${f}`, import.meta.url), 'utf8');
@@ -232,5 +232,14 @@ describe('uitlezer Twentse Vlooienmarkt', () => {
       entree: '€5', org: 'Twentse Vlooienmarkt (AST-Expo)', url: 'https://www.twentsevlooienmarkt.nl/', schema: '', status: 'chk' });
     // Weekdag past niet bij de eerstvolgende datum (3 april 2026 was een vrijdag): niets.
     expect(twenteEdition(fx('twente-bezoekers.html'), '2026-03-01')).toEqual([]);
+  });
+});
+
+describe('problem (uitlezer melden)', () => {
+  it('meldt een fout of een plotselinge terugval, niet een organisator zonder komende markten', () => {
+    expect(problem('A', 'HTTP 500', 0, 4, true)?.why).toMatch(/fout: HTTP 500/);
+    expect(problem('A', null, 1, 10, true)?.why).toMatch(/1 edities gevonden, vorige keer 10/);
+    expect(problem('A', null, 0, 0, true)).toBeNull();
+    expect(problem('A', null, 8, 10, false)).toBeNull();
   });
 });
