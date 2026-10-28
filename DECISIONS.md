@@ -107,3 +107,11 @@ Keuzes en waarom. Nieuwste onderaan. "Freek" = besloten door Freek; anders voorl
 - **Kleuren**: één token per soort (`--cat-*`), gelijke lichtheid, eigen tint, apart voor donker. Iconen gift, vase, hammer, gem naar Lucide (ISC).
 - **Typeschakelaar** heet nu "Winkels" in plaats van "Kringlopen"; tellers ook.
 - **Goede doelen = kringloop** (Freek, 2026-10-28): voor de bezoeker hetzelfde. Eén soort, blauw met prijskaartje; `kind: 'goede-doelen'` blijft in de data.
+
+## Nachtelijke verversing (2026-10-28)
+
+- **Waarom**: openingstijden zijn 21 dagen vooruitgerekend; zonder nieuwe build wordt daarna alles "onbekend". En markten veranderen dagelijks.
+- **Hoe**: GitHub Action `nachtelijk.yml` (03:30): markten opnieuw uitlezen, tijden vooruitrekenen, tests, build, `wrangler deploy`, en de nieuwe `public/data` terug in de repo (zo vergelijkt de veilige import met gisteren).
+- **Tijden zonder OSM opnieuw op te halen**: `fetch-osm.mjs` schrijft de bron van elke openingstijd (OSM of eigen website) naar `app/data/hours.json`; `refresh-hours.mjs` rekent daarmee vooruit. Niet in de browser.
+- **Niet nachtelijk**: OSM, Overture en websitetijden. Die import blijft met de hand tot de Geofabrik-import (§5.1).
+- **Cloudflare**: account-id staat in `wrangler.jsonc` (geen geheim); het API-token als secret `CLOUDFLARE_API_TOKEN` in GitHub (Freek).

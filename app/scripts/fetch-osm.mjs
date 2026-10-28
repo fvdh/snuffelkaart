@@ -15,6 +15,8 @@ const ENDPOINTS = ['https://overpass-api.de/api/interpreter', 'https://overpass.
 const UA = 'Snuffelkaart-PoC/0.1 (contact: freek@draad.nu)';
 const RAW = new URL('../data-raw/osm.json', import.meta.url);
 const OUT = new URL('../public/data/places.json', import.meta.url);
+const OH_OUT = new URL('../data/hours.json', import.meta.url); // id → opening_hours; de nachtelijke build rekent hiermee opnieuw vooruit (refresh-hours.mjs)
+const ohSrc = {};
 
 async function fetchTile(QUERY) {
   for (const url of ENDPOINTS) {
@@ -83,7 +85,7 @@ let places = raw.elements
     return {
       id: `osm-${e.type[0]}${e.id}`, t: 'k', kind: kindOf(t), name: t.name.trim(), lat: +lat.toFixed(5), lon: +lon.toFixed(5),
       addr: [street, [t['addr:postcode'], city].filter(Boolean).join(' ')].filter(Boolean).join(', ') || null, place: city || null,
-      h, ohRaw: t.opening_hours && !h ? t.opening_hours : undefined,
+      h, ohRaw: t.opening_hours && !h ? t.opening_hours : undefined, oh: h ? t.opening_hours : undefined,
       checked: t['check_date:opening_hours'] || t.check_date || t['survey:date'] || null,
       website: t.website || t['contact:website'] || null, phone: t.phone || t['contact:phone'] || null,
       wheelchair: t.wheelchair || null, src: 'osm',
@@ -154,10 +156,12 @@ if (fs.existsSync(WEB)) {
     // Niet exact vergelijken: de postcode in OSM/Overture wijkt vaak een paar huizen af (4131 ↔ 4132).
     if (pc && w.pc?.length && !w.pc.some(x => x.slice(0, 3) === pc.slice(0, 3))) { webStat.otherShop++; continue; }
     const h = precompute(w.oh, FROM); if (!h) continue;
-    Object.assign(p, { h, checked: w.read.slice(0, 10), hs: 'web', hu: w.page }); webStat.used++;
+    Object.assign(p, { h, oh: w.oh, checked: w.read.slice(0, 10), hs: 'web', hu: w.page }); webStat.used++;
   }
 }
 
+for (const p of places) { if (p.oh) ohSrc[p.id] = p.oh; delete p.oh; }
+fs.mkdirSync(new URL('../data/', import.meta.url), { recursive: true }); fs.writeFileSync(OH_OUT, JSON.stringify(ohSrc, null, 0));
 fs.mkdirSync(new URL('../public/data/', import.meta.url), { recursive: true });
 fs.writeFileSync(OUT, JSON.stringify({ generated: new Date().toISOString(), source: '© OpenStreetMap-bijdragers (ODbL); Overture Maps Foundation (CDLA Permissive 2.0)', overture: ovStat.release, bbox: BBOX, from: FROM, days: DAYS_AHEAD, holidays: holidays(FROM), places }, (k, v) => (v === null ? undefined : v))); // lege velden weglaten
 
