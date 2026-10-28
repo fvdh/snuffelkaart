@@ -251,3 +251,6 @@ Review (impeccable critique, 26/40) → Freek koos: eerst het mobiele lijstscher
 
 ## Lijstbreedte versleepbaar (2026-10-28)
 Op desktop/iPad (≥ 980 px) is de rand tussen lijst en kaart versleepbaar (300–680 px, kaart houdt ≥ 320 px), met pijltjestoetsen (±24 px) en dubbelklik = 400 px. Onthouden per apparaat (`snuffel-breedte`). CSS-variabele `--side` stuurt lijst, kaart, dagplanbalk en toast. MapLibre past de kaart zelf aan (ResizeObserver).
+
+## Lijst volgt de kaart op desktop/iPad (2026-10-28)
+Op ≥ 980 px toont de lijst alleen wat op de kaart in beeld is ("N plekken in beeld op de kaart"); pins blijven alles tonen. Niet bij zoeken op naam (landelijk) of "Bewaard". Leeg beeld → "Toon de dichtstbijzijnde" (kaart past zich aan de 5 dichtstbijzijnde aan). Telefoon niet: daar bedekt het paneel de kaart grotendeels.

@@ -42,7 +42,10 @@ export interface MapProps {
   /** Waar de kaart begint: de onthouden plaats, anders het standaardmidden. Alleen bij het aanmaken gebruikt. */
   home?: LatLon; focus: { lat: number; lon: number; key: number } | null; fit: { pts: LatLon[]; key: number } | null; route: LatLon[];
   pinClass: (it: Item) => string; onSelect: (id: string) => void; onLocate: () => void;
+  /** Na elke beweging: wat er in beeld is (desktop: de lijst volgt de kaart). */
+  onBounds?: (b: Bounds) => void;
 }
+export type Bounds = { w: number; s: number; e: number; n: number };
 
 const icon = (n: string) => `<svg class="i" aria-hidden="true"><use href="#i-${n}"/></svg>`;
 
@@ -85,6 +88,11 @@ export default function MapView(p: MapProps) {
     sc.load(p.items.filter(it => it.id !== p.sel && !p.planIds.includes(it.id)).map(it => ({ type: 'Feature', geometry: { type: 'Point', coordinates: [it.lon, it.lat] }, properties: { id: it.id, c: it.t === 'm' ? 'm' : catOf(it) } })));
     return sc;
   }, [p.items, p.sel, p.planIds]);
+
+  useEffect(() => {
+    const map = mapRef.current; if (!map || !ready || !p.onBounds) return;
+    const b = map.getBounds(); p.onBounds({ w: b.getWest(), s: b.getSouth(), e: b.getEast(), n: b.getNorth() });
+  }, [ready, tick]);
 
   useEffect(() => {
     const map = mapRef.current; if (!map || !ready) return;

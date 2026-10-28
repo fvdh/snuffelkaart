@@ -6,7 +6,7 @@ import { placeNow, openOn, setWindow } from '../lib/hours';
 import { visible, type Filters } from '../lib/filter';
 import { simulate } from '../lib/plan';
 import type { Spot } from '../lib/pdok';
-import MapView from './MapView';
+import MapView, { type Bounds } from './MapView';
 import { ListView, DetailView, PlanView, MeView, LoginView, type Ctx } from './Views';
 import { ReviewView, PhotoView, SuggestView, ContribView, type Bij, type BijView } from './Bijdragen';
 import { applyExtra, NO_EXTRA, type Extra, type Contribution, type Kind } from '../lib/bijdragen';
@@ -94,7 +94,12 @@ export default function App() {
   const [focus, setFocus] = useState<{ lat: number; lon: number; key: number } | null>(null), [fit, setFit] = useState<{ pts: LatLon[]; key: number } | null>(null);
   useEffect(() => { if (!toast) return; const t = setTimeout(() => setToast(null), 3200); return () => clearTimeout(t); }, [toast]);
 
-  const list = useMemo(() => visible(items, f, now, origin), [items, f, now, origin]);
+  const all = useMemo(() => visible(items, f, now, origin), [items, f, now, origin]);
+  // Desktop/iPad: de lijst toont wat er op de kaart in beeld is (lijst en kaart staan naast elkaar). Zoeken op naam blijft landelijk.
+  // Telefoon: niet, daar bedekt het paneel de kaart grotendeels. ponytail: rechthoek van de kaart, geen rekening met de dagplanbalk.
+  const [bounds, setBounds] = useState<Bounds | null>(null);
+  const inView = desktop && !!bounds && !f.q && !f.only;
+  const list = useMemo(() => inView ? all.filter(({ it }) => it.lon >= bounds!.w && it.lon <= bounds!.e && it.lat >= bounds!.s && it.lat <= bounds!.n) : all, [all, inView, bounds]);
   const counts = useMemo(() => {
     // Tellers horen bij de kop "rond <plaats>": alleen binnen 25 km, niet heel Nederland (UX-review 28 okt).
     const [a, b] = weekendOf(now), near = (x: LatLon) => km(origin, x) < 25, ps = places ? shown.places.filter(near) : [];
@@ -260,7 +265,7 @@ export default function App() {
 
   const planItems = plan.stops.map(id => byId.get(id)).filter(Boolean) as Item[];
   const sim = simulate(planItems, plan.day, plan.start, origin);
-  const mapItems = useMemo(() => (view === 'plan' ? items : list.map(x => x.it)), [view, items, list]);
+  const mapItems = useMemo(() => (view === 'plan' ? items : all.map(x => x.it)), [view, items, all]);
   const pinClass = useCallback((it: Item) => {
     if (it.t === 'm') return it.status === 'unconf' ? 'unconf' : it.status === 'cancel' ? 'cancel' : '';
     if (!it.h) return '';
@@ -270,7 +275,7 @@ export default function App() {
 
   return (
     <div className="shell" ref={shell} style={{ ['--side' as string]: `${Math.max(300, Math.min(side, 680))}px` }}>
-      <MapView home={spot ?? undefined} items={mapItems} sel={view === 'detail' ? sel : null} planIds={view === 'plan' ? plan.stops : []} me={me} bottomPad={bottomPad}
+      <MapView home={spot ?? undefined} onBounds={setBounds} items={mapItems} sel={view === 'detail' ? sel : null} planIds={view === 'plan' ? plan.stops : []} me={me} bottomPad={bottomPad}
         focus={focus} fit={fit} route={view === 'plan' && planItems.length ? [origin, ...planItems] : []} pinClass={pinClass} onSelect={open} onLocate={() => locate()} />
       <main className={`sheet${dragTop == null ? ' snapping' : ''}`} ref={sheet} style={desktop ? undefined : { transform: `translateY(${top - 12}px)` }}
         onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp}>
@@ -285,7 +290,7 @@ export default function App() {
               : (view === 'review' || view === 'photo' || view === 'suggest') && selItem?.t === 'k' ? (view === 'review' ? <ReviewView p={selItem} b={bij} back={back} /> : view === 'photo' ? <PhotoView p={selItem} b={bij} back={back} /> : <SuggestView p={selItem} b={bij} back={back} />)
               : view === 'contrib' ? <ContribView b={bij} items={items} back={back} open={id => { setPrev('contrib'); go(id); }} />
               : view === 'plan' ? <PlanView c={c} items={items} plan={plan} setPlan={p => { setPlan(p); if (p.stops && !p.day && p.stops.length === plan.stops.length) setOptimized(true); }} optimizeSeen={optimized} />
-              : <ListView c={c} list={list} total={list.length} limit={limit} more={() => setLimit(limit + 40)} counts={counts} nPlaces={places.length} />}
+              : <ListView c={c} inView={inView ? { nearest: () => setFit({ pts: [origin, ...all.slice(0, 5).map(x => x.it)], key: Date.now() }) } : null} list={list} total={list.length} limit={limit} more={() => setLimit(limit + 40)} counts={counts} nPlaces={places.length} />}
           </div>
         </div>
       </main>

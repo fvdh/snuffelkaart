@@ -84,7 +84,7 @@ function Welcome({ c }: { c: Ctx }) {
   );
 }
 
-export function ListView({ c, list, total, limit, more, counts, nPlaces }: { c: Ctx; list: { it: Item; d: number }[]; total: number; limit: number; more: () => void; counts: { kNow: number; kToday: number; mWk: number }; nPlaces: number }) {
+export function ListView({ c, inView, list, total, limit, more, counts, nPlaces }: { c: Ctx; inView: { nearest: () => void } | null; list: { it: Item; d: number }[]; total: number; limit: number; more: () => void; counts: { kNow: number; kToday: number; mWk: number }; nPlaces: number }) {
   const { f, now } = c, today = isoDay(now), weekend = weekendOf(now).includes(today), spots = useSpots(f.q), flip = useFlip(list), [cats, setCats] = useState(false);
   if (c.welcome) return <Welcome c={c} />;
   const near = c.originLabel ? `rond ${c.originLabel}` : 'bij jou in de buurt';
@@ -132,11 +132,14 @@ export function ListView({ c, list, total, limit, more, counts, nPlaces }: { c: 
       {c.locDenied && !c.me ? <Banner icon="pin"><b>Je locatie staat uit.</b> Geen probleem: zoek hierboven een plaats of postcode. Wil je hem toch aanzetten, dan kan dat in de instellingen van je browser.</Banner>
         : !c.me && !f.q && (!c.spot ? <Banner icon="pin"><b>Waar wil je snuffelen?</b> We tonen nu Amersfoort. <button className="link" onClick={() => c.locate()}>Gebruik mijn locatie</button> of zoek een plaats.</Banner>
           : <p className="lv-loc"><Ic n="pin" />Afstanden vanaf {c.originLabel} · <button className="link" onClick={() => c.locate()}>gebruik mijn locatie</button></p>)}
+      {inView && list.length > 0 && <p className="lv-loc" aria-live="polite"><Ic n="search" />{list.length === 1 ? '1 plek' : `${list.length} plekken`} in beeld op de kaart</p>}
     </div>
     <div className="rows-wrap">
       {spots.length > 0 && <div className="sresults"><h4>Kijk rond in</h4>{spots.map(s => <button key={s.label + s.sub} className="sres" onClick={() => c.pickSpot(s)}><span className="ic"><Ic n="pin" /></span><span><b>{s.label}</b><span>{s.sub}</span></span><Ic n="chev" /></button>)}{list.length > 0 && <h4>Winkels en markten</h4>}</div>}
       {list.length ? <ul className="rows" aria-label="Resultaten" ref={flip}>{list.slice(0, limit).map(x => <Row key={x.it.id} it={x.it} d={x.d} c={c} />)}</ul>
-        : spots.length ? null : <div className="empty"><h3>{f.q ? `Niets gevonden voor “${f.q}”` : 'Geen resultaten met deze filters'}</h3><p>{f.q ? 'Zoek op de naam van een winkel of een plaats.' : f.time === 'all' ? 'Zet een filter uit.' : 'Zet het tijdfilter uit om alles te zien.'}</p>
+        : spots.length ? null : inView ? <div className="empty"><h3>Niets op dit stuk van de kaart</h3><p>{f.time === 'all' && !f.hide.length && !f.gratis && !f.overdekt ? 'Verschuif de kaart of zoom uit.' : 'Verschuif de kaart, zoom uit, of zet een filter uit.'}</p>
+          <div className="btns"><button className="btn sm primary" onClick={inView.nearest}>Toon de dichtstbijzijnde</button>{f.time !== 'all' && <button className="btn sm" onClick={() => c.setF({ time: 'all' })}>Zet het tijdfilter uit</button>}</div></div>
+        : <div className="empty"><h3>{f.q ? `Niets gevonden voor “${f.q}”` : 'Geen resultaten met deze filters'}</h3><p>{f.q ? 'Zoek op de naam van een winkel of een plaats.' : f.time === 'all' ? 'Zet een filter uit.' : 'Zet het tijdfilter uit om alles te zien.'}</p>
           <div className="btns">{f.q && <button className="btn sm" onClick={() => c.setF({ q: '' })}>Wis zoekopdracht</button>}<button className="btn sm primary" onClick={() => c.setF({ time: 'all', gratis: false, overdekt: false, hide: [], only: null })}>Toon alles</button></div></div>}
       {total > limit && <button className="more" onClick={more}>Toon meer ({total - limit})</button>}
       {f.time === 'now' && f.type !== 'k' && !f.q && <button className="hint" onClick={() => c.setF({ time: 'weekend' })}><span>{counts.mWk} markten dit weekend<small>Markten zijn er vooral op zaterdag en zondag</small></span><Ic n="chev" /></button>}
