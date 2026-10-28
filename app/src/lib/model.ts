@@ -24,10 +24,11 @@ export interface Market {
 }
 
 export type Item = Place | Market;
-/** Soort winkel voor kleur, icoon en filter. Een kringloop blijft een kringloop, ook als Overture er antiek bij zet. */
-export type Cat = 'kringloop' | 'goede-doelen' | NonNullable<Place['sub']> | 'tweedehands';
-export const CATS: Cat[] = ['kringloop', 'goede-doelen', 'antiek', 'kleding', 'schroot', 'pandjeshuis', 'vlooienmarkt', 'tweedehands'];
-export const catOf = (p: Place): Cat => (p.kind === 'tweedehands' ? p.sub ?? 'tweedehands' : p.kind);
+/** Soort winkel voor kleur, icoon en filter. Een kringloop blijft een kringloop, ook als Overture er antiek bij zet.
+ *  Goede-doelenwinkels zijn voor de bezoeker gewoon kringlopen (Freek); `kind` houdt het onderscheid in de data. */
+export type Cat = 'kringloop' | NonNullable<Place['sub']> | 'tweedehands';
+export const CATS: Cat[] = ['kringloop', 'antiek', 'kleding', 'schroot', 'pandjeshuis', 'vlooienmarkt', 'tweedehands'];
+export const catOf = (p: Place): Cat => (p.kind === 'tweedehands' ? p.sub ?? 'tweedehands' : 'kringloop');
 export interface LatLon { lat: number; lon: number }
 
 export const DEFAULT_CENTER: LatLon = { lat: 52.1561, lon: 5.3878 }; // Amersfoort, midden in het land

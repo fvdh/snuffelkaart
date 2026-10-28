@@ -11,7 +11,6 @@ export const isUnsure = (it: Item) => (it.t === 'm' ? it.status === 'unconf' : !
 /** Per winkelsoort: naam (één, meer) en icoon. De kleur staat in design.css (.c-<soort>). */
 export const CAT: Record<Cat, [string, string, string]> = {
   kringloop: ['Kringloop', 'Kringlopen', 'tag'],
-  'goede-doelen': ['Goede-doelenwinkel', 'Goede doelen', 'gift'],
   antiek: ['Antiek en brocante', 'Antiek en brocante', 'vase'],
   kleding: ['Tweedehands kleding', 'Kleding', 'hanger'],
   schroot: ['Sloop en restpartijen', 'Sloop en restpartijen', 'hammer'],

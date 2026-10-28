@@ -20,7 +20,7 @@
   --on-kring:oklch(0.985 0.005 262);
   /* winkelsoorten (ui.tsx CAT): zelfde lichtheid, eigen tint; vaste vlooienmarkt in de marktkleur */
   --cat-kringloop:var(--kring);--cat-kleding:var(--tweede);--cat-markt:var(--markt-ink);--cat-vlooienmarkt:var(--markt);--on-cat:oklch(0.985 0.005 85);
-  --cat-goede-doelen:oklch(0.50 0.10 185);--cat-antiek:oklch(0.45 0.08 45);--cat-schroot:oklch(0.48 0.09 120);--cat-pandjeshuis:oklch(0.47 0.13 300);--cat-tweedehands:oklch(0.47 0.03 250);
+--cat-antiek:oklch(0.45 0.08 45);--cat-schroot:oklch(0.48 0.09 120);--cat-pandjeshuis:oklch(0.47 0.13 300);--cat-tweedehands:oklch(0.47 0.03 250);
   --markt:oklch(0.78 0.15 70);
   --markt-ink:oklch(0.50 0.12 60);
   --markt-soft:oklch(0.95 0.05 80);
@@ -58,7 +58,7 @@
   --fg:oklch(0.95 0.004 85);--fg-2:oklch(0.80 0.006 85);--fg-3:oklch(0.68 0.008 85);
   --ink:oklch(0.93 0.006 85);--on-ink:oklch(0.21 0.01 260);
   --kring:oklch(0.72 0.12 262);--kring-soft:oklch(0.32 0.06 262);--tweede:oklch(0.74 0.10 330);--tweede-soft:oklch(0.33 0.05 330);--on-tweede:oklch(0.18 0.03 330);--on-kring:oklch(0.18 0.03 262);
-  --cat-goede-doelen:oklch(0.74 0.09 185);--cat-antiek:oklch(0.72 0.07 50);--cat-schroot:oklch(0.76 0.09 120);--cat-pandjeshuis:oklch(0.72 0.11 300);--cat-tweedehands:oklch(0.72 0.03 250);--on-cat:oklch(0.18 0.02 260);
+  --cat-antiek:oklch(0.72 0.07 50);--cat-schroot:oklch(0.76 0.09 120);--cat-pandjeshuis:oklch(0.72 0.11 300);--cat-tweedehands:oklch(0.72 0.03 250);--on-cat:oklch(0.18 0.02 260);
   --markt:oklch(0.80 0.14 75);--markt-ink:oklch(0.82 0.12 75);--markt-soft:oklch(0.33 0.05 70);--on-markt:oklch(0.24 0.04 55);
   --open:oklch(0.72 0.16 150);--open-ink:oklch(0.78 0.14 150);
   --warn:oklch(0.80 0.14 80);--warn-ink:oklch(0.84 0.12 80);--warn-soft:oklch(0.31 0.05 75);
@@ -81,7 +81,7 @@
   --fg:oklch(0.95 0.004 85);--fg-2:oklch(0.80 0.006 85);--fg-3:oklch(0.68 0.008 85);
   --ink:oklch(0.93 0.006 85);--on-ink:oklch(0.21 0.01 260);
   --kring:oklch(0.72 0.12 262);--kring-soft:oklch(0.32 0.06 262);--tweede:oklch(0.74 0.10 330);--tweede-soft:oklch(0.33 0.05 330);--on-tweede:oklch(0.18 0.03 330);--on-kring:oklch(0.18 0.03 262);
-  --cat-goede-doelen:oklch(0.74 0.09 185);--cat-antiek:oklch(0.72 0.07 50);--cat-schroot:oklch(0.76 0.09 120);--cat-pandjeshuis:oklch(0.72 0.11 300);--cat-tweedehands:oklch(0.72 0.03 250);--on-cat:oklch(0.18 0.02 260);
+  --cat-antiek:oklch(0.72 0.07 50);--cat-schroot:oklch(0.76 0.09 120);--cat-pandjeshuis:oklch(0.72 0.11 300);--cat-tweedehands:oklch(0.72 0.03 250);--on-cat:oklch(0.18 0.02 260);
   --markt:oklch(0.80 0.14 75);--markt-ink:oklch(0.82 0.12 75);--markt-soft:oklch(0.33 0.05 70);--on-markt:oklch(0.24 0.04 55);
   --open:oklch(0.72 0.16 150);--open-ink:oklch(0.78 0.14 150);
   --warn:oklch(0.80 0.14 80);--warn-ink:oklch(0.84 0.12 80);--warn-soft:oklch(0.31 0.05 75);
@@ -524,7 +524,7 @@ svg.i{width:20px;height:20px;flex:none;fill:none;stroke:currentColor;stroke-widt
 .reduce *,.reduce *::before,.reduce *::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
 @media (prefers-reduced-motion: reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
 /* Winkelsoort: eigen kleur (--c) en icoon. Tegel en stippellijn in --c-ink: de lichte marktkleur is te zwak als lijn. */
-.c-kringloop{--c:var(--cat-kringloop)}.c-goede-doelen{--c:var(--cat-goede-doelen)}.c-antiek{--c:var(--cat-antiek)}.c-kleding{--c:var(--cat-kleding)}
+.c-kringloop{--c:var(--cat-kringloop)}.c-antiek{--c:var(--cat-antiek)}.c-kleding{--c:var(--cat-kleding)}
 .c-schroot{--c:var(--cat-schroot)}.c-pandjeshuis{--c:var(--cat-pandjeshuis)}.c-tweedehands{--c:var(--cat-tweedehands)}
 [class*=" c-"]{--on-c:var(--on-cat);--c-ink:var(--c);--c-soft:color-mix(in srgb,var(--c) 13%,var(--surface))}
 .c-vlooienmarkt{--c:var(--cat-vlooienmarkt);--on-c:var(--on-markt);--c-ink:var(--markt-ink);--c-soft:var(--markt-soft)}

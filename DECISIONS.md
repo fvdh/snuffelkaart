@@ -102,7 +102,8 @@ Keuzes en waarom. Nieuwste onderaan. "Freek" = besloten door Freek; anders voorl
 
 ## Winkelsoorten met eigen kleur, icoon en filter (2026-10-27)
 
-- **Wat** (Freek): acht soorten, elk met eigen kleur en icoon op pin, tegel en groepje: kringloop, goede doelen, antiek en brocante, kleding, sloop en restpartijen, pandjeshuis, vaste vlooienmarkt, overige tweedehands. Filter "Soort" zet soorten aan/uit; standaard alles aan.
+- **Wat** (Freek): zeven soorten (goede doelen telt als kringloop, zie onder), elk met eigen kleur en icoon op pin, tegel en groepje: kringloop, goede doelen, antiek en brocante, kleding, sloop en restpartijen, pandjeshuis, vaste vlooienmarkt, overige tweedehands. Filter "Soort" zet soorten aan/uit; standaard alles aan.
 - **Indeling**: `catOf` in `model.ts`. Een kringloop blijft een kringloop, ook als Overture er "antiek" bij zet. Vaste vlooienmarkt in de marktkleur, maar als vierkant (winkel). Overige tweedehands neutraal leigrijs.
 - **Kleuren**: één token per soort (`--cat-*`), gelijke lichtheid, eigen tint, apart voor donker. Iconen gift, vase, hammer, gem naar Lucide (ISC).
 - **Typeschakelaar** heet nu "Winkels" in plaats van "Kringlopen"; tellers ook.
+- **Goede doelen = kringloop** (Freek, 2026-10-28): voor de bezoeker hetzelfde. Eén soort, blauw met prijskaartje; `kind: 'goede-doelen'` blijft in de data.
