@@ -210,7 +210,7 @@ export default function App() {
               : !places ? <div aria-busy="true" aria-label="Laden" style={{ paddingTop: 16 }}>{Array.from({ length: 6 }, (_, i) => <div key={i} className="skrow"><div className="sk" style={{ width: 40, height: 40, borderRadius: 11 }} /><div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}><div className="sk" style={{ height: 13, width: '70%' }} /><div className="sk" style={{ height: 11, width: '45%' }} /></div><div className="sk" style={{ width: 32, height: 32, borderRadius: '50%' }} /></div>)}</div>
               : view === 'detail' && selItem ? <DetailView it={selItem} c={c} backLabel={prev === 'plan' ? `Mijn ${DAYS_LONG[dayStart(plan.day).getDay()]}` : prev === 'me' ? 'Jij' : 'Lijst'} />
               : view === 'me' ? <MeView c={c} items={items} showFavs={showFavs} login={() => { setDir('fwd'); setView('login'); setSnap('full'); scrollTop(); }} logout={logout} download={download} remove={removeAccount} />
-              : view === 'login' ? <LoginView c={c} send={email => sendLink(email, location.origin + '/')} />
+              : view === 'login' ? <LoginView c={c} send={email => sendLink(email, location.origin + '/')} done={s => { sessionStorage.setItem('snuffel-samenvoegen', '1'); setSess(s); setDir('back'); setView('me'); scrollTop(); }} />
               : view === 'plan' ? <PlanView c={c} items={items} plan={plan} setPlan={p => { setPlan(p); if (p.stops && !p.day && p.stops.length === plan.stops.length) setOptimized(true); }} optimizeSeen={optimized} />
               : <ListView c={c} list={list} total={list.length} limit={limit} more={() => setLimit(limit + 40)} counts={counts} nPlaces={places.length} />}
           </div>

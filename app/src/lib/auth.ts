@@ -50,6 +50,13 @@ export async function sendLink(email: string, back: string) {
   const r = await fetch(`${SB}/auth/v1/otp?redirect_to=${encodeURIComponent(back)}`, { method: 'POST', headers: { apikey: KEY, 'Content-Type': 'application/json' }, body: JSON.stringify({ email, create_user: true }) });
   if (!r.ok) throw new Error(r.status === 429 ? 'Er zijn net te veel inloglinks gestuurd. Probeer het over een minuut opnieuw.' : `Versturen lukte niet (${r.status}).`);
 }
+/** De code uit de mail (8 cijfers) in plaats van de link: werkt ook als de link in een andere browser opent. */
+export async function verifyCode(email: string, code: string): Promise<Session> {
+  const r = await fetch(`${SB}/auth/v1/verify`, { method: 'POST', headers: { apikey: KEY, 'Content-Type': 'application/json' }, body: JSON.stringify({ type: 'email', email, token: code }) });
+  if (!r.ok) throw new Error(r.status === 429 ? 'Te veel pogingen. Wacht een minuut.' : 'Deze code klopt niet of is verlopen. Alleen de code uit de nieuwste mail werkt.');
+  const j = await r.json();
+  return save({ token: j.access_token, refresh: j.refresh_token, email: j.user?.email ?? email, exp: Date.now() + j.expires_in * 1000 })!;
+}
 /** Welke van Apple/Google aan staan in Supabase (zonder sleutels erin tonen we de knop niet). */
 export async function providers(): Promise<('apple' | 'google')[]> {
   try { const j = await (await fetch(`${SB}/auth/v1/settings`, { headers: { apikey: KEY } })).json(); return (['apple', 'google'] as const).filter(p => j.external?.[p]); } catch { return []; }

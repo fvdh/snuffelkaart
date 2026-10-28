@@ -5,7 +5,7 @@ import { placeNow, placeDay, placeWeekend, marketStatus, week, isHoliday, openOn
 import { simulate, bestOrder, routeUrl } from '../lib/plan';
 import type { Filters } from '../lib/filter';
 import { searchSpots, type Spot } from '../lib/pdok';
-import { providers, oauthUrl } from '../lib/auth';
+import { providers, oauthUrl, verifyCode, type Session } from '../lib/auth';
 import { Ic, Tile, St, Conf, Banner, CAT, kindLabel, isUnsure, EASE, reduced, pop } from './ui';
 
 export interface Ctx {
@@ -279,14 +279,21 @@ export function MeView({ c, items, showFavs, login, logout, download, remove }: 
 }
 
 /** Inloggen: Apple en Google (als ze aan staan) en een inloglink per e-mail. Geen wachtwoord. */
-export function LoginView({ c, send }: { c: Ctx; send: (email: string) => Promise<void> }) {
-  const [email, setEmail] = useState(''), [sent, setSent] = useState(false), [err, setErr] = useState(''), [busy, setBusy] = useState(false), [prov, setProv] = useState<('apple' | 'google')[]>([]), n = c.favs.length;
+export function LoginView({ c, send, done }: { c: Ctx; send: (email: string) => Promise<void>; done: (s: Session) => void }) {
+  const [code, setCode] = useState(''), [email, setEmail] = useState(''), [sent, setSent] = useState(false), [err, setErr] = useState(''), [busy, setBusy] = useState(false), [prov, setProv] = useState<('apple' | 'google')[]>([]), n = c.favs.length;
   useEffect(() => { providers().then(setProv); }, []);
   const back = location.origin + '/';
   const submit = async (e: React.FormEvent) => { e.preventDefault(); setErr(''); setBusy(true); try { await send(email.trim()); setSent(true); } catch (x) { setErr((x as Error).message); } finally { setBusy(false); } };
   const head = <div className="dv-head" data-peek data-drag><div className="dv-top"><button className="back" onClick={c.back}><Ic n="back" />Terug</button></div></div>;
+  const check = async (e: React.FormEvent) => { e.preventDefault(); setErr(''); setBusy(true); try { done(await verifyCode(email.trim(), code.replace(/\D/g, ''))); } catch (x) { setErr((x as Error).message); } finally { setBusy(false); } };
   if (sent) return <>{head}<div className="success" style={{ paddingTop: 0 }}><span className="ok-ic"><Ic n="mail" /></span><h3>Check je mail</h3>
-    <p>We hebben een inloglink gestuurd naar <b>{email}</b>. Open hem op dit apparaat. Vraag je een nieuwe aan, dan werkt alleen de nieuwste. Geen mail? Kijk ook bij ongewenst.</p><button className="link" onClick={() => setSent(false)}>Ander e-mailadres</button></div></>;
+    <p>We hebben een code en een inloglink gestuurd naar <b>{email}</b>. Vul de code hieronder in, of tik op de link in de mail.</p></div>
+    <form className="form" onSubmit={check}>
+      <div className="field"><label htmlFor="login-code">Code uit de mail</label><input className="input tnum" id="login-code" inputMode="numeric" autoComplete="one-time-code" pattern="[0-9 ]*" maxLength={10} placeholder="12345678" required autoFocus value={code} onChange={e => setCode(e.target.value)} style={{ letterSpacing: '.12em', fontSize: '1.25rem' }} /></div>
+      {err && <p className="issue bad" role="alert"><Ic n="alert" /><span>{err}</span></p>}
+      <button className="btn primary block" disabled={busy || code.replace(/\D/g, '').length < 6}>{busy ? 'Even kijken…' : 'Inloggen'}</button>
+      <p className="prose-s">Vraag je een nieuwe aan, dan werkt alleen de nieuwste. Geen mail? Kijk ook bij ongewenst. <button type="button" className="link" onClick={() => { setSent(false); setCode(''); setErr(''); }}>Ander e-mailadres</button></p>
+    </form></>;
   return (<>{head}
     <div className="dv-head" style={{ paddingTop: 0 }}><h2>Inloggen</h2><p className="prose-s">Geen wachtwoord nodig. Nieuw? Dan maken we meteen een account.{n ? ` Je ${n} bewaarde ${n === 1 ? 'plek gaat' : 'plekken gaan'} mee.` : ''}</p></div>
     <form className="form" onSubmit={submit}>

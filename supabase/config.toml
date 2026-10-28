@@ -18,11 +18,11 @@ admin_email = "snuffelkaart@runebinder.app"
 sender_name = "Snuffelkaart"
 
 [auth.email.template.magic_link]
-subject = "Je inloglink voor Snuffelkaart"
+subject = "Je inlogcode voor Snuffelkaart: {{ .Token }}" # code in het onderwerp: elke mail uniek, dus Gmail plakt ze niet in één gesprek
 content_path = "./supabase/templates/inloggen.html"
 
 [auth.email.template.confirmation]
-subject = "Welkom bij Snuffelkaart: je inloglink"
+subject = "Welkom bij Snuffelkaart, je code: {{ .Token }}"
 content_path = "./supabase/templates/welkom.html"
 
 # Supabase begrenst mails per uur voor het hele project (standaard 2). Met eigen SMTP mag dat ruimer; Resend gratis = 100/dag.
