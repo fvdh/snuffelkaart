@@ -1,4 +1,4 @@
-import { type Item, type LatLon, km, DAYS_LONG, dayStart, hm, mEnd } from './model';
+import { type Item, type LatLon, type Cat, km, catOf, DAYS_LONG, dayStart, hm, mEnd } from './model';
 import { intervals, openOn } from './hours';
 
 export interface Issue { lv: 'bad' | 'warn'; txt: string }
@@ -65,8 +65,14 @@ export function bestOrder(stops: Item[], iso: string, start: number, from: LatLo
 /** "Maak een dag voor me": voorstellen van een paar plekken dicht bij elkaar die op `iso` zeker open zijn (bekende tijden; markten
  *  alleen bevestigd). Voorstel i begint bij de i-de dichtstbijzijnde kandidaat en pakt diens buren; dubbele voorstellen vallen weg,
  *  zodat "Ander voorstel" echt iets anders geeft. ponytail: hemelsbreed clusteren, hooguit 12 startpunten; een routeplanner pas als dit veel gebruikt wordt. */
-export function dayProposals(items: Item[], iso: string, start: number, from: LatLon, n = 4, maxKm = 20): Item[][] {
-  const cand = items.filter(i => (i.t === 'k' ? openOn(i, iso) : i.date === iso && (i.status === 'org' || i.status === 'chk')) && km(from, i) < maxKm)
+/** Soorten die in een snuffeldag passen. Niet: sloop en restpartijen en opkoop/pandjeshuis; die zoek je zelf op.
+ *  "Overige tweedehands" wel (boedelhuizen, brocante), behalve wat aan de naam te zien geen snuffelwinkel is.
+ *  ponytail: naamlijst; wordt hij lang, dan een vlag per winkel in /beheer. */
+export const DAY_CATS: Cat[] = ['kringloop', 'kleding', 'antiek', 'vlooienmarkt', 'tweedehands'];
+const NOT_SNUFFEL = /auto|demont|fiets|bike|scooter|motor|onderdel|witgoed|telefoon|gsm|computer|laptop|kassei|bouwmat|etalagepop/i;
+const fitsDay = (i: Item, hide: Cat[]) => { const c = catOf(i as Extract<Item, { t: 'k' }>); return DAY_CATS.includes(c) && !hide.includes(c) && !NOT_SNUFFEL.test(i.name); };
+export function dayProposals(items: Item[], iso: string, start: number, from: LatLon, n = 4, maxKm = 20, hide: Cat[] = []): Item[][] {
+  const cand = items.filter(i => (i.t === 'k' ? fitsDay(i, hide) && openOn(i, iso) : i.date === iso && (i.status === 'org' || i.status === 'chk')) && km(from, i) < maxKm)
     .sort((a, b) => km(from, a) - km(from, b));
   const out: Item[][] = [], seen = new Set<string>();
   for (const seed of cand.slice(0, 12)) {

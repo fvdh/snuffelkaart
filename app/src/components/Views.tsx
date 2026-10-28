@@ -312,7 +312,7 @@ export function PlanView({ c, items, plan, setPlan, optimizeSeen }: { c: Ctx; it
 /** "Maak een dag voor me": een voorstel als bonnetje voor de gekozen dag. Je huidige dagplan blijft staan tot je bevestigt. */
 export function DagView({ c, items, plan, setPlan }: { c: Ctx; items: Item[]; plan: { day: string; start: number; stops: string[] }; setPlan: (p: Partial<{ stops: string[] }>) => void }) {
   const [k, setK] = useState(0), [sure, setSure] = useState(false), where = c.originLabel ?? 'de buurt', dayName = DAYS_LONG[dayStart(c.day).getDay()];
-  const props = useMemo(() => dayProposals(items, c.day, plan.start, c.origin), [items, c.day, plan.start, c.origin]);
+  const props = useMemo(() => dayProposals(items, c.day, plan.start, c.origin, 4, 20, c.f.hide), [items, c.day, plan.start, c.origin, c.f.hide]);
   const stops = props.length ? props[k % props.length] : [], sim = simulate(stops, c.day, plan.start, c.origin);
   const take = () => { setPlan({ stops: stops.map(x => x.id) }); c.openPlan(); };
   return (<>
@@ -341,7 +341,7 @@ export function DagView({ c, items, plan, setPlan }: { c: Ctx; items: Item[]; pl
           : <button className="btn primary" onClick={() => plan.stops.length && plan.stops.join() !== stops.map(x => x.id).join() ? setSure(true) : take()}><Ic n="check" />Zet in mijn dagplan</button>}
         {props.length > 1 && <button className="btn" onClick={() => { setK(k + 1); setSure(false); }}><Ic n="wand" />Ander voorstel <span className="tnum" style={{ color: 'var(--fg-3)', fontWeight: 500 }}>{k % props.length + 1}/{props.length}</span></button>}
       </div>
-      <p className="src"><Ic n="info" /><span>We kiezen alleen winkels waarvan we de tijden weten, en markten die bevestigd zijn. Je huidige dagplan blijft staan tot je op “Zet in mijn dagplan” tikt.</span></p>
+      <p className="src"><Ic n="info" /><span>We kiezen alleen kringlopen, vintage, antiek, brocante en markten waarvan we de tijden weten of die bevestigd zijn. Sloop en opkoop stellen we niet voor. Je huidige dagplan blijft staan tot je op “Zet in mijn dagplan” tikt.</span></p>
     </> : <div className="empty"><h3>Op {dayName} is er rond {where} niets dat zeker open is</h3><p>Kies een andere dag, of kijk in de lijst: van veel winkels weten we de tijden nog niet.</p>
       <div className="btns"><button className="btn sm primary" onClick={c.back}>Naar de lijst</button></div></div>}
   </>);

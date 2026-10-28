@@ -152,6 +152,17 @@ describe('dag voor me', () => {
     expect(ids(dayProposals(shops, '2026-10-27', 570, from)[0])).toEqual(['c']);
     expect(dayProposals(shops, '2026-11-01', 570, from)).toEqual([]);
   });
+  it('geen sloop, opkoop of overige tweedehands; uitgezette soorten ook niet', () => {
+    const more = [...shops, at('sloop', 52.157, 'Sa 08:00-17:00'), at('antiek', 52.158, 'Sa 10:00-17:00')];
+    more[6] = { ...more[6], kind: 'tweedehands', sub: 'schroot' } as typeof more[6];
+    more[7] = { ...more[7], kind: 'tweedehands', sub: 'antiek' } as typeof more[7];
+    const all = dayProposals(more, '2026-10-31', 570, from, 10).flat().map(x => x.id);
+    expect(all).not.toContain('sloop');
+    expect(all).toContain('antiek');
+    const fiets = { ...at('fiets', 52.157, 'Sa 10:00-17:00'), kind: 'tweedehands', name: 'Fietsen Tweedehands' } as typeof shops[0];
+    expect(dayProposals([...more, fiets], '2026-10-31', 570, from, 10).flat().map(x => x.id)).not.toContain('fiets');
+    expect(dayProposals(more, '2026-10-31', 570, from, 10, 20, ['antiek']).flat().map(x => x.id)).not.toContain('antiek');
+  });
   it('geen dubbele voorstellen', () => {
     const p = dayProposals(shops, '2026-10-31', 570, from, 2).map(x => ids(x).join());
     expect(p.length).toBeGreaterThan(1);

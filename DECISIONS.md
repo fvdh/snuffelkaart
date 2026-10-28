@@ -265,3 +265,4 @@ Op ≥ 980 px toont de lijst alleen wat op de kaart in beeld is ("N plekken in b
 - Voorstel voor de gekozen dag: tot 4 plekken binnen 20 km die die dag zeker open zijn (bekende tijden; markten alleen bevestigd), rond één startpunt geclusterd en in de slimste volgorde. Wat bij aankomst al dicht is, valt af.
 - "Ander voorstel" bladert door verschillende voorstellen (startpunt 1 t/m 12, dubbele weg), met teller.
 - Het huidige dagplan blijft staan tot je bevestigt; bij een bestaand plan vragen we eerst of het vervangen mag.
+- Alleen snuffelwinkels: kringloop, vintage, antiek, vaste vlooienmarkt en overige tweedehands (boedelhuizen, brocante). Geen sloop en restpartijen, geen opkoop/pandjeshuis, en geen winkels die aan hun naam te zien iets anders zijn (auto, fiets, onderdelen, etalagepoppen…). Soorten die je in de filters uitzet, blijven ook uit het voorstel.
