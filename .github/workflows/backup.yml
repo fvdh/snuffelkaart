@@ -8,9 +8,7 @@
 # Geoefend op 2026-10-28 in een lege supabase/postgres-container: alle public-tabellen exact terug (zie DECISIONS.md).
 name: Nachtelijke back-up
 on:
-  schedule:
-    - cron: '0 2 * * *' # 03:00 of 04:00 Nederlandse tijd, vóór de verversing
-  workflow_dispatch:
+  workflow_dispatch: # 02:00 UTC gestart door de klok (app/worker/klok.js), vóór de verversing
 permissions:
   contents: read
 jobs:

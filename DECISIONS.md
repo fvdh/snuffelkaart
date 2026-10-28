@@ -232,3 +232,9 @@ Besluiten (Freek): doorgegeven tijden zijn **van ons, apart van het open OSM-bes
 - **Juridisch:** voorwaarden (regels, niet-exclusieve toestemming voor tonen, uitleg bij afwijzen, intrekken), privacy (schermnaam, bijdragen, foto's; weg bij account verwijderen), "Hoe we reviews controleren" (Omnibus: we controleren met de hand, niet of iemand er echt was; bezoekmaand verplicht; negatieve reviews niet verborgen, geen beloning). Download van je gegevens bevat nu ook bijdragen.
 - **Getest van begin tot eind** (lokaal, echte database): review, foto en tijden insturen → Mijn bijdragen "in behandeling" → beheer: review en foto goedgekeurd, tijden afgewezen met reden → export → foto en review in de app, reden zichtbaar bij Mijn bijdragen. Testgegevens daarna verwijderd. axe: 0 bevindingen op de nieuwe schermen.
 - **Nog niet:** sterren in de lijst; AI-voorbeoordeling (§7.2); Turnstile (alleen ingelogd + limieten volstaat voorlopig); markten reviewen (een markt is per datum; eerst winkels); winkel toevoegen.
+
+## Klok: Cloudflare-cron in plaats van GitHub-planning (2026-10-28)
+- GitHubs `schedule` startte in deze repository nooit (07:28–12:45 UTC nul geplande runs; geen storing bij GitHub; workflows geldig, handmatige runs slagen; uit/aan zetten hielp niet).
+- Nu: `app/worker/klok.js` met Cloudflare-cron `*/15` (gratis, zelfde Worker als de site) start via workflow_dispatch: nachtelijk (modus kwartier, 02:30 UTC alles), controle (elk half uur), back-up (02:00), winkels (maandag 00:30). Alle `schedule`-triggers uit de workflows gehaald: één klok, niets dubbel.
+- Nodig: secret `GITHUB_TOKEN` op de Worker (fine-grained, alleen deze repository, Actions read/write). Zonder token doet de klok niets (log-waarschuwing).
+- Bijeffect: de Worker heeft nu code (`main`), maar elk verzoek gaat nog steeds rechtstreeks naar de statische bestanden.

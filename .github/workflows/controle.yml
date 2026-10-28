@@ -1,11 +1,9 @@
 # M6 monitoring van buitenaf, elk half uur: werkt de site, zijn de kaartgegevens vers, antwoordt Supabase?
 # Mislukt een controle, dan wordt de run rood en mailt GitHub (aan wie de workflow het laatst wijzigde).
-# ponytail: GitHub-cron loopt soms wat achter; voor een "ligt eruit"-seintje is een half uur ruim genoeg.
+# ponytail: een half uur is ruim genoeg voor een "ligt eruit"-seintje.
 name: Controle
 on:
-  schedule:
-    - cron: '7,37 * * * *'
-  workflow_dispatch:
+  workflow_dispatch: # elk half uur gestart door de klok (app/worker/klok.js)
 jobs:
   controle:
     runs-on: ubuntu-latest

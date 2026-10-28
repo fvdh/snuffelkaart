@@ -5,11 +5,15 @@
 # ponytail: polling via cron (repo is publiek, minuten gratis; GitHub-cron loopt soms wat achter). Sneller = Supabase-webhook → repository_dispatch.
 # Winkels (OSM, Overture, websitetijden) ververst winkels.yml op maandagnacht; deze run zet ze daarna op de kaart.
 name: Nachtelijke verversing
+# Gestart door de klok (app/worker/klok.js, Cloudflare-cron): elk kwartier modus=kwartier, om 02:30 UTC modus=alles.
 on:
-  schedule:
-    - cron: '30 2 * * *' # 03:30 of 04:30 Nederlandse tijd
-    - cron: '*/15 * * * *' # wijzigingen uit /beheer
   workflow_dispatch:
+    inputs:
+      modus:
+        description: 'alles = markten opnieuw uitlezen en publiceren; kwartier = alleen publiceren als er in beheer iets wijzigde'
+        type: choice
+        options: [alles, kwartier]
+        default: alles
 permissions:
   contents: write
 concurrency: nachtelijk
@@ -27,7 +31,7 @@ jobs:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: |
-          if [ "${{ github.event.schedule }}" != '*/15 * * * *' ]; then echo doe=alles >> "$GITHUB_OUTPUT"; exit 0; fi
+          if [ "${{ inputs.modus }}" != 'kwartier' ]; then echo doe=alles >> "$GITHUB_OUTPUT"; exit 0; fi
           since=$(jq -r .generated public/data/markets.json)
           { for t in markets places; do
               curl -sf "$SUPABASE_URL/rest/v1/$t?select=id&updated_at=gt.$since&limit=1" -H "apikey: $SUPABASE_SERVICE_ROLE_KEY"

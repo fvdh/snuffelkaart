@@ -5,9 +5,7 @@
 # ponytail: Overpass in 9 vakken i.p.v. het Geofabrik-extract + osmium; overstappen als Overpass vaak weigert.
 name: Winkels wekelijks
 on:
-  schedule:
-    - cron: '30 0 * * 1' # maandagnacht, ruim vóór de nachtelijke export
-  workflow_dispatch:
+  workflow_dispatch: # maandag 00:30 UTC gestart door de klok (app/worker/klok.js), ruim vóór de nachtelijke export
 jobs:
   winkels:
     runs-on: ubuntu-latest
