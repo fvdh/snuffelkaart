@@ -1,0 +1,10 @@
+---
+import Tekst from '../layouts/Tekst.astro';
+// sw.js toont deze pagina als je zonder verbinding een pagina opent die nog niet op je apparaat staat.
+---
+<Tekst title="Geen verbinding" description="Je bent offline.">
+  <h1>Geen verbinding</h1>
+  <p class="lede">Deze pagina staat nog niet op je apparaat. De kaart werkt wel: met de winkels en markten van je laatste bezoek, je favorieten en je dagplan.</p>
+  <p><a class="btn primary" href="/">Open de kaart</a></p>
+  <p style="color:var(--fg-3)">Afgelastingen van na je laatste bezoek zie je pas weer als je verbinding hebt.</p>
+</Tekst>

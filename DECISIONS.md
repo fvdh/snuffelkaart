@@ -202,3 +202,11 @@ Keuzes en waarom. Nieuwste onderaan. "Freek" = besloten door Freek; anders voorl
 - Pin verplaatsen: coördinaten of een link van Google Maps/OSM plakken (`parseLatLon`, alleen binnen NL). Vastgezet (`lat`, `lon`); geen sleepkaart (later, als plakken te omslachtig blijkt).
 - Elk besluit 10 seconden terug te draaien (balk onderin, of Z): vorige status, gegevens en vastgezette velden.
 - Sneltoetsen (A/U/E/R/J/K) werken alleen als losse toets: letters binnen 350 ms na elkaar zijn typen. Aanleiding: typen terwijl de pagina laadde keurde per ongeluk een kandidaat goed.
+
+## M6: offline getest (2026-10-28)
+Getest met de productiebuild, server uit na één bezoek:
+- **Werkt:** de kaart-app opent met alle winkels en markten van het laatste bezoek, favorieten en dagplan; "Nu open" rekent gewoon (tijden staan vooruitgerekend in de data); eerder bekeken pagina's (winkel, markt, plaats, privacy) openen.
+- **Werkt niet, en zegt dat:** een pagina die je nog niet bekeek → eigen pagina "Geen verbinding" met link naar de kaart (was: foutpagina van de browser). Melden → "Versturen lukte niet: geen verbinding" (was: Engelse foutmelding).
+- **Werkt niet:** zoeken op plaats of postcode (PDOK) geeft geen resultaten; inloggen geeft een nette melding; kaarttegels alleen van gebieden die je al bekeek.
+- ponytail: de offline-banner leunt op `navigator.onLine`; bij heel slecht bereik ("wel verbonden, niets komt door") verschijnt hij niet. De app werkt dan wel met de bewaarde gegevens. Beter detecteren als testers het missen.
+- Gebruiksvoorwaarden en colofon toegevoegd. Nog te doen bij een onderneming: adres en KvK-nummer in het colofon (art. 3:15d BW).

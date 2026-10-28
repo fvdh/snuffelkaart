@@ -1,19 +1,23 @@
 // Snuffelkaart offline: app en gegevens werken zonder bereik (bijv. in een sporthal), met de laatst geladen stand.
 // Verhoog VERSION bij een wijziging in dit bestand; de app-bestanden zelf hebben al een hash in hun naam.
-const VERSION = 'v3', APP = `app-${VERSION}`, DATA = 'data', TILES = 'tiles', MAX_TILES = 1500;
+const VERSION = 'v5', APP = `app-${VERSION}`, DATA = 'data', TILES = 'tiles', MAX_TILES = 1500;
 
 self.addEventListener('install', e => {
-  e.waitUntil(caches.open(APP).then(c => c.addAll(['/', '/manifest.webmanifest', '/icons/icon-192.png', '/favicon.svg'])).then(() => self.skipWaiting()));
+  e.waitUntil(caches.open(APP).then(async c => {
+    await c.addAll(['/', '/offline/', '/manifest.webmanifest', '/icons/icon-192.png', '/favicon.svg', '/fonts/figtree.woff2']);
+    const html = await (await c.match('/offline/')).text(); // de opmaak van de offline-pagina ook bewaren, anders is hij kaal
+    await c.addAll([...html.matchAll(/href="(\/_astro\/[^"]+\.css)"/g)].map(m => m[1]));
+  }).then(() => self.skipWaiting()));
 });
 self.addEventListener('activate', e => {
   e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k.startsWith('app-') && k !== APP).map(k => caches.delete(k)))).then(() => self.clients.claim()));
 });
 
-/** Eerst het net (vers), anders de laatst bewaarde versie. */
+/** Eerst het net (vers), anders de laatst bewaarde versie; een pagina die nog niet bewaard is → /offline/. */
 async function networkFirst(req, cacheName, fallback) {
   const c = await caches.open(cacheName);
   try { const r = await fetch(req); if (r.ok) c.put(fallback ?? req, r.clone()); return r; }
-  catch { return (await c.match(fallback ?? req)) ?? Response.error(); }
+  catch { return (await c.match(fallback ?? req)) ?? (req.mode === 'navigate' ? await caches.match('/offline/') : undefined) ?? Response.error(); }
 }
 /** Eerst bewaard (snel), anders het net en dan bewaren. */
 async function cacheFirst(req, cacheName, max) {

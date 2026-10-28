@@ -195,7 +195,7 @@ function Report({ id, what }: { id: string; what: [string, string][] }) {
       const r = await fetch(`${SB}/rest/v1/rpc/report`, { method: 'POST', headers: { apikey: KEY, 'Content-Type': 'application/json' }, body: JSON.stringify({ item_id: id, what: w, note: note.trim() || null }) });
       if (!r.ok) throw new Error((await r.json().catch(() => null))?.message ?? '');
       setState('done');
-    } catch (x) { setState(`Versturen lukte niet${(x as Error).message ? `: ${(x as Error).message}` : '. Ben je online?'}`); }
+    } catch (x) { setState(x instanceof TypeError || !(x as Error).message ? 'Versturen lukte niet: geen verbinding. Probeer het straks nog eens.' : `Versturen lukte niet: ${(x as Error).message}`); }
   };
   if (state === 'done') return <p className="src"><Ic n="check" /><span><b>Bedankt!</b> We kijken ernaar; een correctie staat meestal binnen een dag op de kaart.</span></p>;
   if (!open) return <button className="report-btn" onClick={() => setOpen(true)}><Ic n="flag" />Klopt er iets niet?</button>;
