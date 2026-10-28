@@ -131,3 +131,12 @@ Keuzes en waarom. Nieuwste onderaan. "Freek" = besloten door Freek; anders voorl
 - **Terugdraaien**: elke nachtelijke export staat in git (bot-commit). Een eerdere stand terugzetten = dat bestand pushen.
 - **RLS** op alle tabellen; publiek leest niets (getest met de publishable key). Beheerders (`admins`) lezen en wijzigen via `is_admin()`. Scripts gebruiken de secret key.
 - **Geen supabase-js in de scripts**: REST met `fetch` volstaat.
+
+## M2 deel 2: beheer (2026-10-28)
+
+- **/beheer** (noindex, niet in de service worker): inloggen met een link per e-mail (Supabase Auth). Beheerder: info@freekvanderhorst.nl (tabel `admins`; Freek). Wie geen beheerder is, ziet niets (RLS, getest).
+- **Markten**: status zetten (bevestigd, gecontroleerd, nog niet bevestigd, afgelast met reden, kandidaat afwijzen). **Winkels**: zoeken, soort wijzigen, verbergen. Alles wat je zet, komt in `locked`: een import overschrijft het niet.
+- **Zichtbaar na de nachtelijke run.** ponytail: geen directe herbouw na een wijziging (§6.1 noemt ±15 min); toevoegen met een kleine Worker die de workflow start, als wachten tot de nacht te traag blijkt.
+- **Geen supabase-js**: login (`/auth/v1/otp`) en data (REST) met fetch; na een uur opnieuw inloggen.
+- **Publishable key in de build** via `astro.config.mjs` (`SUPABASE_ANON_KEY` uit `.env` of het secret in GitHub); de secret key komt nooit in de site (gecontroleerd in `dist`).
+- **Supabase Auth-URL's** in `supabase/config.toml` (`npx supabase config push`); alleen wat daar staat wordt gezet.

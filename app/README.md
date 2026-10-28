@@ -19,6 +19,7 @@ npm run db:push:markets  # na data:markets: markten naar Supabase (verdwenen edi
 npm run db:export        # Supabase → public/data/*.json, openingstijden vooruit vanaf vandaag
 # Elke nacht doet .github/workflows/nachtelijk.yml: markten → Supabase → export, test, build, deploy.
 # Schema: ../supabase/migrations (npx supabase db push --linked).
+# Beheer: /beheer (inloglink per e-mail; beheerders in tabel admins). Auth-URL's: ../supabase/config.toml (npx supabase config push).
 ```
 
 Handig bij testen: `?nu=2026-10-31T09:10` zet de klok op een vast moment (de app is tijdsbewust).
