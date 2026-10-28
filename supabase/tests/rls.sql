@@ -26,6 +26,9 @@ begin
   select count(*) into n from favorites;   if n <> 0 then raise exception 'gast ziet % favorieten', n; end if;
   begin insert into favorites (user_id, item_id) values (a, 'stiekem'); raise exception 'gast kon een favoriet toevoegen'; exception when insufficient_privilege or check_violation or not_null_violation or foreign_key_violation then null; when raise_exception then raise; end;
   update markets set status = 'cancel'; get diagnostics n = row_count; if n <> 0 then raise exception 'gast wijzigde % markten', n; end if;
+  -- Statusbestand: publiek, maar alleen gepubliceerde statussen en geen andere velden.
+  select count(*) into n from json_array_elements(market_status()->'markets') e where e->>'status' not in ('org', 'chk', 'unconf', 'cancel') or (select count(*) from json_object_keys(e)) <> 3;
+  if n <> 0 then raise exception 'statusbestand lekt % rijen (kandidaat/afgewezen of extra velden)', n; end if;
   begin perform delete_me(); raise exception 'gast mag delete_me uitvoeren'; exception when insufficient_privilege then null; when raise_exception then raise; end;
   reset role;
 

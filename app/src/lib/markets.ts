@@ -1,4 +1,4 @@
-import type { Market } from './model';
+import type { Market, Place, Confirm } from './model';
 import { weekendOf, DEFAULT_CENTER } from './model';
 
 // VOORBEELDMARKTEN, verzonnen (zie DECISIONS.md). Echte markten komen uit de organisator-uitlezers (M0, §5.2).
@@ -18,4 +18,22 @@ const RAW: Raw[] = [
 export function sampleMarkets(now: Date): Market[] {
   const [sat, sun] = weekendOf(now), kmLat = 111.2, kmLon = 111.2 * Math.cos(DEFAULT_CENTER.lat * Math.PI / 180);
   return RAW.map(({ x, y, day, ...m }) => ({ ...m, t: 'm', sample: true, date: day === 'za' ? sat : sun, lat: +(DEFAULT_CENTER.lat - y / kmLat).toFixed(5), lon: +(DEFAULT_CENTER.lon + x / kmLon).toFixed(5) }));
+}
+
+/** Statusbestand (§6.1, M4): rpc/market_status in Supabase, elke paar minuten opgehaald. */
+export type Live = { at: string; markets: { id: string; status: Confirm; cancelWhy: string | null }[]; hidden: string[] };
+/** Legt de actuele status over de gebouwde kaartdata: afgelast/bevestigd meteen, verborgen winkels weg. Een markt in de
+ *  komende 14 dagen die niet meer in het statusbestand staat, is niet meer gepubliceerd. Leeg statusbestand: niets weghalen. */
+export function applyStatus(markets: Market[], places: Place[], live: Live | null): { markets: Market[]; places: Place[] } {
+  if (!live) return { markets, places };
+  const by = new Map(live.markets.map(m => [m.id, m])), until = new Date(Date.parse(live.at) + 14 * 864e5).toISOString().slice(0, 10);
+  const hidden = new Set(live.hidden);
+  return {
+    markets: markets.flatMap(m => {
+      const l = by.get(m.id);
+      if (!l) return live.markets.length && m.date <= until && !m.sample ? [] : [m];
+      return l.status === m.status && (l.cancelWhy ?? undefined) === m.cancelWhy ? [m] : [{ ...m, status: l.status, cancelWhy: l.cancelWhy ?? undefined }];
+    }),
+    places: hidden.size ? places.filter(p => !hidden.has(p.id)) : places,
+  };
 }

@@ -8,7 +8,8 @@ import { simulate } from '../lib/plan';
 import type { Spot } from '../lib/pdok';
 import MapView from './MapView';
 import { ListView, DetailView, PlanView, MeView, LoginView, type Ctx } from './Views';
-import { readSession, returnError, api, sendLink, logout as authLogout, mergeFavs, LoggedOut, type Session } from '../lib/auth';
+import { readSession, returnError, api, sendLink, logout as authLogout, mergeFavs, LoggedOut, SB, KEY, type Session } from '../lib/auth';
+import { applyStatus, type Live } from '../lib/markets';
 import { Ic, reduced } from './ui';
 
 /** "Nu", met ?nu=2026-10-31T09:10 om tijdsbewust gedrag te testen. */
@@ -47,8 +48,18 @@ export default function App() {
   // Echte markten uit de agenda's van organisatoren (scripts/fetch-markets.mjs). Lukt dat niet: geen markten, nooit verzonnen.
   const [allMarkets, setAllMarkets] = useState<Market[]>([]);
   useEffect(() => { fetch('/data/markets.json').then(r => r.json()).then(j => setAllMarkets(j.markets)).catch(() => {}); }, []);
-  const markets = useMemo(() => allMarkets.filter(m => m.date >= today), [allMarkets, today]);
-  const items: Item[] = useMemo(() => [...(places ?? []), ...markets], [places, markets]);
+  // Statusbestand (M4): afgelastingen en verborgen winkels binnen minuten, zonder te wachten op een nieuwe build.
+  const [live, setLive] = useState<Live | null>(null);
+  useEffect(() => {
+    if (!SB || !online) return;
+    const get = () => fetch(`${SB}/rest/v1/rpc/market_status`, { headers: { apikey: KEY } }).then(r => r.ok ? r.json() : null).then(j => j && setLive(j)).catch(() => {});
+    get(); const t = setInterval(get, 5 * 60_000), vis = () => document.visibilityState === 'visible' && get();
+    document.addEventListener('visibilitychange', vis);
+    return () => { clearInterval(t); document.removeEventListener('visibilitychange', vis); };
+  }, [online]);
+  const shown = useMemo(() => applyStatus(allMarkets, places ?? [], live), [allMarkets, places, live]);
+  const markets = useMemo(() => shown.markets.filter(m => m.date >= today), [shown, today]);
+  const items: Item[] = useMemo(() => [...(places ? shown.places : []), ...markets], [places, shown, markets]);
   const byId = useMemo(() => new Map(items.map(i => [i.id, i])), [items]);
 
   const [f, setFState] = useState<Filters>(() => ({ type: 'all', time: 'all', date: null, gratis: false, overdekt: false, q: '', hide: [] }));
@@ -72,9 +83,9 @@ export default function App() {
 
   const list = useMemo(() => visible(items, f, now, origin), [items, f, now, origin]);
   const counts = useMemo(() => {
-    const [a, b] = weekendOf(now), ps = places ?? [];
+    const [a, b] = weekendOf(now), ps = places ? shown.places : [];
     return { kNow: ps.filter(p => placeNow(p, now).open).length, kToday: ps.filter(p => openOn(p, today)).length, mWk: markets.filter(m => (m.date === a || m.date === b) && m.status !== 'cancel').length };
-  }, [places, markets, now]);
+  }, [places, shown, markets, now]);
 
   const setF = useCallback((p: Partial<Filters>) => { setFState(o => ({ ...o, ...p })); setLimit(40); if (view !== 'list') { setView('list'); setSel(null); } }, [view]);
   const go = (id: string) => { const it = byId.get(id); if (!it) return; setDir('fwd'); if (view !== 'detail') setPrev(view); setSel(id); setView('detail'); if (snap === 'collapsed') setSnap('half'); setFocus({ lat: it.lat, lon: it.lon, key: Date.now() }); scrollTop(); };
