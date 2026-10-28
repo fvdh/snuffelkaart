@@ -8,7 +8,9 @@ export interface Place {
   /** Overture: nadere soort van een tweedehandswinkel, en hun betrouwbaarheidsscore. */
   sub?: 'antiek' | 'kleding' | 'schroot' | 'pandjeshuis' | 'vlooienmarkt'; conf?: number;
   /** Openingstijden van de eigen website van de winkel (hs), gelezen van pagina hu. */
-  hs?: 'web'; hu?: string;
+  hs?: 'web' | 'bezoeker'; hu?: string;
+  /** Tijden doorgegeven door een bezoeker (hs = 'bezoeker'): diens schermnaam. */
+  hb?: string;
 }
 
 export interface Market {

@@ -6,7 +6,8 @@ import type { Place } from '../../lib/model';
 import { catOf, km } from '../../lib/model';
 import { near, weekHours } from '../../lib/seo';
 import { CAT } from '../../components/ui';
-import { ix, places, markets, from, holidays, SITE } from '../../lib/sitedata';
+import { ix, places, markets, from, holidays, extra, SITE } from '../../lib/sitedata';
+import { avg } from '../../lib/bijdragen';
 
 export function getStaticPaths() {
   return [...ix.shops].map(([slug, p]) => ({ params: { slug }, props: { p } }));
@@ -17,10 +18,14 @@ const web = p.website ? (p.website.startsWith('http') ? p.website : `https://${p
 const osm = /^osm-([nwr])(\d+)$/.exec(p.id), osmUrl = osm ? `https://www.openstreetmap.org/${{ n: 'node', w: 'way', r: 'relation' }[osm[1] as 'n' | 'w' | 'r']}/${osm[2]}` : null;
 const mk = near(p, markets, from, 10, 4);
 const others = places.filter(o => o !== p && km(p, o) < 5).sort((a, b) => km(p, a) - km(p, b)).slice(0, 6);
+const reviews = extra.reviews[p.id] ?? [], photos = extra.photos[p.id] ?? [], rating = avg(reviews);
+const MONTHS = ['januari', 'februari', 'maart', 'april', 'mei', 'juni', 'juli', 'augustus', 'september', 'oktober', 'november', 'december'];
 const title = `${p.name}${p.place ? `, ${p.place}` : ''}`;
 const description = `${cat}${p.place ? ` in ${p.place}` : ''}: ${week ? 'openingstijden' : 'adres'}${p.addr ? `, ${p.addr}` : ''}, en markten in de buurt.`;
 const ld = { '@context': 'https://schema.org', '@type': 'Store', name: p.name, url: SITE + ix.url(p.id), geo: { '@type': 'GeoCoordinates', latitude: p.lat, longitude: p.lon },
-  ...(p.addr ? { address: { '@type': 'PostalAddress', streetAddress: p.addr, addressLocality: p.place ?? undefined, addressCountry: 'NL' } } : {}), ...(p.phone ? { telephone: p.phone } : {}), ...(web ? { sameAs: web } : {}) };
+  ...(p.addr ? { address: { '@type': 'PostalAddress', streetAddress: p.addr, addressLocality: p.place ?? undefined, addressCountry: 'NL' } } : {}), ...(p.phone ? { telephone: p.phone } : {}), ...(web ? { sameAs: web } : {}),
+  ...(reviews.length ? { aggregateRating: { '@type': 'AggregateRating', ratingValue: rating, reviewCount: reviews.length, bestRating: 5, worstRating: 1 } } : {}),
+  ...(photos.length ? { image: photos.slice(0, 3).map(f => f.url) } : {}) };
 ---
 <Tekst title={title} description={description}>
   <script type="application/ld+json" slot="head" set:html={JSON.stringify(ld)} />
@@ -35,7 +40,7 @@ const ld = { '@context': 'https://schema.org', '@type': 'Store', name: p.name, u
   <section>
     <h2>Openingstijden</h2>
     {week ? <><dl class="tp-hours">{week.map(d => <><dt>{d.day}</dt><dd>{d.txt}</dd></>)}</dl>
-      <p style="font-size:.875rem;color:var(--fg-3)">{p.hs === 'web' ? <>Van <a href={p.hu}>de website van de winkel</a></> : `Bron: ${p.src === 'osm' ? 'OpenStreetMap' : 'Overture Maps'}`}{p.checked ? `, gecontroleerd op ${p.checked}` : ''}. Rond feestdagen kunnen de tijden afwijken.</p></>
+      <p style="font-size:.875rem;color:var(--fg-3)">{p.hs === 'bezoeker' ? `Doorgegeven door ${p.hb} en door ons gecontroleerd` : p.hs === 'web' ? <>Van <a href={p.hu}>de website van de winkel</a></> : `Bron: ${p.src === 'osm' ? 'OpenStreetMap' : 'Overture Maps'}`}{p.checked ? `, gecontroleerd op ${p.checked}` : ''}. Rond feestdagen kunnen de tijden afwijken.</p></>
       : <p>We weten de openingstijden nog niet. {p.src === 'osm' ? 'Deze winkel staat op OpenStreetMap, maar zonder tijden.' : 'Deze winkel komt uit Overture Maps en is nog niet door ons gecontroleerd; misschien bestaat hij niet meer.'} Bel even of kijk op de website voordat je gaat.</p>}
   </section>
 
@@ -44,6 +49,10 @@ const ld = { '@context': 'https://schema.org', '@type': 'Store', name: p.name, u
     <ul class="tp-links" style="flex-direction:column">{p.phone && <li>Telefoon: <a href={`tel:${p.phone.replace(/\s/g, '')}`}>{p.phone}</a></li>}{web && <li>Website: <a href={web} rel="nofollow">{p.website!.replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '')}</a></li>}</ul>
   </section>}
 
+  {photos.length > 0 && <section><h2>Foto's</h2><div class="photos" style="grid-template-rows:120px 120px">{photos.slice(0, 3).map(f => <div><img src={f.url} alt={f.caption ?? `Foto van ${f.name}`} loading="lazy" style="width:100%;height:100%;object-fit:cover;display:block" /></div>)}</div></section>}
+  {reviews.length > 0 && <section><h2>Reviews · {String(rating).replace('.', ',')} van 5 ({reviews.length})</h2>
+    {reviews.map(r => <div class="rev"><span class="stars" role="img" aria-label={`${r.stars} van 5 sterren`}>{[1, 2, 3, 4, 5].map(i => <svg class="i" aria-hidden="true" style={`opacity:${i <= r.stars ? 1 : 0.25}`}><use href="#i-star" /></svg>)}</span>{r.text && <p>{r.text}</p>}<small>{r.name} · bezocht in {MONTHS[+r.month.slice(5) - 1]} {r.month.slice(0, 4)}</small></div>)}
+    <p style="font-size:.875rem;color:var(--fg-3)">Reviews komen online na controle. <a href="/hoe-we-controleren#reviews">Hoe we reviews controleren</a></p></section>}
   {mk.length > 0 && <section><h2>Markten in de buurt</h2><ul class="rows">{mk.map(m => <ItemRow it={m} note={`${m.place} · ${Math.round(km(p, m))} km`} />)}</ul></section>}
   {others.length > 0 && <section><h2>Meer tweedehands in de buurt</h2><ul class="rows">{others.map(o => <ItemRow it={o} note={`${o.place ?? ''} · ${km(p, o).toFixed(1).replace('.', ',')} km`} />)}</ul></section>}
 

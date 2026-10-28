@@ -31,6 +31,7 @@ begin
   -- Statusbestand: publiek, maar alleen gepubliceerde statussen en geen andere velden.
   select count(*) into n from json_array_elements(market_status()->'markets') e where e->>'status' not in ('org', 'chk', 'unconf', 'cancel') or (select count(*) from json_object_keys(e)) <> 3;
   if n <> 0 then raise exception 'statusbestand lekt % rijen (kandidaat/afgewezen of extra velden)', n; end if;
+  begin insert into contributions (user_id, item_id, kind, data) values (a, pid, 'review', '{"stars":5,"month":"2026-10"}'); raise exception 'gast kon een bijdrage doen'; exception when insufficient_privilege or invalid_parameter_value then null; when raise_exception then raise; end;
   begin perform delete_me(); raise exception 'gast mag delete_me uitvoeren'; exception when insufficient_privilege then null; when raise_exception then raise; end;
   -- Meldingen: gast mag melden via report(), maar niet direct in de tabel schrijven of lezen; onzin wordt geweigerd.
   perform report(pid, 'dicht', 'rls-test');
@@ -58,6 +59,24 @@ begin
   begin insert into favorites (user_id, item_id) values (b, 'stiekem'); raise exception 'gebruiker kon een favoriet voor een ander toevoegen'; exception when insufficient_privilege or check_violation then null; when raise_exception then raise; end;
   delete from favorites where item_id = 'rls-test-b'; get diagnostics n = row_count; if n <> 0 then raise exception 'gebruiker verwijderde een favoriet van een ander'; end if;
   insert into favorites (item_id) values ('rls-test-eigen'); -- user_id vult zichzelf (auth.uid())
+  -- Bijdragen: eerst een schermnaam; inhoud gecontroleerd; zelf goedkeuren kan niet; anderen zien je bijdragen niet.
+  begin insert into contributions (item_id, kind, data) values (pid, 'review', '{"stars":5,"month":"2026-10"}'); raise exception 'bijdrage zonder schermnaam geaccepteerd'; exception when invalid_parameter_value then null; when raise_exception then raise; end;
+  insert into profiles (name) values ('rls test a');
+  begin insert into contributions (item_id, kind, data) values (pid, 'review', '{"stars":9,"month":"2026-10"}'); raise exception 'review met 9 sterren geaccepteerd'; exception when check_violation then null; when raise_exception then raise; end;
+  begin insert into contributions (item_id, kind, data) values (pid, 'review', '{"stars":4,"month":"2099-01"}'); raise exception 'review uit de toekomst geaccepteerd'; exception when check_violation then null; when raise_exception then raise; end;
+  begin insert into contributions (item_id, kind, data) values (pid, 'foto', format('{"path":"%s/x.webp"}', b)::jsonb); raise exception 'foto in de map van een ander geaccepteerd'; exception when check_violation then null; when raise_exception then raise; end;
+  begin insert into contributions (item_id, kind, data, status) values (pid, 'review', '{"stars":4,"month":"2026-10"}', 'goed'); raise exception 'gebruiker kon een goedgekeurde bijdrage invoegen'; exception when insufficient_privilege then null; when raise_exception then raise; end;
+  insert into contributions (item_id, kind, data) values (pid, 'review', '{"stars":4,"text":"rls-test","month":"2026-10"}');
+  insert into contributions (item_id, kind, data) values (pid, 'tijden', json_build_object('oh', 'Mo-Sa 10:00-17:00', 'seen', current_date)::jsonb);
+  update contributions set status = 'goed' where data->>'text' = 'rls-test';
+  select count(*) into n from contributions where data->>'text' = 'rls-test' and status = 'nieuw'; if n <> 1 then raise exception 'gebruiker kon zijn eigen review goedkeuren'; end if;
+  reset role;
+  insert into profiles (user_id, name) values (b, 'rls test b');
+  insert into contributions (user_id, item_id, kind, data) values (b, pid, 'review', '{"stars":1,"text":"rls-test-b","month":"2026-10"}');
+  set local role authenticated;
+  select count(*) into n from contributions where data->>'text' = 'rls-test-b'; if n <> 0 then raise exception 'gebruiker ziet de bijdrage van een ander'; end if;
+  update contributions set data = '{"stars":5,"month":"2026-10"}' where data->>'text' = 'rls-test-b'; get diagnostics n = row_count; if n <> 0 then raise exception 'gebruiker wijzigde de review van een ander'; end if;
+  select count(*) into n from profiles; if n <> 1 then raise exception 'gebruiker ziet % profielen (verwacht alleen het eigen)', n; end if;
   reset role;
   select count(*) into n from favorites where user_id = a and item_id = 'rls-test-eigen'; if n <> 1 then raise exception 'eigen favoriet niet aan de gebruiker gekoppeld'; end if;
 
@@ -68,6 +87,8 @@ begin
   select count(*) into n from markets; if n = 0 then raise exception 'beheerder ziet geen markten'; end if;
   update markets set seen_at = seen_at where id = (select id from markets limit 1); get diagnostics n = row_count; if n <> 1 then raise exception 'beheerder kan geen markt wijzigen'; end if;
   select count(*) into n from client_errors where msg = 'rls-test'; if n <> 1 then raise exception 'beheerder ziet de foutmelding van de gast niet'; end if;
+  update contributions set status = 'goed', decided_at = now() where data->>'text' = 'rls-test'; get diagnostics n = row_count; if n <> 1 then raise exception 'beheerder kan een bijdrage niet goedkeuren'; end if;
+  select count(*) into n from contributions where data->>'text' like 'rls-test%'; if n <> 2 then raise exception 'beheerder ziet % testbijdragen (verwacht 2)', n; end if;
   update reports set done_at = now() where note = 'rls-test'; get diagnostics n = row_count; if n <> 1 then raise exception 'beheerder kan een melding niet afhandelen'; end if;
   begin insert into admins values ('indringer@example.com'); raise exception 'beheerder kon zelf een beheerder toevoegen'; exception when insufficient_privilege then null; when raise_exception then raise; end;
   begin delete from markets where true; get diagnostics n = row_count; if n <> 0 then raise exception 'beheerder kon % markten verwijderen', n; end if; exception when insufficient_privilege then null; end;

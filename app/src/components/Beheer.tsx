@@ -6,7 +6,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { CATS, type Cat } from '../lib/model';
 import { queue, alerts, parseLatLon, type MRow, type Judged, type Run } from '../lib/beheer';
 import { CAT, Ic } from './ui';
-import { SB, KEY, readSession, sendLink, logout, api as authApi, type Session } from '../lib/auth';
+import { SB, KEY, readSession, sendLink, logout, fresh, api as authApi, type Session } from '../lib/auth';
 import { watchErrors } from '../lib/errors';
 
 type Row = { id: string; status: string; locked: string[]; data: Record<string, any>; date?: string; updated_at?: string };
@@ -50,15 +50,15 @@ function Login() {
   </form></main>);
 }
 
-type View = 'wachtrij' | 'meldingen' | 'kandidaten' | 'week' | 'winkels' | 'bronnen' | 'log';
-const NAV: [View, string][] = [['wachtrij', 'Wachtrij'], ['meldingen', 'Meldingen'], ['kandidaten', 'Kandidaten'], ['week', 'Markten deze week'], ['winkels', 'Winkels'], ['bronnen', 'Bronnen'], ['log', 'Moderatielog']];
+type View = 'wachtrij' | 'bijdragen' | 'meldingen' | 'kandidaten' | 'week' | 'winkels' | 'bronnen' | 'log';
+const NAV: [View, string][] = [['wachtrij', 'Wachtrij'], ['bijdragen', 'Bijdragen'], ['meldingen', 'Meldingen'], ['kandidaten', 'Kandidaten'], ['week', 'Markten deze week'], ['winkels', 'Winkels'], ['bronnen', 'Bronnen'], ['log', 'Moderatielog']];
 const STATUS: Record<string, string> = { org: 'Bevestigd door organisator', chk: 'Gecontroleerd', unconf: 'Nog niet bevestigd', cancel: 'Afgelast', kandidaat: 'Kandidaat', afgewezen: 'Afgewezen' };
 
 function Panel({ s, out }: { s: Session; out: () => void }) {
   const [view, setView] = useState<View>('wachtrij'), [rows, setRows] = useState<MRow[] | null>(null), [err, setErr] = useState('');
   // ponytail: alle markten vanaf vandaag in één keer (±300; PostgREST geeft er max. 1000). Pagineren als het er meer worden.
   useEffect(() => { api(s, `markets?select=id,date,status,locked,data,updated_at&date=gte.${today()}&order=date,id`).then(setRows).catch(e => setErr(e.message)); }, []);
-  const [undo, setUndo] = useState<{ before: Row; what: string } | null>(null);
+  const [undo, setUndo] = useState<{ before?: Row; what: string; revert?: () => Promise<unknown> } | null>(null);
   const patch = async (r: Row, body: Partial<Row>) => {
     const [n] = await api(s, `markets?id=eq.${encodeURIComponent(r.id)}`, { method: 'PATCH', body: JSON.stringify({ ...body, updated_at: new Date().toISOString() }) });
     setRows(rs => rs!.map(x => x.id === r.id ? n : x)); setErr('');
@@ -68,7 +68,7 @@ function Panel({ s, out }: { s: Session; out: () => void }) {
     try { await patch(r, body); setUndo({ before: r, what: body.status && body.status !== r.status ? `${r.data.name}: ${STATUS[body.status] ?? body.status}` : `${r.data.name} aangepast` }); }
     catch (e) { setErr((e as Error).message); }
   };
-  const revert = () => { if (!undo) return; const { before: b } = undo; setUndo(null); patch(b, { status: b.status, data: b.data, locked: b.locked }).catch(e => setErr(e.message)); };
+  const revert = () => { if (!undo) return; const { before: b, revert: r } = undo; setUndo(null); (r ? r() : patch(b!, { status: b!.status, data: b!.data, locked: b!.locked })).catch(e => setErr(e.message)); };
   useEffect(() => { if (!undo) return; const t = setTimeout(() => setUndo(null), 10000); return () => clearTimeout(t); }, [undo]);
   useEffect(() => {
     const k = (e: KeyboardEvent) => { if (e.key === 'z' && undo && !typing(e) && !e.metaKey && !e.ctrlKey) { e.preventDefault(); revert(); } };
@@ -76,12 +76,14 @@ function Panel({ s, out }: { s: Session; out: () => void }) {
   });
   const [runs, setRuns] = useState<Run[]>([]), [reps, setReps] = useState<Rep[]>([]);
   useEffect(() => { api(s, 'reports?select=*&done_at=is.null&order=created_at').then(setReps).catch(() => {}); }, []);
+  const [nBij, setNBij] = useState(0);
+  useEffect(() => { api(s, 'contributions?select=id&status=eq.nieuw').then(r => setNBij(r.length)).catch(() => {}); }, [view]);
   useEffect(() => { api(s, 'import_runs?select=*&order=at.desc&limit=30').then(setRuns).catch(() => {}); }, []);
   const warn = alerts(runs, new Date());
   const q = useMemo(() => rows ? queue(rows, today()) : [], [rows]);
   const week = useMemo(() => (rows ?? []).filter(r => r.date <= plusDays(7) && STATUS[r.status] && !['kandidaat', 'afgewezen'].includes(r.status)), [rows]);
   const cands = useMemo(() => (rows ?? []).filter(r => r.status === 'kandidaat' || r.status === 'afgewezen'), [rows]);
-  const count: Partial<Record<View, number>> = { wachtrij: q.length, kandidaten: cands.filter(r => r.status === 'kandidaat').length, week: week.length, meldingen: reps.length };
+  const count: Partial<Record<View, number>> = { wachtrij: q.length, kandidaten: cands.filter(r => r.status === 'kandidaat').length, week: week.length, meldingen: reps.length, bijdragen: nBij };
 
   return (<div className="admin">
     <nav className="adm-nav" aria-label="Beheer">
@@ -99,6 +101,7 @@ function Panel({ s, out }: { s: Session; out: () => void }) {
         filters={[['Te keuren', i => i.row.status === 'kandidaat'], ['Afgewezen', i => i.row.status === 'afgewezen']]} empty="Geen kandidaten." />
       : view === 'week' ? <Markets key="w" title="Markten deze week" items={week.map(row => ({ row }))} save={save}
         filters={[['Alles', () => true], ...(['org', 'chk', 'unconf', 'cancel'] as const).map(k => [STATUS[k].replace(' door organisator', ''), (i: Item) => i.row.status === k] as Filter)]} empty="Geen markten de komende 7 dagen." />
+      : view === 'bijdragen' ? <Contribs s={s} setUndo={setUndo} />
       : view === 'meldingen' ? <Reports s={s} reps={reps} setReps={setReps} rows={rows ?? []} />
       : view === 'winkels' ? <Shops s={s} />
       : view === 'bronnen' ? <Sources s={s} runs={runs} warn={warn} rows={rows ?? []} />
@@ -243,6 +246,91 @@ function Reports({ s, reps, setReps, rows }: { s: Session; reps: Rep[]; setReps:
       </div>
     </aside> : <aside className="adm-detail" />}
   </>);
+}
+
+type Bijdrage = { id: number; user_id: string; item_id: string; kind: 'tijden' | 'review' | 'foto'; data: Record<string, any>; created_at: string };
+const KIND: Record<Bijdrage['kind'], [string, string]> = { tijden: ['Openingstijden', 'clock'], review: ['Review', 'star'], foto: ['Foto', 'cam'] };
+type Undo = { what: string; revert: () => Promise<unknown> } | null;
+
+/** Bijdragen van bezoekers (M5): goedkeuren of afwijzen met reden (de inzender ziet die, DSA art. 17).
+ *  Foto goedkeuren = kopiëren naar de openbare bucket; het origineel in fotos-nieuw ruimt de nachtelijke export op. */
+function Contribs({ s, setUndo }: { s: Session; setUndo: (u: Undo) => void }) {
+  const [rows, setRows] = useState<Bijdrage[] | null>(null), [names, setNames] = useState<Record<string, string>>({}), [places, setPlaces] = useState<Record<string, Record<string, any>>>({});
+  const [sel, setSel] = useState(0), [why, setWhy] = useState(''), [rejecting, setRejecting] = useState(false), [err, setErr] = useState(''), [img, setImg] = useState<string | null>(null);
+  useEffect(() => {
+    api(s, 'contributions?select=id,user_id,item_id,kind,data,created_at&status=eq.nieuw&order=created_at').then(async (r: Bijdrage[]) => {
+      setRows(r); if (!r.length) return;
+      const u = [...new Set(r.map(x => x.user_id))], p = [...new Set(r.map(x => x.item_id))];
+      const [ns, ps] = await Promise.all([api(s, `profiles?select=user_id,name&user_id=in.(${u.join(',')})`), api(s, `places?select=id,data&id=in.(${p.map(encodeURIComponent).join(',')})`)]);
+      setNames(Object.fromEntries(ns.map((x: { user_id: string; name: string }) => [x.user_id, x.name]))); setPlaces(Object.fromEntries(ps.map((x: { id: string; data: any }) => [x.id, x.data])));
+    }).catch(e => setErr(e.message));
+  }, []);
+  const c = rows?.[Math.min(sel, (rows?.length ?? 1) - 1)], pl = c && places[c.item_id];
+  // Foto in "nog te keuren" is privé: ophalen met de sessie en als blob tonen.
+  useEffect(() => {
+    setImg(null); setRejecting(false); setWhy('');
+    if (c?.kind !== 'foto') return;
+    let url = ''; authApiBlob(s, `storage/v1/object/authenticated/fotos-nieuw/${c.data.path}`).then(b => { url = URL.createObjectURL(b); setImg(url); }).catch(() => setErr('Foto laden lukte niet.'));
+    return () => { if (url) URL.revokeObjectURL(url); };
+  }, [c?.id]);
+  const decide = async (status: 'goed' | 'afgewezen', reason?: string) => {
+    if (!c) return;
+    try {
+      if (status === 'goed' && c.kind === 'foto') await authApi(s, 'storage/v1/object/copy', { method: 'POST', body: JSON.stringify({ bucketId: 'fotos-nieuw', sourceKey: c.data.path, destinationBucket: 'fotos', destinationKey: c.data.path }) });
+      await api(s, `contributions?id=eq.${c.id}`, { method: 'PATCH', body: JSON.stringify({ status, reason: reason ?? null, decided_at: new Date().toISOString() }) });
+      setRows(rs => rs!.filter(x => x !== c)); setErr('');
+      setUndo({ what: `${KIND[c.kind][0]} · ${pl?.name ?? c.item_id}: ${status === 'goed' ? 'goedgekeurd' : 'afgewezen'}`, revert: async () => {
+        await api(s, `contributions?id=eq.${c.id}`, { method: 'PATCH', body: JSON.stringify({ status: 'nieuw', reason: null, decided_at: null }) });
+        if (status === 'goed' && c.kind === 'foto') await authApi(s, `storage/v1/object/fotos/${c.data.path}`, { method: 'DELETE' });
+        setRows(rs => [c, ...(rs ?? [])].sort((a, b) => a.created_at.localeCompare(b.created_at)));
+      } });
+    } catch (e) { setErr((e as Error).message); }
+  };
+  useEffect(() => {
+    const k = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') return setRejecting(false);
+      if (typing(e) || e.metaKey || e.ctrlKey || e.altKey || rejecting || !rows) return;
+      if (e.key === 'j') setSel(i => Math.min(rows.length - 1, i + 1)); else if (e.key === 'k') setSel(i => Math.max(0, i - 1));
+      else if (e.key === 'a') { e.preventDefault(); decide('goed'); } else if (e.key === 'r') { e.preventDefault(); setRejecting(true); }
+    };
+    addEventListener('keydown', k); return () => removeEventListener('keydown', k);
+  });
+  const d = c?.data ?? {};
+  return (<>
+    <section className="adm-q" aria-label="Bijdragen">
+      <header><h2>Bijdragen</h2></header>
+      {!rows ? <p className="adm-empty">Laden…</p> : rows.length ? <ul className="adm-list">{rows.map((x, i) => <li key={x.id}><button className={`adm-item${x === c ? ' on' : ''}`} aria-current={x === c} onClick={() => setSel(i)}>
+        <span className="tile"><Ic n={KIND[x.kind][1]} /></span>
+        <span><b>{places[x.item_id]?.name ?? x.item_id}</b><span>{KIND[x.kind][0]}{x.kind === 'review' ? ` · ${'★'.repeat(x.data.stars)}` : ''} · {names[x.user_id] ?? '…'}</span></span>
+        <time dateTime={x.created_at}>{new Date(x.created_at).toLocaleDateString('nl-NL', { day: 'numeric', month: 'short' })}</time></button></li>)}</ul>
+        : <p className="adm-empty">Geen bijdragen te keuren. Bezoekers sturen reviews, foto's en openingstijden in vanuit het winkeldetail.</p>}
+    </section>
+    {c ? <aside className="adm-detail" aria-label="Details">
+      <div><p className="eyebrow"><span className="tile"><Ic n={KIND[c.kind][1]} /></span>{KIND[c.kind][0]} van {names[c.user_id] ?? '…'}</p><h3>{pl?.name ?? c.item_id}</h3><p className="adm-sub">{pl?.addr ?? pl?.place ?? ''}</p></div>
+      {c.kind === 'review' && <dl className="facts"><dt>Sterren</dt><dd>{'★'.repeat(d.stars)}{'☆'.repeat(5 - d.stars)}</dd><dt>Bezocht</dt><dd>{d.month}</dd></dl>}
+      {c.kind === 'review' && (d.text ? <blockquote className="adm-quote" tabIndex={0}>{d.text}</blockquote> : <p className="muted">Geen tekst.</p>)}
+      {c.kind === 'tijden' && <dl className="facts"><dt>Nu</dt><dd>{pl?.oh ?? <span className="muted">onbekend</span>}{pl?.hs === 'web' ? <small> · van de website</small> : null}</dd><dt>Voorstel</dt><dd><b>{d.oh}</b></dd><dt>Bron</dt><dd>{d.how ?? '—'}, gezien op {d.seen}</dd></dl>}
+      {c.kind === 'foto' && (img ? <img src={img} alt="Ingestuurde foto" style={{ maxWidth: '100%', maxHeight: 420, borderRadius: 12, objectFit: 'contain', background: 'var(--surface-2)' }} /> : <p className="muted">Foto laden…</p>)}
+      <div className="aibox"><span className="ai doubt"><Ic n="info" />Let op</span><ul>{c.kind === 'foto' ? <><li>Herkenbare mensen of kentekens? Afwijzen met die reden.</li><li>Past de foto bij deze winkel?</li></> : c.kind === 'review' ? <><li>Geen namen van medewerkers, geen scheldwoorden of reclame.</li><li>Negatief is prima; alleen nep of beledigend wijs je af.</li></> : <><li>Klopt het met de website van de winkel?</li><li>Goedgekeurd wint van OSM en de website.</li></>}</ul></div>
+      {err && <p className="bh-err">{err}</p>}
+      {rejecting ? <form className="adm-edit" onSubmit={e => { e.preventDefault(); if (why.trim()) decide('afgewezen', why.trim()); }}>
+        <label>Waarom niet plaatsen? <span className="muted">(de inzender ziet dit; schrijf het als uitleg aan hem of haar)</span>
+          <input className="input" required autoFocus value={why} onChange={e => setWhy(e.target.value)} maxLength={300} placeholder={c.kind === 'foto' ? 'Bijv. Er staan herkenbare mensen op. Stuur hem gerust opnieuw in zonder hen.' : 'Bijv. Er staat een naam van een medewerker in.'} /></label>
+        <div className="adm-btns"><button className="btn primary bad" disabled={!why.trim()}>Afwijzen</button><button type="button" className="btn" onClick={() => setRejecting(false)}>Annuleren <span className="kbd">Esc</span></button></div>
+      </form> : <div className="adm-btns">
+        <button className="btn primary" onClick={() => decide('goed')}><Ic n="check" />Goedkeuren <span className="kbd">A</span></button>
+        <button className="btn" onClick={() => setRejecting(true)}>Afwijzen <span className="kbd">R</span></button>
+        <a className="btn" href={`/?open=${encodeURIComponent(c.item_id)}`} target="_blank" rel="noopener">Bekijk winkel <Ic n="ext" /></a></div>}
+      <p className="src"><Ic n="info" /><span>Goedgekeurd staat na de volgende publicatie op de kaart (±15 minuten).</span></p>
+    </aside> : <aside className="adm-detail" />}
+  </>);
+}
+
+/** Zelfde sessie als api(), maar het antwoord als blob (privéfoto's). */
+async function authApiBlob(s: Session, path: string) {
+  const f = await fresh(s); if (!f) throw new Error('sessie verlopen');
+  const r = await fetch(`${SB}/${path}`, { headers: { apikey: KEY, Authorization: `Bearer ${f.token}` } });
+  if (!r.ok) throw new Error(String(r.status)); return r.blob();
 }
 
 const catOfData = (d: Record<string, any>): Cat => (d.kind === 'tweedehands' ? d.sub ?? 'tweedehands' : 'kringloop');

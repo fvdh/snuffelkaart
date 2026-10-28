@@ -7,10 +7,11 @@ import type { Filters } from '../lib/filter';
 import { searchSpots, type Spot } from '../lib/pdok';
 import { providers, oauthUrl, verifyCode, SB, KEY, type Session } from '../lib/auth';
 import { Ic, Tile, St, Conf, Banner, CAT, kindLabel, isUnsure, EASE, reduced, pop } from './ui';
+import { PhotoStrip, ReviewsSection, type Bij } from './Bijdragen';
 
 export interface Ctx {
   now: Date; f: Filters; online: boolean; dataFrom: string | null; install: { add: () => void; no: () => void } | null; origin: LatLon; originLabel: string | null; locDenied: boolean; welcome: boolean; spot: boolean; me: LatLon | null;
-  pickSpot: (s: Spot) => void; pickPlace: () => void; favs: string[]; planStops: string[]; planDay: string;
+  pickSpot: (s: Spot) => void; pickPlace: () => void; favs: string[]; bij: Bij; planStops: string[]; planDay: string;
   setF: (p: Partial<Filters>) => void; open: (id: string, from?: HTMLElement | null) => void; toggleStop: (id: string) => void; toggleFav: (id: string) => void;
   locate: (quiet?: boolean) => void; back: () => void; openPlan: () => void; openMe: () => void; user: string | null;
 }
@@ -164,19 +165,22 @@ function PlaceDetail({ p, c, top, d, actions }: { p: Place; c: Ctx; top: ReactEl
       <p className="dv-status"><St s={now} pulse /><span className="ds">·</span><span className="tnum">{fkm(d)} km</span>{p.place && <><span className="ds">·</span><span>{p.place}</span></>}</p>
       {actions}
     </header>
+    <PhotoStrip photos={c.bij.extra.photos[p.id] ?? []} />
     {p.kind === 'tweedehands' && <Banner icon="info"><b>Geen standaard kringloop.</b> {p.sub ? `${kindLabel(p)}: ` : ''}tweedehands, maar prijzen en aanbod kunnen anders zijn dan bij een kringloop.</Banner>}
     {w ? <section className="dv-sec"><h3>Openingstijden</h3>
       <dl className="hours">{w.map(x => <div key={x.iso} style={{ display: 'contents' }}><dt className={x.iso === today ? 'today' : ''}>{x.label}</dt><dd className={`${x.iso === today ? 'today' : ''}${x.txt.startsWith('Dicht') ? ' shut' : ''}`}>{x.txt}</dd></div>)}</dl>
-      <p className={`src${stale ? ' stale' : ''}`}><Ic n={stale ? 'alert' : 'clock'} /><span>{p.checked ? (stale ? `Laatst gecontroleerd op ${p.checked}, dat is al even geleden. Bel even voordat je gaat.` : `${p.hs === 'web' ? 'Gelezen op' : 'Laatst gecontroleerd op'} ${p.checked}`) : 'Controledatum onbekend'} · {p.hs === 'web' ? <>van <a href={p.hu} target="_blank" rel="noopener">de website van de winkel</a></> : `bron: ${p.src === 'osm' ? 'OpenStreetMap' : 'Overture Maps'}`}<br />Rond feestdagen kunnen tijden afwijken.</span></p></section>
+      <p className={`src${stale ? ' stale' : ''}`}><Ic n={stale ? 'alert' : 'clock'} /><span>{p.checked ? (stale ? `Laatst gecontroleerd op ${p.checked}, dat is al even geleden. Bel even voordat je gaat.` : `${p.hs === 'web' ? 'Gelezen op' : p.hs === 'bezoeker' ? 'Gezien op' : 'Laatst gecontroleerd op'} ${p.checked}`) : 'Controledatum onbekend'} · {p.hs === 'bezoeker' ? `doorgegeven door ${p.hb}, gecontroleerd door ons` : p.hs === 'web' ? <>van <a href={p.hu} target="_blank" rel="noopener">de website van de winkel</a></> : `bron: ${p.src === 'osm' ? 'OpenStreetMap' : 'Overture Maps'}`}<br />Rond feestdagen kunnen tijden afwijken.</span></p></section>
       : <section className="dv-sec"><h3>Openingstijden</h3><div className="unknown-box"><p><b>We weten de openingstijden nog niet.</b> {p.src === 'osm' ? 'Deze winkel staat op OpenStreetMap, maar zonder tijden.' : 'Deze winkel komt uit Overture Maps en is nog niet door ons gecontroleerd. Misschien bestaat hij niet meer.'} Bel even of kijk op de website voordat je gaat.</p>
-        <div className="btns">{p.phone && <a className="btn sm" href={`tel:${p.phone.replace(/\s/g, '')}`}><Ic n="phone" />{p.phone}</a>}{!p.phone && p.website && <a className="btn sm" href={webUrl(p.website)} target="_blank" rel="noopener"><Ic n="globe" />Website</a>}{osm && <a className="btn sm primary" href={osm} target="_blank" rel="noopener"><Ic n="edit" />Tijden aanvullen op OSM</a>}</div></div>
+        <div className="btns">{p.phone && <a className="btn sm" href={`tel:${p.phone.replace(/\s/g, '')}`}><Ic n="phone" />{p.phone}</a>}{!p.phone && p.website && <a className="btn sm" href={webUrl(p.website)} target="_blank" rel="noopener"><Ic n="globe" />Website</a>}<button className="btn sm primary" onClick={() => c.bij.go('suggest', p.id)}><Ic n="edit" />Ik weet de tijden</button></div></div>
         <p className="src"><Ic n="info" /><span>In “Nu open” tonen we deze winkel niet, omdat we dat niet kunnen beloven.</span></p></section>}
     <section className="dv-sec">
       {p.addr && <div className="inforow"><Ic n="pin" /><span>{p.addr}</span></div>}
       {p.phone && <div className="inforow"><Ic n="phone" /><span className="tnum">{p.phone}</span></div>}
       {p.website && <div className="inforow"><Ic n="globe" /><a href={webUrl(p.website)} target="_blank" rel="noopener">{p.website.replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '')}</a></div>}
     </section>
+    <ReviewsSection p={p} b={c.bij} />
     <footer className="dv-foot"><Report id={p.id} what={SHOP_WHAT} />
+      {p.h && <button className="report-btn" onClick={() => c.bij.go('suggest', p.id)}><Ic n="edit" />Openingstijden aanpassen</button>}
       {osm ? <a className="report-btn" href={osm} target="_blank" rel="noopener"><Ic n="edit" />Zelf aanpassen op OpenStreetMap</a>
       : <><p className="src"><Ic n="info" /><span>Bron: © Overture Maps Foundation (CDLA Permissive 2.0). Nog niet gecontroleerd.</span></p>
         <a className="report-btn" href={`https://www.openstreetmap.org/edit#map=19/${p.lat}/${p.lon}`} target="_blank" rel="noopener"><Ic n="edit" />Ken je deze winkel? Zet hem op OpenStreetMap</a></>}</footer>
@@ -296,6 +300,8 @@ export function MeView({ c, items, showFavs, login, logout, download, remove }: 
       {c.favs.length > n && <p className="src"><Ic n="info" /><span>{c.favs.length - n} bewaarde {c.favs.length - n === 1 ? 'plek staat' : 'plekken staan'} niet meer op de kaart (gesloten, of een markt die voorbij is).</span></p>}</section>
     {!c.user && <div className="login-card"><b>Bewaar je favorieten overal</b><p>Log in, dan staan ze ook op je laptop of je andere telefoon.{n ? ` Je ${n} bewaarde ${n === 1 ? 'plek gaat' : 'plekken gaan'} automatisch mee.` : ''}</p>
       <button className="btn primary" onClick={login}>Inloggen of account maken</button></div>}
+    {c.user && <section className="me-sec" style={{ borderTop: 0, paddingTop: 0 }}>
+      <button className="navrow" onClick={() => c.bij.go('contrib')}>Mijn bijdragen <span>{c.bij.mine.length ? `${c.bij.mine.length} · ${c.bij.mine.filter(x => x.status === 'nieuw').length} in behandeling` : 'reviews, foto\'s en tijden'}<Ic n="chev" /></span></button></section>}
     <section className="me-sec" style={{ borderTop: 0 }}>
       <a className="navrow" href="/hoe-we-controleren">Hoe we controleren <span>en onze bronnen<Ic n="chev" /></span></a>
       <a className="navrow" href="/privacy">Privacy <span><Ic n="chev" /></span></a>
@@ -304,7 +310,7 @@ export function MeView({ c, items, showFavs, login, logout, download, remove }: 
     </section>
     {c.user && <section className="me-sec">
       <button className="navrow" onClick={logout}>Uitloggen <span /></button>
-      <button className="navrow" onClick={download}>Mijn gegevens downloaden <span>e-mailadres en favorieten<Ic n="chev" /></span></button>
+      <button className="navrow" onClick={download}>Mijn gegevens downloaden <span>e-mailadres, favorieten en bijdragen<Ic n="chev" /></span></button>
       {!sure ? <button className="navrow" style={{ color: 'var(--bad-ink)' }} onClick={() => setSure(true)}>Account verwijderen <span><Ic n="chev" /></span></button>
         : <div className="unknown-box"><p><b>Account echt verwijderen?</b> Je e-mailadres en je favorieten in je account gaan weg. Wat op dit apparaat bewaard is, blijft hier staan.</p>
           <div className="btns"><button className="btn sm" style={{ background: 'var(--bad)', borderColor: 'var(--bad)', color: 'oklch(0.99 0 0)' }} onClick={() => remove().finally(() => setSure(false))}>Verwijderen</button><button className="btn sm" onClick={() => setSure(false)}>Toch niet</button></div></div>}

@@ -7,6 +7,7 @@ const STORE = 'snuffel-sessie';
 export type Session = { token: string; refresh: string; email: string; exp: number };
 
 const claims = (jwt: string) => JSON.parse(atob(jwt.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
+export const userId = (s: Session): string => claims(s.token).sub;
 const save = (s: Session | null) => { try { s ? localStorage.setItem(STORE, JSON.stringify(s)) : localStorage.removeItem(STORE); } catch { /* privémodus: alleen deze sessie */ } return s; };
 
 /** Sessie uit de terugkeer-URL (en die URL opschonen), anders de bewaarde. */
@@ -25,7 +26,7 @@ export function returnError(): string | null {
   return e;
 }
 
-async function fresh(s: Session): Promise<Session | null> {
+export async function fresh(s: Session): Promise<Session | null> {
   if (s.exp - Date.now() > 60_000) return s;
   if (!s.refresh) return save(null);
   const r = await fetch(`${SB}/auth/v1/token?grant_type=refresh_token`, { method: 'POST', headers: { apikey: KEY, 'Content-Type': 'application/json' }, body: JSON.stringify({ refresh_token: s.refresh }) });

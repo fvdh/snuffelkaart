@@ -53,6 +53,24 @@ export function placeRows(existing, incoming, today) {
   return { rows, gone };
 }
 
+/** Goedgekeurde bijdragen → /data/extra.json (los van het open OSM-bestand; van Snuffelkaart, niet ODbL).
+ *  Tijden: de jongste per winkel (op de datum waarop de bezoeker ze zag), vooruitgerekend zoals de rest. */
+export function toExtra(contribs, names, from, photoBase) {
+  const hours = {}, reviews = {}, photos = {}, by = id => names.get(id) ?? 'Een bezoeker';
+  for (const c of [...contribs].sort((a, b) => a.created_at.localeCompare(b.created_at))) {
+    if (c.status !== 'goed') continue;
+    const d = c.data;
+    if (c.kind === 'tijden') {
+      const h = precompute(d.oh, from);
+      if (h && (!hours[c.item_id] || d.seen >= hours[c.item_id].checked)) hours[c.item_id] = { h, checked: d.seen, by: by(c.user_id) };
+    } else if (c.kind === 'review') (reviews[c.item_id] ??= []).push({ name: by(c.user_id), stars: d.stars, text: d.text || undefined, month: d.month });
+    else if (c.kind === 'foto') (photos[c.item_id] ??= []).push({ url: `${photoBase}/${d.path}`, caption: d.caption || undefined, name: by(c.user_id) });
+  }
+  for (const r of Object.values(reviews)) r.sort((a, b) => b.month.localeCompare(a.month));
+  for (const p of Object.values(photos)) p.reverse(); // nieuwste eerst
+  return { generated: new Date().toISOString(), hours, reviews, photos };
+}
+
 // ---------- Supabase REST ----------
 function env() {
   const f = new URL('../.env', import.meta.url);
@@ -66,8 +84,8 @@ export async function req(path, init = {}) {
   if (!res.ok) throw new Error(`${init.method ?? 'GET'} ${path}: ${res.status} ${await res.text()}`);
   return res.status === 204 || init.method === 'POST' ? null : res.json();
 }
-export async function all(table) {
-  const out = []; for (let i = 0; ; i += 1000) { const page = await req(`${table}?select=*&order=id`, { headers: { Range: `${i}-${i + 999}` } }); out.push(...page); if (page.length < 1000) return out; }
+export async function all(table, key = 'id') {
+  const out = []; for (let i = 0; ; i += 1000) { const page = await req(`${table}?select=*&order=${key}`, { headers: { Range: `${i}-${i + 999}` } }); out.push(...page); if (page.length < 1000) return out; }
 }
 /** ignore: alleen nieuwe rijen (bestaande, ook afgewezen kandidaten, blijven zoals ze zijn). */
 export async function upsert(table, rows, { ignore = false } = {}) {
@@ -102,10 +120,27 @@ async function push(what) {
 
 async function exportFiles() {
   const from = todayIso(), f = toFiles(await all('places'), await all('markets'), from);
+  const names = new Map((await all('profiles', 'user_id')).map(p => [p.user_id, p.name]));
+  const extra = toExtra(await req('contributions?select=*&status=eq.goed'), names, from, `${process.env.SUPABASE_URL}/storage/v1/object/public/fotos`);
+  fs.writeFileSync(FILE('extra'), JSON.stringify(extra));
+  await cleanPhotos();
   if (f.places.places.length < 1000 || !f.markets.markets.length) throw new Error(`Export te klein (${f.places.places.length} winkels, ${f.markets.markets.length} markten). Niets geschreven.`);
   fs.writeFileSync(FILE('places'), JSON.stringify(f.places, (k, v) => (v === null ? undefined : v)));
   fs.writeFileSync(FILE('markets'), JSON.stringify(f.markets));
+  console.log(`extra: tijden van bezoekers bij ${Object.keys(extra.hours).length} winkels, ${Object.values(extra.reviews).flat().length} reviews, ${Object.values(extra.photos).flat().length} foto's`);
   console.log(`export vanaf ${from}: ${f.places.places.length} winkels (${f.places.places.filter(p => p.h).length} met tijden), ${f.markets.markets.length} markten`);
+}
+
+/** Foto's zonder (goedgekeurde of nog te keuren) bijdrage weg: account verwijderd, ingetrokken of afgewezen. */
+async function cleanPhotos() {
+  const gone = await req('rpc/orphan_photos', { method: 'GET' });
+  const { url, headers } = env(), base = url.replace('/rest/v1', '/storage/v1');
+  for (const b of ['fotos-nieuw', 'fotos']) {
+    const prefixes = gone.filter(g => g.bucket === b).map(g => g.name); if (!prefixes.length) continue;
+    const r = await fetch(`${base}/object/${b}`, { method: 'DELETE', headers: { ...headers, Authorization: `Bearer ${headers.apikey}` }, body: JSON.stringify({ prefixes }) });
+    if (!r.ok) throw new Error(`foto's opruimen (${b}): ${r.status} ${await r.text()}`);
+    console.log(`foto's opgeruimd in ${b}: ${prefixes.length}`);
+  }
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
