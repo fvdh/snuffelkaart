@@ -1,3 +1,7 @@
+/* Lettertypen zelf gehost (geen Google Fonts: dat geeft het IP-adres van elke bezoeker aan Google). Latin-subset, SIL OFL. */
+@font-face{font-family:"Figtree";font-style:normal;font-weight:400 800;font-display:swap;src:url(/fonts/figtree.woff2) format("woff2")}
+@font-face{font-family:"DM Mono";font-style:normal;font-weight:400;font-display:swap;src:url(/fonts/dm-mono-400.woff2) format("woff2")}
+@font-face{font-family:"DM Mono";font-style:normal;font-weight:500;font-display:swap;src:url(/fonts/dm-mono-500.woff2) format("woff2")}
 /* Overgenomen uit ontwerp/snuffelkaart-ontwerp.html (tokens = DESIGN.md). Niet hier tweaken zonder het ontwerp bij te werken. */
 
 
@@ -509,6 +513,7 @@ svg.i{width:20px;height:20px;flex:none;fill:none;stroke:currentColor;stroke-widt
 .pill.no{background:var(--bad-soft);color:var(--bad-ink)!important}
 .me-sec{display:flex;flex-direction:column;gap:8px;padding:16px 0;border-top:1px solid var(--line)}
 .me-sec h3{font-size:.9375rem;font-weight:700}
+a.navrow{color:inherit;text-decoration:none}
 .navrow{display:flex;justify-content:space-between;align-items:center;border:0;background:none;padding:12px 0;font-size:.9375rem;font-weight:600;width:100%;text-align:left;border-bottom:1px solid var(--line)}
 .navrow span{color:var(--fg-3);font-weight:500;font-size:.875rem;display:inline-flex;align-items:center;gap:4px}
 .navrow svg{width:16px;height:16px}

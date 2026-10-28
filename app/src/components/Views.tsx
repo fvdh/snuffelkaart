@@ -130,7 +130,7 @@ export function ListView({ c, list, total, limit, more, counts, nPlaces }: { c: 
           <div className="btns">{f.q && <button className="btn sm" onClick={() => c.setF({ q: '' })}>Wis zoekopdracht</button>}<button className="btn sm primary" onClick={() => c.setF({ time: 'all', gratis: false, overdekt: false, hide: [], only: null })}>Toon alles</button></div></div>}
       {total > limit && <button className="more" onClick={more}>Toon meer ({total - limit})</button>}
       {f.time === 'now' && f.type !== 'k' && !f.q && <button className="hint" onClick={() => c.setF({ time: 'weekend' })}><span>{counts.mWk} markten dit weekend<small>Markten zijn er vooral op zaterdag en zondag</small></span><Ic n="chev" /></button>}
-      <p className="src" style={{ marginTop: 18 }}><Ic n="info" /><span>{nPlaces} winkels uit © OpenStreetMap-bijdragers en © Overture Maps Foundation, heel Nederland. De winkelgegevens zijn vrij te gebruiken onder de <a href="https://opendatacommons.org/licenses/odbl/1-0/" target="_blank" rel="noopener">ODbL</a> (<a href="/data/places.json">download</a>). Markten uit de eigen agenda van organisatoren; bij elke markt staat welke.</span></p>
+      <p className="src" style={{ marginTop: 18 }}><Ic n="info" /><span>{nPlaces} winkels uit © OpenStreetMap-bijdragers en © Overture Maps Foundation, heel Nederland. De winkelgegevens zijn vrij te gebruiken onder de <a href="https://opendatacommons.org/licenses/odbl/1-0/" target="_blank" rel="noopener">ODbL</a> (<a href="/data/places.json">download</a>). Markten uit de eigen agenda van organisatoren; bij elke markt staat welke. <a href="/hoe-we-controleren">Hoe we controleren</a> · <a href="/privacy">Privacy</a></span></p>
     </div>
   </>);
 }
@@ -268,6 +268,10 @@ export function MeView({ c, items, showFavs, login, logout, download, remove }: 
       {c.favs.length > n && <p className="src"><Ic n="info" /><span>{c.favs.length - n} bewaarde {c.favs.length - n === 1 ? 'plek staat' : 'plekken staan'} niet meer op de kaart (gesloten, of een markt die voorbij is).</span></p>}</section>
     {!c.user && <div className="login-card"><b>Bewaar je favorieten overal</b><p>Log in, dan staan ze ook op je laptop of je andere telefoon.{n ? ` Je ${n} bewaarde ${n === 1 ? 'plek gaat' : 'plekken gaan'} automatisch mee.` : ''}</p>
       <button className="btn primary" onClick={login}>Inloggen of account maken</button></div>}
+    <section className="me-sec" style={{ borderTop: 0 }}>
+      <a className="navrow" href="/hoe-we-controleren">Hoe we controleren <span>en onze bronnen<Ic n="chev" /></span></a>
+      <a className="navrow" href="/privacy">Privacy <span><Ic n="chev" /></span></a>
+    </section>
     {c.user && <section className="me-sec">
       <button className="navrow" onClick={logout}>Uitloggen <span /></button>
       <button className="navrow" onClick={download}>Mijn gegevens downloaden <span>e-mailadres en favorieten<Ic n="chev" /></span></button>
@@ -301,7 +305,7 @@ export function LoginView({ c, send, done }: { c: Ctx; send: (email: string) => 
       <div className="field"><label htmlFor="login-mail">E-mailadres</label><input className="input" id="login-mail" type="email" autoComplete="email" placeholder="naam@voorbeeld.nl" required value={email} onChange={e => setEmail(e.target.value)} /></div>
       {err && <p className="issue bad" role="alert"><Ic n="alert" /><span>{err}</span></p>}
       <button className="btn primary block" disabled={busy}>{busy ? 'Versturen…' : 'Stuur inloglink'}</button>
-      <p className="prose-s" style={{ fontSize: '.8125rem', color: 'var(--fg-3)' }}>We gebruiken je e-mailadres alleen om in te loggen. Je kunt je account altijd verwijderen, met al je gegevens.</p>
+      <p className="prose-s" style={{ fontSize: '.8125rem', color: 'var(--fg-3)' }}>We gebruiken je e-mailadres alleen om in te loggen. Je kunt je account altijd verwijderen, met al je gegevens. <a href="/privacy">Privacy</a></p>
     </form>
   </>);
 }

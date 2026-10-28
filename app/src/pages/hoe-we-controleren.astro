@@ -1,0 +1,45 @@
+---
+import Tekst from '../layouts/Tekst.astro';
+// Alleen beloven wat de app echt doet (DECISIONS.md, M4). Pins: dezelfde opmaak als op de kaart (MapView).
+const pin = (cls: string, icon: string) => `<span class="pin ${cls}"><span class="pin-b"><svg class="i" aria-hidden="true"><use href="#i-${icon}"/></svg></span><span class="pin-dot"></span></span>`;
+const legend: [string, string, string][] = [
+  [pin('m', 'kraam'), 'Bevestigd door organisator', 'De organisator gaf deze datum zelf op.'],
+  [pin('m', 'kraam'), 'Gecontroleerd op een datum', 'Wij zagen de datum op de website van de organisator, of in een vergunning of melding in het Gemeenteblad die wij met de hand hebben nagekeken. Websites van organisatoren lezen we elke nacht opnieuw.'],
+  [pin('m unconf', 'kraam'), 'Nog niet bevestigd', 'Bijvoorbeeld een markt die van de website van de organisator verdween, of een vergunning die nog maar is aangevraagd. We tonen hem wel, maar stellen hem niet voor in je dagplan. Check hem voordat je gaat.'],
+  [pin('m cancel', 'kraam'), 'Afgelast', 'Doorgestreept tot de datum voorbij is. Een afgelasting staat binnen enkele minuten overal, ook als je de app al open had.'],
+  [pin('k c-kringloop open-now', 'tag'), 'Winkel met openingstijden', 'Met de bron en de datum waarop de tijden voor het laatst zijn gecontroleerd. Is dat langer dan 4 maanden geleden, dan zie je een waarschuwing.'],
+  [pin('k c-kringloop unknown', 'tag'), 'Winkel zonder openingstijden', 'We weten de tijden niet en zeggen dat ook. Deze winkels staan nooit bij “Nu open”.'],
+];
+---
+<Tekst title="Hoe we controleren" description="Hoe Snuffelkaart controleert of een kringloop open is en een markt doorgaat, en waar de gegevens vandaan komen.">
+  <h1>Hoe we controleren</h1>
+  <p class="lede">Eén keer voor niets naar een afgelaste markt rijden, en je komt niet meer terug. Daarom zie je bij alles hoe zeker het is, en van wanneer.</p>
+
+  <section>
+    <h2>Wat de pins betekenen</h2>
+    <ul class="legend">{legend.map(([p, b, t]) => <li><Fragment set:html={p} /><div><b>{b}</b><p>{t}</p></div></li>)}</ul>
+  </section>
+
+  <section>
+    <h2>Openingstijden en feestdagen</h2>
+    <p>Openingstijden komen uit OpenStreetMap of van de website van de winkel zelf. We rekenen ze drie weken vooruit, inclusief zomer- en wintertijd. Op feestdagen hebben winkels vaak andere tijden; dan zie je een melding om even te bellen.</p>
+  </section>
+
+  <section>
+    <h2>Waar de gegevens vandaan komen</h2>
+    <dl class="srclist">
+      <dt>© OpenStreetMap-bijdragers</dt><dd>Winkels en openingstijden. Licentie <a href="https://opendatacommons.org/licenses/odbl/1-0/">ODbL</a>. Onze winkellijst is daarom ook vrij te gebruiken: <a href="/data/places.json">download</a>.</dd>
+      <dt>Overture Maps Foundation</dt><dd>Om winkels te vinden die op OpenStreetMap ontbreken. Licentie CDLA Permissive 2.0. Zulke winkels zijn nog niet door ons gecontroleerd; dat staat erbij.</dd>
+      <dt>Websites van winkels</dt><dd>Openingstijden die de winkel zelf op zijn site zet.</dd>
+      <dt>Websites van organisatoren</dt><dd>Datums en tijden van markten, alleen van hun eigen markten. Bij elke markt staat de bron met een link.</dd>
+      <dt>Gemeenteblad</dt><dd>Vergunningen en meldingen voor markten en braderieën (vrij te gebruiken, CC0). Komen pas op de kaart nadat wij ze hebben nagekeken.</dd>
+      <dt>PDOK (Kadaster)</dt><dd>Plaatsen en postcodes bij het zoeken.</dd>
+      <dt>OpenFreeMap en OpenMapTiles</dt><dd>De kaart zelf.</dd>
+    </dl>
+  </section>
+
+  <section>
+    <h2>Klopt er iets niet?</h2>
+    <p>Bij een winkel uit OpenStreetMap kun je de gegevens daar zelf verbeteren; de link staat onderaan bij de winkel. Dan heeft iedereen er iets aan. Voor al het andere: mail <a href="mailto:info@freekvanderhorst.nl">info@freekvanderhorst.nl</a>.</p>
+  </section>
+</Tekst>

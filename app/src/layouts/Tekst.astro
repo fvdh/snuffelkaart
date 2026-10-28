@@ -1,0 +1,51 @@
+---
+// Gewone tekstpagina's (privacy, hoe we controleren): statisch, vindbaar, zelfde stijl als de app.
+import '../styles/design.css';
+import Sprite from '../components/Sprite.astro';
+const { title, description } = Astro.props;
+---
+<html lang="nl">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="preload" href="/fonts/figtree.woff2" as="font" type="font/woff2" crossorigin />
+    <title>{title} · Snuffelkaart</title>
+    <meta name="description" content={description} />
+    <style is:global>
+      body { background: var(--bg); color: var(--fg); font-family: var(--font); margin: 0 }
+      .tp { max-width: 680px; margin: 0 auto; padding: 20px 16px 72px }
+      .tp-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-bottom: 20px }
+      .tp-brand { display: inline-flex; align-items: center; gap: 10px; font-weight: 750; color: var(--fg); text-decoration: none }
+      .tp-mark { width: 30px; height: 30px; border-radius: 9px; background: var(--ink); color: var(--on-ink); display: grid; place-items: center }
+      .tp-back { color: var(--fg-2); font-weight: 600; text-decoration: none; font-size: .9375rem }
+      .tp h1 { font-size: clamp(1.75rem, 5vw, 2.25rem); font-weight: 750; letter-spacing: -.02em; line-height: 1.1; margin: 8px 0 12px }
+      .tp .lede { color: var(--fg-2); font-size: 1.0625rem; max-width: 60ch }
+      .tp h2 { font-size: 1.125rem; font-weight: 700; margin: 0 }
+      .tp section { padding: 22px 0; border-top: 1px solid var(--line); display: flex; flex-direction: column; gap: 10px; margin-top: 22px }
+      .tp section + section { margin-top: 0 }
+      .tp p, .tp li { color: var(--fg-2); line-height: 1.55 }
+      .tp ul { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px }
+      .tp a { color: var(--fg); font-weight: 600 }
+      .tp b { color: var(--fg) }
+      .legend { list-style: none; margin: 0; padding: 0 !important; gap: 0 !important }
+      .legend li { display: grid; grid-template-columns: 44px 1fr; gap: 12px; align-items: start; padding: 12px 0; border-bottom: 1px solid var(--line) }
+      .legend .pin { position: relative; margin: 4px 0 0 4px; display: block }
+      .legend b { display: block; font-size: .9375rem }
+      .legend p { font-size: .9375rem; margin: 2px 0 0 }
+      .srclist { margin: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 2px }
+      .srclist dt { font-weight: 650; margin-top: 10px }
+      .srclist dd { margin: 0; color: var(--fg-2) }
+      .tp-foot { margin-top: 32px; font-size: .875rem; color: var(--fg-3); display: flex; gap: 16px; flex-wrap: wrap }
+      .tp-foot a { color: var(--fg-2); font-weight: 500 }
+    </style>
+  </head>
+  <body>
+    <Sprite />
+    <main class="tp">
+      <div class="tp-top"><a class="tp-brand" href="/"><span class="tp-mark"><svg class="i" aria-hidden="true"><use href="#i-tag" /></svg></span>Snuffelkaart</a><a class="tp-back" href="/">Naar de kaart</a></div>
+      <slot />
+      <footer class="tp-foot"><a href="/hoe-we-controleren">Hoe we controleren</a><a href="/privacy">Privacy</a><a href="/data/places.json">Open data (ODbL)</a></footer>
+    </main>
+  </body>
+</html>
