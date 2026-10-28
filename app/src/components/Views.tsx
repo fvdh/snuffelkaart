@@ -7,7 +7,8 @@ import type { Filters } from '../lib/filter';
 import { searchSpots, type Spot } from '../lib/pdok';
 import { providers, oauthUrl, verifyCode, SB, KEY, type Session } from '../lib/auth';
 import { Ic, Tile, St, Conf, Banner, CAT, kindLabel, isUnsure, EASE, reduced, pop } from './ui';
-import { PhotoStrip, ReviewsSection, PILL, WHAT, type Bij } from './Bijdragen';
+import { PhotoStrip, ReviewsSection, NameField, PILL, WHAT, type Bij } from './Bijdragen';
+import { errText } from '../lib/bijdragen';
 
 export interface Ctx {
   now: Date; f: Filters; online: boolean; dataFrom: string | null; install: { add: () => void; no: () => void } | null; origin: LatLon; originLabel: string | null; locDenied: boolean; welcome: boolean; spot: boolean; me: LatLon | null;
@@ -314,6 +315,7 @@ const TILT = [-9, 6, -4, 11, -7, 3, -12, 8, -2, 5];
  *  een bijdrage in behandeling een stippellijn. Daaronder bewaard en je dagplan; account en info zakken naar een stille voet. */
 export function MeView({ c, items, showFavs, login, logout, download, remove }: { c: Ctx; items: Item[]; showFavs: () => void; login: () => void; logout: () => void; download: () => void; remove: () => Promise<void> }) {
   const byId = new Map(items.map(i => [i.id, i])), favs = c.favs.map(id => byId.get(id)).filter(Boolean) as Item[], n = favs.length, [sure, setSure] = useState(false);
+  const [nm, setNm] = useState<string | null>(null), [nmErr, setNmErr] = useState(''), [nmBusy, setNmBusy] = useState(false);
   const mine = c.bij.mine.filter(x => x.status !== 'afgewezen'), done = mine.filter(x => x.status === 'goed').length, wait = mine.length - done;
   // ponytail: tien vakjes; wie er meer heeft ziet de nieuwste tien en een teller
   const slots = Array.from({ length: 10 }, (_, i) => [...mine].reverse()[i] ?? null), over = Math.max(0, mine.length - 10);
@@ -323,6 +325,12 @@ export function MeView({ c, items, showFavs, login, logout, download, remove }: 
     <section className="pas" aria-labelledby="pas-naam">
       <div className="pas-top"><span className="pas-brand"><Ic n="tag" />SNUFFELPAS</span><span className="pas-mail">{c.user ?? 'op dit apparaat'}</span></div>
       <h2 id="pas-naam" className="pas-name">{c.user ? (c.bij.name ?? 'Snuffelaar') : 'Gast'}</h2>
+      {c.user && (nm == null ? <button className="link pas-edit" onClick={() => { setNm(c.bij.name ?? ''); setNmErr(''); }}><Ic n="edit" />{c.bij.name ? 'Schermnaam wijzigen' : 'Kies een schermnaam'}</button>
+        : <form className="pas-form" onSubmit={async e => { e.preventDefault(); if (nm.trim() === c.bij.name) return setNm(null); setNmBusy(true); setNmErr(''); try { await c.bij.setName(nm.trim()); setNm(null); } catch (x) { setNmErr(errText(x)); } finally { setNmBusy(false); } }}>
+          <NameField value={nm} set={setNm} />
+          {c.bij.mine.some(x => x.status === 'goed') && <span className="help">Bij je reviews en foto's die al online staan, verschijnt de nieuwe naam bij de volgende verversing (meestal binnen een dag).</span>}
+          {nmErr && <p role="alert" className="issue bad"><Ic n="alert" /><span>{nmErr}</span></p>}
+          <div className="btns"><button className="btn sm primary" disabled={nmBusy}>{nmBusy ? 'Opslaan…' : 'Opslaan'}</button><button type="button" className="btn sm" onClick={() => setNm(null)}>Annuleren</button></div></form>)}
       <ol className="stamps" aria-label={`${done} ${done === 1 ? 'stempel' : 'stempels'}${wait ? `, ${wait} in behandeling` : ''}`}>
         {slots.map((x, i) => <li key={x?.id ?? i} className={x ? (x.status === 'goed' ? 'on' : 'wait') : ''} style={{ ['--r' as string]: `${TILT[i]}deg`, ['--d' as string]: `${i * 45}ms` }}
           title={x ? `${WHAT[x.kind]} · ${byId.get(x.item_id)?.name ?? 'winkel'}${x.status === 'nieuw' ? ' (in behandeling)' : ''}` : undefined}>{x && <Ic n={STAMP[x.kind]} />}</li>)}

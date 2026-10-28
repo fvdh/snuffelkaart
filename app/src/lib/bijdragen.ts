@@ -60,8 +60,9 @@ export async function shrink(file: File): Promise<Blob> {
 export function errText(e: unknown): string {
   const m = e instanceof Error ? e.message : String(e);
   if (e instanceof TypeError) return 'Geen verbinding. Probeer het straks nog eens.';
+  if (/duplicate key.*profiles_name/.test(m)) return 'Deze schermnaam is al bezet.';
   const j = /\{.*\}/s.exec(m); try { const msg = j && JSON.parse(j[0]).message; if (msg) return msg.replace(/^./, (c: string) => c.toUpperCase()); } catch { /* geen JSON */ }
-  return /duplicate key.*profiles_name/.test(m) ? 'Deze schermnaam is al bezet.' : 'Dat lukte niet. Probeer het later opnieuw.';
+  return 'Dat lukte niet. Probeer het later opnieuw.';
 }
 
 export const monthNow = (now: Date) => isoDay(now).slice(0, 7);

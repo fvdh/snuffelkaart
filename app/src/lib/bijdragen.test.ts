@@ -28,3 +28,7 @@ test('foutmelding uit de database leesbaar', () => {
   expect(errText(new Error('400: {"code":"54000","message":"je hebt vandaag al 10 foto\'s toegevoegd; morgen weer"}'))).toBe("Je hebt vandaag al 10 foto's toegevoegd; morgen weer");
   expect(errText(new TypeError('Failed to fetch'))).toMatch(/Geen verbinding/);
 });
+
+test('bezette schermnaam: Nederlandse zin, ook als PostgREST JSON stuurt', () => {
+  expect(errText(new Error('409: {"code":"23505","message":"duplicate key value violates unique constraint \\"profiles_name_key\\""}'))).toBe('Deze schermnaam is al bezet.');
+});

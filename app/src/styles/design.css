@@ -216,6 +216,10 @@ svg.i{width:20px;height:20px;flex:none;fill:none;stroke:currentColor;stroke-widt
 @keyframes stamp{0%{opacity:0;transform:rotate(var(--r)) scale(1.6)}60%{opacity:1}100%{transform:rotate(var(--r)) scale(1)}}
 @keyframes pasIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
 @media (max-width: 420px){.stamps{grid-template-columns:repeat(5,minmax(0,1fr));max-width:230px}}
+.pas-name{margin-bottom:4px}
+.pas-edit{display:inline-flex;align-items:center;gap:5px;font-size:.8125rem;font-weight:600;color:var(--fg-2);margin-bottom:14px}
+.pas-edit svg{width:13px;height:13px}
+.pas-form{display:flex;flex-direction:column;gap:10px;max-width:360px;margin:6px 0 16px}
 .pas-cap{font-size:.875rem;color:var(--fg-2);margin-top:12px;max-width:52ch}
 .pas-cta{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;margin-top:14px}
 .pas-cta span{font-size:.8125rem;color:var(--fg-3);flex:1 1 180px}

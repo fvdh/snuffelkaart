@@ -27,7 +27,7 @@ function Done({ title, text, onBack, label }: { title: string; text: string; onB
 }
 
 /** Schermnaam bij de eerste bijdrage: wat anderen bij je review of foto zien. */
-function NameField({ value, set }: { value: string; set: (v: string) => void }) {
+export function NameField({ value, set }: { value: string; set: (v: string) => void }) {
   return <div className="field"><label htmlFor="bij-naam">Je schermnaam</label>
     <input className="input" id="bij-naam" required minLength={3} maxLength={30} pattern="[A-Za-z0-9À-ž][A-Za-z0-9À-ž ._\-]{1,28}[A-Za-z0-9À-ž]" value={value} onChange={e => set(e.target.value)} placeholder="Bijv. Marieke of snuffelaar_utrecht" autoComplete="nickname" />
     <span className="help">Deze naam staat bij je reviews en foto's. Gebruik liever niet je volledige naam.</span></div>;

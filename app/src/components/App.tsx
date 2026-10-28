@@ -173,7 +173,7 @@ export default function App() {
       await (old ? rest(`contributions?id=eq.${old.id}`, { method: 'PATCH', body: JSON.stringify({ data }) }) : rest('contributions', { method: 'POST', body: JSON.stringify({ item_id: itemId, kind, data }) }));
       await loadMine();
     },
-    setName: async n => { await rest('profiles', { method: 'POST', body: JSON.stringify({ name: n }) }); setName(n); },
+    setName: async n => { await (name ? rest(`profiles?user_id=eq.${userId(sess!)}`, { method: 'PATCH', body: JSON.stringify({ name: n }) }) : rest('profiles', { method: 'POST', body: JSON.stringify({ name: n }) })); setName(n); },
     withdraw: async id => { await rest(`contributions?id=eq.${id}`, { method: 'DELETE' }); await loadMine(); },
   };
   const toggleFav = (id: string) => {
