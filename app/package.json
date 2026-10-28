@@ -8,6 +8,7 @@
     "preview": "astro preview",
     "astro": "astro",
     "test": "TZ=Europe/Amsterdam vitest run",
+    "test:rls": "cd .. && npx supabase db query --linked -f supabase/tests/rls.sql",
     "data:osm": "node scripts/fetch-osm.mjs",
     "data:overture": "node scripts/fetch-overture.mjs",
     "data": "npm run data:overture && npm run data:osm",
