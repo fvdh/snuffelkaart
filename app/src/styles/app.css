@@ -29,10 +29,12 @@ a.btn.primary{color:var(--on-ink)}
 
 /* desktop: lijst links (standaard 400px, versleepbaar via .resizer: --side), kaart rechts; de sheet wordt een vast paneel */
 @media (min-width: 980px){
-  .resizer{position:absolute;top:0;bottom:0;left:calc(var(--side,400px) - 6px);width:12px;z-index:13;cursor:col-resize;touch-action:none;display:grid;place-items:center}
-  .resizer::before{content:"";width:4px;height:44px;border-radius:2px;background:var(--line-strong);opacity:0;transition:opacity .15s}
-  .resizer:hover::before,.resizer:focus-visible::before,.resizer.on::before{opacity:1}
-  .resizer:focus-visible{outline:none}
+  /* Greep tussen lijst en kaart: altijd zichtbaar lipje (anders weet niemand dat het kan), raakvlak 24 px breed over de hele hoogte. */
+  .resizer{position:absolute;top:0;bottom:0;left:calc(var(--side,400px) - 12px);width:24px;z-index:13;cursor:col-resize;touch-action:none;display:grid;place-items:center}
+  .resizer::before{content:"";width:14px;height:44px;border-radius:7px;background:var(--surface);border:1px solid var(--line-strong);box-shadow:0 1px 2px oklch(0.2 0.02 260 / .08),0 3px 10px oklch(0.2 0.02 260 / .10);
+    background-image:linear-gradient(var(--fg-3),var(--fg-3)),linear-gradient(var(--fg-3),var(--fg-3));background-size:1.5px 16px;background-position:4.5px 50%,7.5px 50%;background-repeat:no-repeat;transition:border-color .15s,transform .15s var(--ease)}
+  .resizer:hover::before,.resizer.on::before{border-color:var(--fg-3);transform:scaleY(1.08)}
+  .resizer:focus-visible{outline:none}.resizer:focus-visible::before{outline:2px solid var(--focus);outline-offset:2px}
   .shell .sheet{left:0;right:auto;width:var(--side,400px);top:0;bottom:0;transform:none!important;border-radius:0;box-shadow:none;border-right:1px solid var(--line);z-index:12}
   .shell .sheet-scroll{padding-bottom:calc(var(--barpad,0px) + 24px)}
   .shell .handle{display:none}
