@@ -121,3 +121,13 @@ Keuzes en waarom. Nieuwste onderaan. "Freek" = besloten door Freek; anders voorl
 - **Kringloop ook volgens de eigen website** (`scripts/soort.mjs`): staat "kringloop" in het adres van hun eigen site (kringloopteddy.eu, opnieuwenco.nl/kringloopwinkels/…), dan is het een kringloop. Gidssites (allekringloopwinkels, kringloop-info) tellen niet. Plus ketens op naam: Opnieuw & Co, Estafette, Kringloper, Kringloods.
 - **Nadere soort uit de naam**, alleen als Overture er geen gaf: vintage/thrift/fashion/boetiek → "Vintage en kleding"; Used Products, Cash Converters → "Opkoop en pandjeshuis"; bouwmaterialen, houtbank → "Sloop en restpartijen".
 - **Resultaat**: overige tweedehands 1068 → 824; kringloop 1089 → 1164, vintage en kleding 283 → 399, opkoop 22 → 72. De rest heeft geen signaal in naam of site; daarvoor is de beheerqueue (M2).
+
+## M2 deel 1: Supabase als bron van waarheid (2026-10-28)
+
+- **Project** `snuffelkaart` (eu-west-1, gratis plan, org via Vercel; Freek). Schema in `supabase/migrations`, uitrollen met `npx supabase db push --linked`.
+- **Eén document per record** (`data jsonb`, zelfde vorm als de JSON voor de app) plus kolommen waarop we filteren of die beheer wijzigt: `status`, `date`, `source`, `locked`. Typed kolommen en PostGIS pas als een query ze nodig heeft.
+- **Imports overschrijven nooit met de hand gezette velden** (`locked`, ook voor `status`). Markten die van de site van de organisator verdwijnen, worden "nog niet bevestigd" (niet weg) als die organisator die nacht vers is gelezen.
+- **Export** maakt `places.json` en `markets.json` in de oude vorm; de app verandert niet. Tijden rekent de export vooruit uit `oh`; `hours.json` en `refresh-hours.mjs` zijn weg.
+- **Terugdraaien**: elke nachtelijke export staat in git (bot-commit). Een eerdere stand terugzetten = dat bestand pushen.
+- **RLS** op alle tabellen; publiek leest niets (getest met de publishable key). Beheerders (`admins`) lezen en wijzigen via `is_admin()`. Scripts gebruiken de secret key.
+- **Geen supabase-js in de scripts**: REST met `fetch` volstaat.

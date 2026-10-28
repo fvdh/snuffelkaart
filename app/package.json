@@ -12,7 +12,10 @@
     "data:overture": "node scripts/fetch-overture.mjs",
     "data": "npm run data:overture && npm run data:osm",
     "data:web": "node scripts/fetch-web-hours.mjs",
-    "data:markets": "node scripts/fetch-markets.mjs"
+    "data:markets": "node scripts/fetch-markets.mjs",
+    "db:push:places": "node scripts/db.mjs push places",
+    "db:push:markets": "node scripts/db.mjs push markets",
+    "db:export": "node scripts/db.mjs export"
   },
   "dependencies": {
     "@astrojs/react": "^5.0.7",

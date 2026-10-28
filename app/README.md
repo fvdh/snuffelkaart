@@ -14,8 +14,11 @@ npm run data:markets # markten uit de agenda van organisatoren (14, zie ../sourc
 npm run data:osm     # OSM ophalen en samenvoegen met Overture en websitetijden (-- --cached: zonder downloaden)
 npm run build        # statische site in dist/
 npx wrangler deploy  # dist/ naar de preview op Cloudflare (account Freek, zie wrangler.jsonc)
-node scripts/refresh-hours.mjs  # openingstijden opnieuw vooruitrekenen vanaf vandaag (uit data/hours.json)
-# Elke nacht doet .github/workflows/nachtelijk.yml: markten, openingstijden, test, build, deploy.
+npm run db:push:places   # na data:osm: winkels naar Supabase (bron van waarheid; met de hand vastgezette velden blijven)
+npm run db:push:markets  # na data:markets: markten naar Supabase (verdwenen edities → nog niet bevestigd)
+npm run db:export        # Supabase → public/data/*.json, openingstijden vooruit vanaf vandaag
+# Elke nacht doet .github/workflows/nachtelijk.yml: markten → Supabase → export, test, build, deploy.
+# Schema: ../supabase/migrations (npx supabase db push --linked).
 ```
 
 Handig bij testen: `?nu=2026-10-31T09:10` zet de klok op een vast moment (de app is tijdsbewust).

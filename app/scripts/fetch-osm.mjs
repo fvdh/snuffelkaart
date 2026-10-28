@@ -2,6 +2,7 @@
 // zie fetch-overture.mjs) en schrijft public/data/places.json.
 // Gebruik: npm run data:osm            (haalt opnieuw op via Overpass)
 //          npm run data:osm -- --cached (gebruikt data-raw/osm.json)
+// Daarna: node scripts/db.mjs push places (Supabase is de bron; dit bestand wordt bij de export overschreven).
 // ponytail: Overpass met een rechthoek; de echte wekelijkse import gaat via het Geofabrik-extract + osmium (§5.1).
 import fs from 'node:fs';
 import { precompute, holidays, todayIso, DAYS_AHEAD } from './hours-precompute.mjs';
@@ -16,8 +17,6 @@ const ENDPOINTS = ['https://overpass-api.de/api/interpreter', 'https://overpass.
 const UA = 'Snuffelkaart-PoC/0.1 (contact: freek@draad.nu)';
 const RAW = new URL('../data-raw/osm.json', import.meta.url);
 const OUT = new URL('../public/data/places.json', import.meta.url);
-const OH_OUT = new URL('../data/hours.json', import.meta.url); // id → opening_hours; de nachtelijke build rekent hiermee opnieuw vooruit (refresh-hours.mjs)
-const ohSrc = {};
 
 async function fetchTile(QUERY) {
   for (const url of ENDPOINTS) {
@@ -159,8 +158,7 @@ if (fs.existsSync(WEB)) {
   }
 }
 
-for (const p of places) { if (p.oh) ohSrc[p.id] = p.oh; delete p.oh; }
-fs.mkdirSync(new URL('../data/', import.meta.url), { recursive: true }); fs.writeFileSync(OH_OUT, JSON.stringify(ohSrc, null, 0));
+// `oh` (de opening_hours-bron) blijft staan: db.mjs push zet hem in Supabase, de export rekent er elke nacht mee vooruit.
 fs.mkdirSync(new URL('../public/data/', import.meta.url), { recursive: true });
 fs.writeFileSync(OUT, JSON.stringify({ generated: new Date().toISOString(), source: '© OpenStreetMap-bijdragers (ODbL); Overture Maps Foundation (CDLA Permissive 2.0)', overture: ovStat.release, bbox: BBOX, from: FROM, days: DAYS_AHEAD, holidays: holidays(FROM), places }, (k, v) => (v === null ? undefined : v))); // lege velden weglaten
 

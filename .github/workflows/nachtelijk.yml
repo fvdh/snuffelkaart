@@ -1,5 +1,6 @@
-# Elke nacht (§6.1): markten opnieuw uitlezen, openingstijden vooruitrekenen, testen, bouwen, uitrollen naar Cloudflare.
-# Nodig: secret CLOUDFLARE_API_TOKEN (Freek; rechten "Workers Scripts: Edit"). Handmatig starten kan via "Run workflow".
+# Elke nacht (§6.1): markten opnieuw uitlezen → Supabase; Supabase → kaartdata (tijden vooruitgerekend); testen, bouwen, uitrollen.
+# Secrets: CLOUDFLARE_API_TOKEN, SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY. Handmatig starten kan via "Run workflow".
+# De dagelijkse schrijfactie houdt het gratis Supabase-project wakker.
 # ponytail: OSM, Overture en websitetijden ververst dit niet; die import draait nog met de hand (wekelijks: Geofabrik, §5.1).
 name: Nachtelijke verversing
 on:
@@ -26,8 +27,14 @@ jobs:
       - name: Markten opnieuw uitlezen
         run: node scripts/fetch-markets.mjs
         continue-on-error: true # gaat één organisator mis, dan blijft zijn vorige stand staan; de rest gaat door
-      - name: Openingstijden vooruitrekenen vanaf vandaag
-        run: node scripts/refresh-hours.mjs
+      - name: Markten naar Supabase
+        run: node scripts/db.mjs push markets
+        env: &supabase
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      - name: Kaartdata uit Supabase (tijden vooruit vanaf vandaag)
+        run: node scripts/db.mjs export
+        env: *supabase
       - run: npm test
       - run: npm run build
       - name: Uitrollen naar Cloudflare

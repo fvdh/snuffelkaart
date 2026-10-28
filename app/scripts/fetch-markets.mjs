@@ -510,7 +510,7 @@ const SOURCES = [['Twentse Vlooienmarkt (AST-Expo)', twente, 'https://www.twents
 
 async function main() {
   const today = new Date().toISOString().slice(0, 10), prevAll = fs.existsSync(OUT) ? JSON.parse(fs.readFileSync(OUT, 'utf8')).markets : [];
-  const markets = [], report = [];
+  const markets = [], report = [], fresh = []; // fresh: vers gelezen organisatoren (db.mjs markeert wat bij hen verdween)
   // --only=<woord>: alleen die organisator(en) opnieuw lezen, de rest houdt de vorige stand (hooguit één keer per dag per site).
   const only = process.argv.find(a => a.startsWith('--only='))?.slice(7).toLowerCase();
   for (const [org, read] of SOURCES) {
@@ -522,11 +522,11 @@ async function main() {
     // Veilige import (§6.1) per organisator: niets, of veel minder dan vorige keer → de vorige stand houden.
     const prev = prevAll.filter(m => m.org === org && m.date >= today);
     const keep = !placed.length || (prev.length && placed.length < prev.length / 2 && !process.argv.includes('--force'));
-    markets.push(...(keep ? prev : placed));
+    markets.push(...(keep ? prev : placed)); if (!keep) fresh.push(org);
     report.push(`${org}: ${keep ? `TEGENGEHOUDEN (${placed.length}, vorige keer ${prev.length}), vorige stand behouden` : `${placed.length} edities`}, overgeslagen ${skipped.length}`, ...skipped.map(s => '  - ' + s));
   }
   if (!markets.length) { console.error('Geen enkele markt. Niets geschreven.'); process.exit(1); }
-  fs.writeFileSync(OUT, JSON.stringify({ generated: new Date().toISOString(), sources: SOURCES.map(([org, , url]) => ({ org, url })), markets }));
+  fs.writeFileSync(OUT, JSON.stringify({ generated: new Date().toISOString(), sources: SOURCES.map(([org, , url]) => ({ org, url })), fresh, markets }));
   console.log(report.join('\n') + `\nTotaal ${markets.length} edities (${markets.filter(m => !m.exact).length} zonder exacte plek).`);
 }
 if (import.meta.url === `file://${process.argv[1]}`) await main();

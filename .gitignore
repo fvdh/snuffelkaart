@@ -5,3 +5,4 @@ dist/
 .env*
 app/data-raw/
 .claude/worktrees/
+supabase/.temp/
