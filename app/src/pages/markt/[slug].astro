@@ -1,0 +1,74 @@
+---
+// Marktpagina: statisch, maar de status komt live uit het statusbestand (§6.1), zodat een afgelasting ook op een oude build klopt.
+import Tekst from '../../layouts/Tekst.astro';
+import ItemRow from '../../components/ItemRow.astro';
+import type { Market } from '../../lib/model';
+import { dLong, hm, km } from '../../lib/model';
+import { near } from '../../lib/seo';
+import { ix, markets, places, from, SITE } from '../../lib/sitedata';
+
+export function getStaticPaths() {
+  return [...ix.markets].map(([slug, m]) => ({ params: { slug }, props: { m } }));
+}
+const { m } = Astro.props as { m: Market };
+const time = m.timeKnown === false ? 'tijden bij de organisator' : m.end ? `${hm(m.start)}–${hm(m.end)}` : `vanaf ${hm(m.start)}`;
+const where = m.venue ? `${m.venue}, ${m.place}` : m.place, cityUrl = ix.cityUrl(m.place);
+const STATUS = {
+  org: ['org', 'Bevestigd door de organisator', `${m.org} heeft deze datum zelf opgegeven.`],
+  chk: ['chk', `Gecontroleerd${m.checked ? ` op ${dLong(m.checked).toLowerCase()}` : ''}`, `Deze datum stond bij de laatste controle bij ${m.org}.`],
+  unconf: ['unconf', 'Nog niet bevestigd', 'Check deze datum bij de organisator voordat je gaat.'],
+  cancel: ['cancel', 'Afgelast', m.cancelWhy ?? ''],
+} as const;
+const [cls, head, body] = STATUS[m.status];
+const more = near(m, markets, from, 15, 5).filter(o => o.id !== m.id).slice(0, 4);
+const shops = places.filter(p => p.h && km(m, p) < 5).sort((a, b) => km(m, a) - km(m, b)).slice(0, 5);
+const title = `${m.name}, ${dLong(m.date).toLowerCase()}`;
+const description = `${m.kind} in ${m.place} op ${dLong(m.date).toLowerCase()}, ${time}. ${m.entree && m.entree !== 'onbekend' ? `Entree: ${m.entree}. ` : ''}Met de bron en of hij doorgaat.`;
+const off = (d: string, min: number) => { const o = new Date(`${d}T12:00:00`).getTimezoneOffset(); const h = -o / 60; return `${d}T${hm(min).padStart(5, '0')}:00${h >= 0 ? '+' : '-'}${String(Math.abs(h)).padStart(2, '0')}:00`; };
+const ld = { '@context': 'https://schema.org', '@type': 'Event', name: m.name, url: SITE + ix.url(m.id), startDate: off(m.date, m.start), ...(m.end ? { endDate: off(m.date, m.end) } : {}),
+  eventStatus: `https://schema.org/${m.status === 'cancel' ? 'EventCancelled' : 'EventScheduled'}`, eventAttendanceMode: 'https://schema.org/OfflineEventAttendanceMode',
+  location: { '@type': 'Place', name: m.venue ?? m.place, address: { '@type': 'PostalAddress', streetAddress: m.addr ?? undefined, addressLocality: m.place, addressCountry: 'NL' }, geo: { '@type': 'GeoCoordinates', latitude: m.lat, longitude: m.lon } },
+  organizer: { '@type': 'Organization', name: m.org, ...(m.url ? { url: m.url } : {}) }, ...(m.entree === 'gratis' ? { isAccessibleForFree: true } : {}) };
+---
+<Tekst title={title} description={description}>
+  <script type="application/ld+json" slot="head" set:html={JSON.stringify(ld)} />
+  <p class="tp-crumbs"><a href="/">Snuffelkaart</a> › {cityUrl ? <a href={cityUrl}>{m.place}</a> : m.place}</p>
+  <p class="eyebrow" style="margin-top:12px"><span class="tile m" style="width:24px;height:24px"><svg class="i" aria-hidden="true" style="width:14px;height:14px"><use href="#i-kraam" /></svg></span>{m.kind}{m.indoor !== undefined && ` · ${m.indoor ? 'binnen' : 'buiten'}`}</p>
+  <h1 id="naam" class={m.status === 'cancel' ? 'strike' : ''}>{m.name}</h1>
+  <p class="lede"><b>{dLong(m.date)}</b> · {time}<br />{where}</p>
+  <div id="status" data-id={m.id} class={`statusbox ${cls}`} style="margin-top:14px"><svg class="i" aria-hidden="true"><use href={`#i-${m.status === 'cancel' ? 'x' : m.status === 'unconf' ? 'alert' : 'check'}`} /></svg><div><b>{head}</b><p>{body}</p></div></div>
+  <div class="tp-cta"><b>Combineer met kringlopen</b><p>Zet deze markt in je dagplan; de kaart kijkt welke winkels dan open zijn op je route.</p>
+    <a class="btn primary" href={`/?open=${encodeURIComponent(m.id)}`}>Open in de kaart</a></div>
+
+  <section>
+    <h2>Praktisch</h2>
+    <dl class="tp-hours">
+      <dt>Entree</dt><dd>{m.entree === 'gratis' ? 'Gratis' : m.entree === 'onbekend' || !m.entree ? 'Staat niet in de agenda' : m.entree}</dd>
+      <dt>Overdekt</dt><dd>{m.indoor === undefined ? 'Onbekend' : m.indoor ? 'Ja, binnen' : 'Nee, buiten'}</dd>
+      {m.addr && <><dt>Adres</dt><dd>{m.addr}</dd></>}
+      {m.kramen && <><dt>Kramen</dt><dd>±{m.kramen}</dd></>}
+      {m.kraamhuur && <><dt>Kraam huren</dt><dd>{m.kraamhuur}</dd></>}
+      {m.schema && <><dt>Schema</dt><dd>{m.schema}</dd></>}
+      <dt>Organisator</dt><dd>{m.url ? <a href={m.url} rel="nofollow">{m.org}</a> : m.org}</dd>
+    </dl>
+  </section>
+
+  {more.length > 0 && <section><h2>Meer markten in de buurt</h2><ul class="rows">{more.map(o => <ItemRow it={o} note={`${o.place} · ${Math.round(km(m, o))} km`} />)}</ul></section>}
+  {shops.length > 0 && <section><h2>Kringlopen in de buurt</h2><ul class="rows">{shops.map(p => <ItemRow it={p} note={`${p.place ?? ''} · ${km(m, p).toFixed(1).replace('.', ',')} km`} />)}</ul></section>}
+</Tekst>
+
+<script>
+  // Statusbestand: is deze markt intussen afgelast (of juist bevestigd)? Dan klopt de pagina meteen, zonder nieuwe build.
+  declare const __SB_URL__: string, __SB_KEY__: string;
+  const box = document.getElementById('status')!, id = box.dataset.id!;
+  const TXT: Record<string, [string, string]> = { org: ['Bevestigd door de organisator', ''], chk: ['Gecontroleerd', ''], unconf: ['Nog niet bevestigd', 'Check deze datum bij de organisator voordat je gaat.'], cancel: ['Afgelast', ''] };
+  if (__SB_URL__) fetch(`${__SB_URL__}/rest/v1/rpc/market_status`, { headers: { apikey: __SB_KEY__ } }).then(r => (r.ok ? r.json() : null)).then(j => {
+    const l = j?.markets?.find((x: { id: string }) => x.id === id);
+    if (!l || box.classList.contains(l.status)) return;
+    box.className = `statusbox ${l.status}`;
+    box.querySelector('b')!.textContent = TXT[l.status]?.[0] ?? l.status;
+    box.querySelector('p')!.textContent = l.cancelWhy ?? TXT[l.status]?.[1] ?? '';
+    box.querySelector('use')!.setAttribute('href', `#i-${l.status === 'cancel' ? 'x' : l.status === 'unconf' ? 'alert' : 'check'}`);
+    document.getElementById('naam')!.classList.toggle('strike', l.status === 'cancel');
+  }).catch(() => {});
+</script>

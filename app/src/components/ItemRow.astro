@@ -1,0 +1,22 @@
+---
+// Eén regel in een lijst op een statische pagina: zelfde tegel en opmaak als in de app, maar een gewone link.
+import type { Item } from '../lib/model';
+import { dShort, hm } from '../lib/model';
+import { CAT, catCls, kindIcon, kindLabel } from './ui';
+import { catOf } from '../lib/model';
+import { ix } from '../lib/sitedata';
+interface Props { it: Item; note?: string }
+const { it, note } = Astro.props;
+const unsure = it.t === 'm' ? it.status === 'unconf' : !it.h, cancel = it.t === 'm' && it.status === 'cancel';
+const line = it.t === 'm'
+  ? `${dShort(it.date)}${it.timeKnown === false ? '' : ` · ${hm(it.start)}${it.end ? `–${hm(it.end)}` : ''}`}${cancel ? ' · afgelast' : it.status === 'unconf' ? ' · nog niet bevestigd' : ''}`
+  : `${CAT[catOf(it)][0]}${it.h ? '' : ' · tijden onbekend'}`;
+const meta = note ?? (it.t === 'm' ? (it.venue ? `${it.venue}, ${it.place}` : it.place) : (it.addr ?? it.place ?? ''));
+---
+<li class="rowli" data-id={it.id}>
+  <a class="row" href={ix.url(it.id)}>
+    <span class={`tile ${it.t}${unsure ? ' unconf' : ''}${cancel ? ' cancel' : ''}${catCls(it)}`} title={kindLabel(it)}><svg class="i" aria-hidden="true"><use href={`#i-${kindIcon(it)}`} /></svg></span>
+    <span class="r-main"><span class={`r-name${cancel ? ' strike' : ''}`}>{it.name}</span><span class="r-meta">{line}</span><span class="r-meta">{meta}</span></span>
+    <span />
+  </a>
+</li>

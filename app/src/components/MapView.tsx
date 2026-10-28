@@ -142,8 +142,10 @@ export default function MapView(p: MapProps) {
     else meMark.current.setLngLat([p.me.lon, p.me.lat]);
   }, [ready, p.me]);
 
-  useEffect(() => { const map = mapRef.current; if (map && ready) map.easeTo({ padding: { bottom: p.bottomPad, top: 0, left: 0, right: 0 }, duration: 350 }); }, [ready, p.bottomPad]);
-  useEffect(() => { const map = mapRef.current; if (map && ready && p.focus) map.easeTo({ center: [p.focus.lon, p.focus.lat], zoom: Math.max(map.getZoom(), 13), duration: 450 }); }, [ready, p.focus?.key]);
+  const pad = { bottom: p.bottomPad, top: 0, left: 0, right: 0 };
+  // Ruimte onder het paneel; niet tijdens een andere beweging, anders breekt die af (bijv. de focus op een link van een statische pagina).
+  useEffect(() => { const map = mapRef.current; if (map && ready && !map.isMoving()) map.easeTo({ padding: pad, duration: 350 }); }, [ready, p.bottomPad]);
+  useEffect(() => { const map = mapRef.current; if (map && ready && p.focus) map.easeTo({ center: [p.focus.lon, p.focus.lat], zoom: Math.max(map.getZoom(), 13), padding: pad, duration: 450 }); }, [ready, p.focus?.key]);
   useEffect(() => {
     const map = mapRef.current; if (!map || !ready || !p.fit || p.fit.pts.length < 1) return;
     const b = new maplibregl.LngLatBounds(); p.fit.pts.forEach(q => b.extend([q.lon, q.lat]));

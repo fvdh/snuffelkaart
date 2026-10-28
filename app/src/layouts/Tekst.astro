@@ -2,7 +2,9 @@
 // Gewone tekstpagina's (privacy, hoe we controleren): statisch, vindbaar, zelfde stijl als de app.
 import '../styles/design.css';
 import Sprite from '../components/Sprite.astro';
-const { title, description } = Astro.props;
+import { SITE } from '../lib/sitedata';
+const { title, description, wide = false } = Astro.props;
+const canonical = SITE + Astro.url.pathname;
 ---
 <html lang="nl">
   <head>
@@ -12,8 +14,21 @@ const { title, description } = Astro.props;
     <link rel="preload" href="/fonts/figtree.woff2" as="font" type="font/woff2" crossorigin />
     <title>{title} · Snuffelkaart</title>
     <meta name="description" content={description} />
+    <link rel="canonical" href={canonical} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    <slot name="head" />
     <style is:global>
       body { background: var(--bg); color: var(--fg); font-family: var(--font); margin: 0 }
+      .tp.wide { max-width: 880px }
+      .tp-crumbs { font-size: .8125rem; color: var(--fg-3) } .tp-crumbs a { color: var(--fg-2); font-weight: 500 }
+      .tp .rows { list-style: none; margin: 0; padding: 0 } .tp .row { text-decoration: none; color: inherit } .tp .r-meta { white-space: normal }
+      .tp-cta { display: flex; flex-direction: column; gap: 10px; padding: 16px; border-radius: 14px; background: var(--surface-2); margin-top: 18px } .tp-cta .btn { align-self: flex-start; text-decoration: none }
+      .tp-hours { display: grid; grid-template-columns: auto 1fr; gap: 4px 18px; margin: 0; font-variant-numeric: tabular-nums } .tp-hours dt { color: var(--fg-2) } .tp-hours dd { margin: 0 }
+      .tp-links { display: flex; flex-wrap: wrap; gap: 6px 14px; list-style: none; padding: 0 !important; margin: 0 }
+      .tp h1.strike { text-decoration: line-through; text-decoration-color: var(--bad); text-decoration-thickness: 2px }
+      .tp-letter { font-size: .8125rem; font-weight: 700; color: var(--fg-3); margin-top: 14px }
       .tp { max-width: 680px; margin: 0 auto; padding: 20px 16px 72px }
       .tp-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-bottom: 20px }
       .tp-brand { display: inline-flex; align-items: center; gap: 10px; font-weight: 750; color: var(--fg); text-decoration: none }
@@ -42,10 +57,10 @@ const { title, description } = Astro.props;
   </head>
   <body>
     <Sprite />
-    <main class="tp">
+    <main class={`tp${wide ? ' wide' : ''}`}>
       <div class="tp-top"><a class="tp-brand" href="/"><span class="tp-mark"><svg class="i" aria-hidden="true"><use href="#i-tag" /></svg></span>Snuffelkaart</a><a class="tp-back" href="/">Naar de kaart</a></div>
       <slot />
-      <footer class="tp-foot"><a href="/hoe-we-controleren">Hoe we controleren</a><a href="/privacy">Privacy</a><a href="/data/places.json">Open data (ODbL)</a></footer>
+      <footer class="tp-foot"><a href="/plaatsen/">Alle plaatsen</a><a href="/hoe-we-controleren">Hoe we controleren</a><a href="/privacy">Privacy</a><a href="/data/places.json">Open data (ODbL)</a></footer>
     </main>
   </body>
 </html>

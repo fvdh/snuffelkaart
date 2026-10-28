@@ -1,0 +1,14 @@
+---
+// Alle plaatsen met een stadspagina, op alfabet: de ingang voor zoekmachines naar elke stadspagina.
+import Tekst from '../layouts/Tekst.astro';
+import { ix, places } from '../lib/sitedata';
+const groups = Object.entries(Object.groupBy(ix.cities, c => c.name[0].toUpperCase()));
+---
+<Tekst title="Kringlopen en rommelmarkten per plaats" description={`Kringlopen, tweedehandswinkels en rommelmarkten in ${ix.cities.length} plaatsen in Nederland, met openingstijden en de markten van de komende weken.`} wide>
+  <h1>Kringlopen en rommelmarkten per plaats</h1>
+  <p class="lede">{places.length} tweedehandswinkels en de markten van de komende weken, in {ix.cities.length} plaatsen. Of <a href="/">zoek op de kaart</a>.</p>
+  <section>{groups.map(([letter, cs]) => <>
+    <p class="tp-letter">{letter}</p>
+    <ul class="tp-links">{cs!.map(c => <li><a href={`/${c.slug}/`}>{c.name}</a> <span style="color:var(--fg-3)">{c.shops.length + c.markets.length}</span></li>)}</ul>
+  </>)}</section>
+</Tekst>

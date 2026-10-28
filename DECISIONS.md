@@ -177,3 +177,11 @@ Keuzes en waarom. Nieuwste onderaan. "Freek" = besloten door Freek; anders voorl
 - **/privacy en /hoe-we-controleren**: statische pagina's (layout `Tekst.astro`), gelinkt vanuit "Jij", het inlogscherm en de bronregel. Alleen beloven wat de app echt doet: geen herinneringsmails aan organisatoren, geen reviews/foto's, geen Foursquare (staan wel in het ontwerp). Contact: info@freekvanderhorst.com.
 - **Lettertypen zelf gehost** (`public/fonts`, latin-subset): Google Fonts gaf het IP-adres van elke bezoeker aan Google. De app laadt nu alleen van de eigen server, OpenFreeMap (tegels), Supabase en, bij zoeken, PDOK.
 - **Service worker v3**: elke pagina wordt onder haar eigen adres bewaard (eerder alles onder '/', waardoor de app offline als een andere pagina kon openen).
+
+## Statische pagina's (2026-10-28)
+- **Per plaats** (`/<plaats>/`, ≥2 winkels of markten: 536), **per winkel** (`/winkel/<naam-plaats>/`: 3701) en **per markt** (`/markt/<naam-datum>/`: 190), plus `/plaatsen/` en `sitemap.xml`. Gebouwd uit dezelfde `public/data` als de app (`src/lib/seo.ts`, getest), elke nacht opnieuw; ±10 s build, 74 MB.
+- Inhoud: winkels met weektijden (feestdagen overgeslagen) en bron, markten in de buurt, veelgestelde vragen (zaterdag/zondag open), JSON-LD (Store, Event, ItemList). Marktpagina's lezen het statusbestand, dus een afgelasting klopt ook op een oude build.
+- **Naar de app**: `/?open=<id>` opent een winkel/markt, `/?plek=…&lat=…&lon=…` zet de kaart op een plaats.
+- **Nog niet vindbaar**: robots.txt blijft `Disallow: /` (+ noindex) zolang het de preview op workers.dev is. Open zetten = `SITE` in `src/lib/sitedata.ts` naar het echte domein, noindex en Disallow weg.
+- ponytail: geen kaartje op de stadspagina (knop naar de app), geen provincie in het kruimelpad, twee plaatsen met dezelfde naam vallen samen.
+- Kaart: de focus-animatie bij openen via een link werd onderbroken door de padding-animatie; die wacht nu als de kaart beweegt. (Let op bij testen in Chrome: in een achtergrondtabblad laadt de kaart niet, omdat requestAnimationFrame stilstaat. Dat is geen fout in de app.)

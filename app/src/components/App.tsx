@@ -157,6 +157,14 @@ export default function App() {
       e => { if (quiet) return; if (e.code === e.PERMISSION_DENIED) setLocDenied(true); else setToast('Je locatie lukte nu niet. Probeer het nog eens, of zoek een plaats.'); },
       { enableHighAccuracy: false, timeout: 8000, maximumAge: 300_000 });
   };
+  // Vanaf een statische pagina: ?open=<id> opent die winkel of markt, ?plek=…&lat=…&lon=… zet de kaart op een plaats.
+  const deep = useRef(new URLSearchParams(location.search));
+  useEffect(() => {
+    const q = deep.current, id = q.get('open'), plek = q.get('plek'), lat = Number(q.get('lat')), lon = Number(q.get('lon'));
+    if (plek && Number.isFinite(lat) && Number.isFinite(lon) && lat) { q.delete('plek'); pickSpot({ label: plek, sub: '', lat, lon }); }
+    if (id && byId.has(id)) { q.delete('open'); setWelcomed(true); go(id); }
+    if (!q.has('open') && !q.has('plek') && /[?&](open|plek)=/.test(location.search)) history.replaceState(null, '', location.pathname + (q.toString() ? `?${q}` : ''));
+  }, [byId]);
   // Al eerder toestemming gegeven? Dan zonder vragen opnieuw ophalen.
   useEffect(() => { navigator.permissions?.query({ name: 'geolocation' }).then(s => s.state === 'granted' && locate(true)).catch(() => {}); }, []);
   const pickSpot = (s: Spot) => { setSpot(s); setMe(null); setWelcomed(true); setFState(o => ({ ...o, q: '' })); setFocus({ lat: s.lat, lon: s.lon, key: Date.now() }); scrollTop(); };
