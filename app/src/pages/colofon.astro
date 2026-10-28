@@ -1,0 +1,30 @@
+---
+import Tekst from '../layouts/Tekst.astro';
+// Colofon (M6): wie, contact (ook het contactpunt voor meldingen, DSA art. 11-12), bronnen, techniek.
+// ponytail: geen adres of KvK-nummer zolang er geen onderneming is; bij inschrijving hier toevoegen (art. 3:15d BW).
+---
+<Tekst title="Colofon" description="Wie Snuffelkaart maakt, hoe je contact opneemt, en welke bronnen en techniek we gebruiken.">
+  <h1>Colofon</h1>
+  <p class="lede">Snuffelkaart is een project van Freek van der Horst: een kaart van kringlopen, tweedehandswinkels en rommelmarkten in Nederland.</p>
+
+  <section>
+    <h2>Contact</h2>
+    <p>Vragen, fouten, privacy of een melding over een winkel of markt: <a href="mailto:info@freekvanderhorst.com">info@freekvanderhorst.com</a>. Dit is ook ons contactpunt voor autoriteiten. We antwoorden in het Nederlands of het Engels.</p>
+  </section>
+
+  <section>
+    <h2>Bronnen</h2>
+    <ul>
+      <li>Winkels en openingstijden: © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap-bijdragers</a> (ODbL), aangevuld met Overture Maps Foundation (CDLA Permissive 2.0) en de websites van de winkels zelf.</li>
+      <li>Markten: de websites van de organisatoren, en het Gemeenteblad via <a href="https://www.officielebekendmakingen.nl">officielebekendmakingen.nl</a> (CC0).</li>
+      <li>Plaatsen en postcodes: <a href="https://www.pdok.nl">PDOK</a> (Kadaster), CC0 / CC BY.</li>
+      <li>De kaart: <a href="https://openfreemap.org">OpenFreeMap</a>, <a href="https://openmaptiles.org">© OpenMapTiles</a>, data © OpenStreetMap-bijdragers.</li>
+    </ul>
+    <p>Meer over hoe we de gegevens controleren: <a href="/hoe-we-controleren">Hoe we controleren</a>.</p>
+  </section>
+
+  <section>
+    <h2>Techniek</h2>
+    <p>Gemaakt met <a href="https://astro.build">Astro</a>, <a href="https://react.dev">React</a> en <a href="https://maplibre.org">MapLibre</a>. De site draait op Cloudflare, accounts en beheer op Supabase. Lettertypen: Figtree en DM Mono (SIL Open Font License).</p>
+  </section>
+</Tekst>
