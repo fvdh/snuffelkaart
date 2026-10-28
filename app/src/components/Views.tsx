@@ -286,7 +286,7 @@ export function LoginView({ c, send }: { c: Ctx; send: (email: string) => Promis
   const submit = async (e: React.FormEvent) => { e.preventDefault(); setErr(''); setBusy(true); try { await send(email.trim()); setSent(true); } catch (x) { setErr((x as Error).message); } finally { setBusy(false); } };
   const head = <div className="dv-head" data-peek data-drag><div className="dv-top"><button className="back" onClick={c.back}><Ic n="back" />Terug</button></div></div>;
   if (sent) return <>{head}<div className="success" style={{ paddingTop: 0 }}><span className="ok-ic"><Ic n="mail" /></span><h3>Check je mail</h3>
-    <p>We hebben een inloglink gestuurd naar <b>{email}</b>. Open hem op dit apparaat. Geen mail? Kijk ook bij ongewenst.</p><button className="link" onClick={() => setSent(false)}>Ander e-mailadres</button></div></>;
+    <p>We hebben een inloglink gestuurd naar <b>{email}</b>. Open hem op dit apparaat. Vraag je een nieuwe aan, dan werkt alleen de nieuwste. Geen mail? Kijk ook bij ongewenst.</p><button className="link" onClick={() => setSent(false)}>Ander e-mailadres</button></div></>;
   return (<>{head}
     <div className="dv-head" style={{ paddingTop: 0 }}><h2>Inloggen</h2><p className="prose-s">Geen wachtwoord nodig. Nieuw? Dan maken we meteen een account.{n ? ` Je ${n} bewaarde ${n === 1 ? 'plek gaat' : 'plekken gaan'} mee.` : ''}</p></div>
     <form className="form" onSubmit={submit}>

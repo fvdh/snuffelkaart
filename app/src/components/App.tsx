@@ -95,7 +95,7 @@ export default function App() {
   const rest = (path: string, init?: RequestInit) => sess ? api(sess, `rest/v1/${path}`, init, setSess).catch(e => { if (e instanceof LoggedOut) { setSess(null); setToast(e.message); } throw e; }) : Promise.reject(new Error('niet ingelogd'));
   useEffect(() => {
     const back = location.hash.includes('access_token'), e = returnError(), s = readSession();
-    if (e) setToast(`Inloggen lukte niet: ${e}. Vraag een nieuwe link aan.`);
+    if (e) { setToast(/invalid|expired/i.test(e) ? 'Deze inloglink is al gebruikt of verlopen. Alleen de nieuwste link werkt; vraag er hier een nieuwe aan.' : `Inloggen lukte niet (${e}). Vraag een nieuwe link aan.`); setWelcomed(true); setView('login'); setSnap('full'); }
     setSess(s);
     if (s && back) { setWelcomed(true); setView('me'); setSnap('full'); sessionStorage.setItem('snuffel-samenvoegen', '1'); }
   }, []);

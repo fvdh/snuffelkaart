@@ -24,3 +24,7 @@ content_path = "./supabase/templates/inloggen.html"
 [auth.email.template.confirmation]
 subject = "Welkom bij Snuffelkaart: je inloglink"
 content_path = "./supabase/templates/welkom.html"
+
+# Supabase begrenst mails per uur voor het hele project (standaard 2). Met eigen SMTP mag dat ruimer; Resend gratis = 100/dag.
+[auth.rate_limit]
+email_sent = 60
