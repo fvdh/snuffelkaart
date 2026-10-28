@@ -1,5 +1,5 @@
 # Elke nacht (§6.1): markten opnieuw uitlezen → Supabase; Supabase → kaartdata (tijden vooruitgerekend); testen, bouwen, uitrollen.
-# Secrets: CLOUDFLARE_API_TOKEN, SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY. Handmatig starten kan via "Run workflow".
+# Secrets: CLOUDFLARE_API_TOKEN, SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, RESEND_API_KEY (mail bij meldingen). Handmatig starten kan via "Run workflow".
 # De dagelijkse schrijfactie houdt het gratis Supabase-project wakker.
 # Elk kwartier: alleen als iemand in /beheer iets wijzigde (updated_at na de laatste export) exporteren, bouwen en uitrollen.
 # ponytail: polling via cron (repo is publiek, minuten gratis; GitHub-cron loopt soms wat achter). Sneller = Supabase-webhook → repository_dispatch.
@@ -55,6 +55,14 @@ jobs:
         run: node scripts/fetch-gemeenteblad.mjs
         continue-on-error: true
         env: *supabase
+      - name: Mail bij nieuwe meldingen
+        if: steps.w.outputs.doe == 'alles'
+        run: node scripts/meldingen-mail.mjs
+        continue-on-error: true # een mislukte mail mag de kaart niet tegenhouden
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }} # ontbreekt hij, dan slaat het script over
       - name: Kaartdata uit Supabase (tijden vooruit vanaf vandaag)
         if: steps.w.outputs.doe
         run: node scripts/db.mjs export

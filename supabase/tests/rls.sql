@@ -11,9 +11,9 @@ begin
     raise exception 'RLS staat uit op tabel %', t.relname;
   end loop;
 
-  select id into a from auth.users order by created_at limit 1;
-  select id into b from auth.users order by created_at offset 1 limit 1;
-  if a is null or b is null then raise exception 'test heeft twee gebruikers in auth.users nodig'; end if;
+  -- Twee testgebruikers; verdwijnen met de rollback.
+  insert into auth.users (id, email) values (gen_random_uuid(), 'rls-a@example.com') returning id into a;
+  insert into auth.users (id, email) values (gen_random_uuid(), 'rls-b@example.com') returning id into b;
   insert into favorites (user_id, item_id) values (a, 'rls-test-a'), (b, 'rls-test-b');
 
   select id into pid from places limit 1;
