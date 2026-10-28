@@ -2,7 +2,7 @@ import { type Item, type LatLon, km, DAYS_LONG, dayStart, hm, mEnd } from './mod
 import { intervals } from './hours';
 
 export interface Issue { lv: 'bad' | 'warn'; txt: string }
-export interface Stop { id: string; arrive: number; drive: number; km: number; issue: Issue | null; note: string }
+export interface Stop { id: string; arrive: number; drive: number; km: number; issue: Issue | null; note: string; wait: number }
 export interface Sim { stops: Stop[]; end: number; km: number; bad: number; warn: number }
 
 export const STAY = { k: 40, m: 60 }; // minuten per stop (aanname A1)
@@ -15,7 +15,7 @@ export function simulate(order: Item[], iso: string, startMin: number, from: Lat
   for (const it of order) {
     const d = km(prev, it) * ROAD; total += d;
     const drive = Math.round(d * 1.5 + 3), arrive = t + drive;
-    let issue: Issue | null = null, leave = arrive + STAY[it.t], note = '';
+    let issue: Issue | null = null, leave = arrive + STAY[it.t], note = '', wait = 0;
     if (it.t === 'k') {
       const r = intervals(it, iso);
       if (!r) issue = { lv: 'warn', txt: 'Openingstijden onbekend: bel even voordat je gaat' };
@@ -25,7 +25,7 @@ export function simulate(order: Item[], iso: string, startMin: number, from: Lat
         if (cur) { note = `open tot ${hm(cur[1])}`; if (cur[1] - arrive < 25) issue = { lv: 'warn', txt: `Sluit om ${hm(cur[1])}: je hebt maar ${cur[1] - arrive} min` }; }
         else {
           const nx = r.find(([a]) => a > arrive);
-          if (nx) { issue = { lv: 'warn', txt: `Gaat pas om ${hm(nx[0])} open (${nx[0] - arrive} min wachten)` }; leave = nx[0] + STAY.k; }
+          if (nx) { wait = nx[0] - arrive; issue = { lv: 'warn', txt: `Gaat pas om ${hm(nx[0])} open (${wait} min wachten)` }; leave = nx[0] + STAY.k; }
           else issue = { lv: 'bad', txt: `Al dicht als je aankomt (sluit ${hm(r[r.length - 1][1])})` };
         }
       }
@@ -35,12 +35,12 @@ export function simulate(order: Item[], iso: string, startMin: number, from: Lat
       else if (it.timeKnown === false) issue = { lv: 'warn', txt: 'Tijden onbekend: kijk bij de organisator' };
     else if (arrive >= mEnd(it)) issue = it.end ? { lv: 'bad', txt: `Markt is dan al voorbij (tot ${hm(it.end)})` } : { lv: 'warn', txt: 'Eindtijd onbekend: misschien ben je te laat' };
       else {
-        if (arrive < it.start) { issue = { lv: 'warn', txt: `Begint pas om ${hm(it.start)}` }; leave = it.start + STAY.m; }
+        if (arrive < it.start) { wait = it.start - arrive; issue = { lv: 'warn', txt: `Begint pas om ${hm(it.start)}` }; leave = it.start + STAY.m; }
         else note = it.end ? `tot ${hm(it.end)}` : 'eindtijd onbekend';
         if (it.status === 'unconf') issue = { lv: 'warn', txt: 'Nog niet bevestigd: check de organisator' };
       }
     }
-    out.push({ id: it.id, arrive, drive, km: d, issue, note });
+    out.push({ id: it.id, arrive, drive, km: d, issue, note, wait });
     t = leave; prev = it;
   }
   return { stops: out, end: t, km: total, bad: out.filter(s => s.issue?.lv === 'bad').length, warn: out.filter(s => s.issue?.lv === 'warn').length };

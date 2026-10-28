@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
 import type { Item, LatLon, Market, Place } from '../lib/model';
-import { DEFAULT_CENTER, isoDay, weekendOf, DAYS_LONG, dayStart, hm, dShort } from '../lib/model';
+import { km, DEFAULT_CENTER, isoDay, weekendOf, DAYS_LONG, dayStart, hm, dShort } from '../lib/model';
 import { placeNow, openOn, setWindow } from '../lib/hours';
 import { visible, type Filters } from '../lib/filter';
 import { simulate } from '../lib/plan';
@@ -93,9 +93,10 @@ export default function App() {
 
   const list = useMemo(() => visible(items, f, now, origin), [items, f, now, origin]);
   const counts = useMemo(() => {
-    const [a, b] = weekendOf(now), ps = places ? shown.places : [];
-    return { kNow: ps.filter(p => placeNow(p, now).open).length, kToday: ps.filter(p => openOn(p, today)).length, mWk: markets.filter(m => (m.date === a || m.date === b) && m.status !== 'cancel').length };
-  }, [places, shown, markets, now]);
+    // Tellers horen bij de kop "rond <plaats>": alleen binnen 25 km, niet heel Nederland (UX-review 28 okt).
+    const [a, b] = weekendOf(now), near = (x: LatLon) => km(origin, x) < 25, ps = places ? shown.places.filter(near) : [];
+    return { kNow: ps.filter(p => placeNow(p, now).open).length, kToday: ps.filter(p => openOn(p, today)).length, mWk: markets.filter(m => near(m) && (m.date === a || m.date === b) && m.status !== 'cancel').length };
+  }, [places, shown, markets, now, origin]);
 
   const setF = useCallback((p: Partial<Filters>) => { setFState(o => ({ ...o, ...p })); setLimit(40); if (view !== 'list') { setView('list'); setSel(null); } }, [view]);
   const go = (id: string) => { const it = byId.get(id); if (!it) return; setDir('fwd'); if (view !== 'detail') setPrev(view); setSel(id); setView('detail'); if (snap === 'collapsed') setSnap('half'); setFocus({ lat: it.lat, lon: it.lon, key: Date.now() }); scrollTop(); };

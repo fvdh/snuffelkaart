@@ -238,3 +238,13 @@ Besluiten (Freek): doorgegeven tijden zijn **van ons, apart van het open OSM-bes
 - Nu: `app/worker/klok.js` met Cloudflare-cron `*/15` (gratis, zelfde Worker als de site) start via workflow_dispatch: nachtelijk (modus kwartier, 02:30 UTC alles), controle (elk half uur), back-up (02:00), winkels (maandag 00:30). Alle `schedule`-triggers uit de workflows gehaald: één klok, niets dubbel.
 - Nodig: secret `GITHUB_TOKEN` op de Worker (fine-grained, alleen deze repository, Actions read/write). Zonder token doet de klok niets (log-waarschuwing).
 - Bijeffect: de Worker heeft nu code (`main`), maar elk verzoek gaat nog steeds rechtstreeks naar de statische bestanden.
+
+## UX-ronde 1 na review (2026-10-28)
+Review (impeccable critique, 26/40) → Freek koos: eerst het mobiele lijstscherm, alle P1's, kaart alleen olijfgroen weg.
+- **Lijstscherm:** alleen zoeken + filters plakken bij scrollen (titel, tellers, meldingen scrollen mee). Halve stand toont nu ±2 winkels i.p.v. 1. Locatiebanner wordt na een gekozen plaats één regel.
+- **Filters:** tijdchips vooraan (Nu open, Vandaag, Dit weekend, Kies datum), dan type, dan "Meer filters" (markt: gratis/overdekt; soort winkel). Rand van de chiprij vervaagt zodat je ziet dat hij doorloopt.
+- **Groen:** `--open-soft` als vaste token; color-mix in oklch draaide de tint naar beige, waardoor "Bevestigd" op een waarschuwing leek.
+- **Plandag:** met een dagplan voor een andere dag (en geen tijdfilter) tonen regels en suggesties de status op die dag. Wacht je bij de eerste stop > 45 min, dan stelt het plan met één tik een latere vertrektijd voor.
+- **Tellers** in de kop tellen binnen 25 km van de gekozen plek (stond "893 nu open" bij "rond Amersfoort").
+- **Sloop en restpartijen:** petrol i.p.v. olijfgroen (groen = alleen open). Greep van het paneel 24 px hoog (raakvlak).
+- Nog open uit de review (P2): rustiger kaart, markten op datum en herhalingen samenvoegen, dubbele winkels OSM/Overture, datumfout Gemeenteblad-uitlezer (inzagedatum als marktdatum).

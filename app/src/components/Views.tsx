@@ -16,17 +16,19 @@ export interface Ctx {
   locate: (quiet?: boolean) => void; back: () => void; openPlan: () => void; openMe: () => void; user: string | null;
 }
 
-/** Status van een item in de context van het gekozen tijdfilter. */
-export function statusFor(it: Item, f: Filters, now: Date): Status {
+/** Status van een item in de context van het gekozen tijdfilter. Heb je een dagplan voor een andere dag en geen tijdfilter,
+ *  dan geldt de plandag: je plant zaterdag, dus "dicht, opent morgen" van vandaag zegt je niets (UX-review 28 okt). */
+export function statusFor(it: Item, f: Filters, now: Date, planDay: string | null = null): Status {
   if (it.t === 'm') return marketStatus(it, now);
   const today = isoDay(now);
+  if (f.time === 'all' && planDay && planDay !== today) return placeDay(it, planDay);
   if (f.time === 'all' || f.time === 'now' || f.time === 'today' || (f.time === 'date' && f.date === today) || (f.time === 'weekend' && weekendOf(now).includes(today))) return placeNow(it, now);
   if (f.time === 'weekend') return placeWeekend(it, weekendOf(now));
   return placeDay(it, f.date ?? today);
 }
 
 export function Row({ it, d, c }: { it: Item; d: number; c: Ctx }) {
-  const st = statusFor(it, c.f, c.now), inPlan = c.planStops.includes(it.id), cancel = it.t === 'm' && it.status === 'cancel';
+  const st = statusFor(it, c.f, c.now, c.planStops.length ? c.planDay : null), inPlan = c.planStops.includes(it.id), cancel = it.t === 'm' && it.status === 'cancel';
   return (
     <li className="rowli" data-key={it.id}>
       <button className="row" onClick={e => c.open(it.id, e.currentTarget.querySelector<HTMLElement>('.r-name'))} aria-label={`${it.name}, ${st.txt}, ${fkm(d)} kilometer`}>
@@ -88,41 +90,48 @@ export function ListView({ c, list, total, limit, more, counts, nPlaces }: { c: 
   const near = c.originLabel ? `rond ${c.originLabel}` : 'bij jou in de buurt';
   const title = f.time === 'all' ? `Snuffelen ${near}` : f.time === 'now' ? `Nu ${near}` : f.time === 'weekend' ? `Dit weekend ${near}` : f.time === 'today' ? `Vandaag ${near}` : dLong(f.date ?? today);
   const P = (b: boolean) => ({ 'aria-pressed': b });
+  const extra = f.hide.length + (f.gratis ? 1 : 0) + (f.overdekt ? 1 : 0);
   return (<>
-    <div className="lv-head" data-peek data-drag>
+    <div className="lv-head" data-drag>
       <a className="brand" href="/" aria-label="Snuffelkaart, naar het begin"><span className="brand-mark"><Ic n="tag" /></span>Snuffelkaart</a>
       <div className="greet"><div><h2>{title}</h2>
         <p className="counts">{weekend
           ? <button onClick={() => c.setF({ time: 'today' })}><span className="cdot" />{counts.kToday} winkels open vandaag</button>
           : <button onClick={() => c.setF({ time: 'now' })}><span className="cdot" />{counts.kNow} winkels nu open</button>}
-          <span>·</span><button onClick={() => c.setF({ time: 'weekend' })}>{counts.mWk} markten dit weekend</button></p></div>
+          <span aria-hidden="true">·</span><button onClick={() => c.setF({ time: 'weekend' })}>{counts.mWk} markten dit weekend</button></p></div>
         <button className={`me-btn${c.user ? ' in' : ''}`} onClick={c.openMe} aria-label="Jij: bewaard en account">{c.user ? c.user[0].toUpperCase() : <Ic n="user" />}</button></div>
+    </div>
+    {/* Alleen zoeken en filters blijven staan bij scrollen: op de stoep wil je regels zien, geen bediening (UX-review 28 okt). */}
+    <div className="lv-tools" data-peek data-drag>
       <label className="search"><Ic n="search" /><span className="sr">Zoeken</span><input type="search" placeholder="Zoek op naam, plaats of postcode" value={f.q} onChange={e => c.setF({ q: e.target.value })} autoComplete="off" /></label>
       <div className="chips" role="group" aria-label="Filters">
         {f.only && <button className="chip" aria-pressed onClick={() => c.setF({ only: null })} aria-label="Toon weer alles, niet alleen bewaard"><Ic n="heart" />Bewaard · {f.only.length}<Ic n="x" /></button>}
-        <div className="typeseg" role="group" aria-label="Type">
-          <button {...P(f.type === 'all')} onClick={() => c.setF({ type: 'all' })}>Alles</button>
-          <button {...P(f.type === 'k')} onClick={() => c.setF({ type: 'k' })}><i className="tk" />Winkels</button>
-          <button {...P(f.type === 'm')} onClick={() => c.setF({ type: 'm' })}><i className="tm" />Markten</button></div>
-        {f.type !== 'm' && <button className="chip" aria-expanded={cats} {...P(f.hide.length > 0)} onClick={() => setCats(!cats)}><Ic n="store" />{f.hide.length ? `Soort (${CATS.length - f.hide.length})` : 'Soort'}</button>}
-        <span className="sep" />
         <button className="chip" {...P(f.time === 'now')} onClick={() => c.setF({ time: f.time === 'now' ? 'all' : 'now' })}><span className="gdot" />Nu open</button>
         <button className="chip" {...P(f.time === 'today')} onClick={() => c.setF({ time: f.time === 'today' ? 'all' : 'today' })}>Vandaag</button>
         <button className="chip" {...P(f.time === 'weekend')} onClick={() => c.setF({ time: f.time === 'weekend' ? 'all' : 'weekend' })}>Dit weekend</button>
         <button className="chip" {...P(f.time === 'date')} onClick={() => c.setF(f.time === 'date' ? { time: 'all' } : { time: 'date', date: f.date ?? addDays(today, 1) })}><Ic n="cal" />{f.time === 'date' && f.date ? dShort(f.date) : 'Kies datum'}</button>
         <span className="sep" />
-        <button className="chip" {...P(f.gratis)} onClick={() => c.setF({ gratis: !f.gratis })}>Gratis entree</button>
-        <button className="chip" {...P(f.overdekt)} onClick={() => c.setF({ overdekt: !f.overdekt })}><Ic n="umbrella" />Overdekt</button>
+        <div className="typeseg" role="group" aria-label="Type">
+          <button {...P(f.type === 'all')} onClick={() => c.setF({ type: 'all' })}>Alles</button>
+          <button {...P(f.type === 'k')} onClick={() => c.setF({ type: 'k' })}><i className="tk" />Winkels</button>
+          <button {...P(f.type === 'm')} onClick={() => c.setF({ type: 'm' })}><i className="tm" />Markten</button></div>
+        <button className="chip" aria-expanded={cats} {...P(extra > 0)} onClick={() => setCats(!cats)}><Ic n="store" />{extra ? `Meer filters · ${extra}` : 'Meer filters'}</button>
       </div>
-      {cats && f.type !== 'm' && <div className="catstrip" role="group" aria-label="Soort winkel">
-        {CATS.map(k => { const on = !f.hide.includes(k); return <button key={k} className={`catchip c-${k}`} aria-pressed={on} onClick={() => c.setF({ hide: on ? [...f.hide, k] : f.hide.filter(x => x !== k) })}><span className="tile"><Ic n={CAT[k][2]} /></span>{CAT[k][1]}</button>; })}
-        {f.hide.length > 0 && <button className="chip" onClick={() => c.setF({ hide: [] })}>Alles aan</button>}</div>}
+      {cats && <div className="morestrip" role="group" aria-label="Meer filters">
+        {f.type !== 'k' && <><button className="chip" {...P(f.gratis)} onClick={() => c.setF({ gratis: !f.gratis })}>Markt: gratis entree</button>
+          <button className="chip" {...P(f.overdekt)} onClick={() => c.setF({ overdekt: !f.overdekt })}><Ic n="umbrella" />Markt: overdekt</button></>}
+        {f.type !== 'm' && <div className="catstrip" role="group" aria-label="Soort winkel">
+          {CATS.map(k => { const on = !f.hide.includes(k); return <button key={k} className={`catchip c-${k}`} aria-pressed={on} onClick={() => c.setF({ hide: on ? [...f.hide, k] : f.hide.filter(x => x !== k) })}><span className="tile"><Ic n={CAT[k][2]} /></span>{CAT[k][1]}</button>; })}
+          {f.hide.length > 0 && <button className="chip" onClick={() => c.setF({ hide: [] })}>Alle soorten</button>}</div>}</div>}
       {f.time === 'date' && <div className="daystrip" role="group" aria-label="Kies een dag">{Array.from({ length: 10 }, (_, i) => { const iso = addDays(today, i), d = dayStart(iso); return (
         <button key={iso} className="day" aria-pressed={f.date === iso} onClick={() => c.setF({ date: iso })} aria-label={dLong(iso) + (isHoliday(iso) ? ', feestdag' : '')}><span>{i === 0 ? 'vand.' : DAYS[d.getDay()]}</span><b className="tnum">{d.getDate()}</b><i className={`mk${isHoliday(iso) ? '' : ' none'}`} /></button>); })}</div>}
+    </div>
+    <div className="lv-notes">
       {!c.online && <Banner icon="wifi-off"><b>Je bent offline.</b> Je ziet de gegevens van {c.dataFrom ? dShort(isoDay(new Date(c.dataFrom))) : 'je laatste bezoek'}. Afgelastingen van daarna zie je pas weer met verbinding.</Banner>}
       {isHoliday(f.time === 'date' && f.date ? f.date : today) && <Banner kind="warn" icon="cal"><b>Het is een feestdag.</b> Kringlopen hebben dan vaak andere tijden. Bel even voordat je gaat.</Banner>}
       {c.locDenied && !c.me ? <Banner icon="pin"><b>Je locatie staat uit.</b> Geen probleem: zoek hierboven een plaats of postcode. Wil je hem toch aanzetten, dan kan dat in de instellingen van je browser.</Banner>
-        : !c.me && !f.q && <Banner icon="pin">{!c.spot ? <><b>Waar wil je snuffelen?</b> We tonen nu Amersfoort. </> : <><b>Afstanden vanaf {c.originLabel}.</b> </>}<button className="link" onClick={() => c.locate()}>Gebruik mijn locatie</button> of zoek een plaats.</Banner>}
+        : !c.me && !f.q && (!c.spot ? <Banner icon="pin"><b>Waar wil je snuffelen?</b> We tonen nu Amersfoort. <button className="link" onClick={() => c.locate()}>Gebruik mijn locatie</button> of zoek een plaats.</Banner>
+          : <p className="lv-loc"><Ic n="pin" />Afstanden vanaf {c.originLabel} · <button className="link" onClick={() => c.locate()}>gebruik mijn locatie</button></p>)}
     </div>
     <div className="rows-wrap">
       {spots.length > 0 && <div className="sresults"><h4>Kijk rond in</h4>{spots.map(s => <button key={s.label + s.sub} className="sres" onClick={() => c.pickSpot(s)}><span className="ic"><Ic n="pin" /></span><span><b>{s.label}</b><span>{s.sub}</span></span><Ic n="chev" /></button>)}{list.length > 0 && <h4>Winkels en markten</h4>}</div>}
@@ -250,6 +259,8 @@ export function PlanView({ c, items, plan, setPlan, optimizeSeen }: { c: Ctx; it
   const isBest = stops.length < 2 || bestOrder(stops, plan.day, plan.start, c.origin).map(x => x.id).join() === stops.map(x => x.id).join();
   const stt = sim.bad ? { c: 'bad', i: 'alert', t: `${sim.bad === 1 ? '1 stop klopt' : `${sim.bad} stops kloppen`} niet op ${dayName}.`, x: optimizeSeen ? 'Haal de stop weg of kies een andere dag.' : 'Probeer Slimste volgorde, of haal de stop weg.' }
     : sim.warn ? { c: 'warn', i: 'info', t: `${sim.warn === 1 ? '1 aandachtspunt' : `${sim.warn} aandachtspunten`}.`, x: 'Staat hieronder bij de stop.' } : { c: 'ok', i: 'check', t: 'Alles open en bevestigd.', x: 'Je kunt gaan.' };
+  // ponytail: alleen wachten bij de eerste stop lossen we op met de vertrektijd; wachten verderop lost Slimste volgorde op.
+  const later = sim.stops[0]?.wait > 45 ? plan.start + Math.floor((sim.stops[0].wait - 10) / 15) * 15 : 0;
   const sugg = items.filter(i => !plan.stops.includes(i.id) && (i.t === 'k' ? openOn(i, plan.day) : i.date === plan.day && (i.status === 'org' || i.status === 'chk')))
     .map(i => ({ it: i, d: stops.length ? Math.min(...stops.map(s => km(s, i))) : km(c.origin, i) })).sort((a, b) => a.d - b.d).slice(0, 3);
   const head = (
@@ -257,8 +268,9 @@ export function PlanView({ c, items, plan, setPlan, optimizeSeen }: { c: Ctx; it
       <div className="dv-top"><button className="back" onClick={c.back}><Ic n="back" />Terug</button></div>
       <div className="pv-title"><h2>Mijn {dayName}</h2>
         <div className="typeseg" role="group" aria-label="Dag"><button aria-pressed={plan.day === sat} onClick={() => setPlan({ day: sat })}>{dShort(sat)}</button><button aria-pressed={plan.day === sun} onClick={() => setPlan({ day: sun })}>{dShort(sun)}</button></div></div>
-      <div className="pv-opts"><label>Vertrek<select value={plan.start} onChange={e => setPlan({ start: +e.target.value })}>{[480, 510, 540, 570, 600, 630, 660, 720, 780].map(m => <option key={m} value={m}>{hm(m)}</option>)}</select></label>
+      <div className="pv-opts"><label>Vertrek<select value={plan.start} onChange={e => setPlan({ start: +e.target.value })}>{[...new Set([480, 510, 540, 570, 600, 630, 660, 720, 780, plan.start])].sort((a, b) => a - b).map(m => <option key={m} value={m}>{hm(m)}</option>)}</select></label>
         <span>vanaf {c.me ? 'je locatie' : 'Amersfoort'}</span></div>
+      {later && <button className="btn sm" style={{ alignSelf: 'flex-start' }} onClick={() => setPlan({ start: later })}><Ic n="clock" />Vertrek om {hm(later)}, dan hoef je bij de eerste stop niet {sim.stops[0].wait} min te wachten</button>}
     </div>);
   if (!stops.length) return <>{head}<div className="empty"><h3>Nog geen stops</h3><p>Tik op <b>+</b> bij een kringloop of markt. We rekenen uit wanneer je waar bent, en of het dan open is.</p><div className="btns"><button className="btn sm primary" onClick={() => { c.setF({ time: 'weekend' }); c.back(); }}>Wat is er dit weekend?</button></div></div></>;
   return (<>{head}

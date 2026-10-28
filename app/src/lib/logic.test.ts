@@ -106,6 +106,11 @@ describe('dagplan', () => {
     const zo = simulate([m('m3')], '2026-11-01', 570, DEFAULT_CENTER);
     expect(zo.stops[0].issue).toMatchObject({ lv: 'warn', txt: expect.stringContaining('Nog niet bevestigd') });
   });
+  it('wachttijd bij een te vroege aankomst (voor het voorstel later te vertrekken)', () => {
+    const s = simulate([P('Sa 13:00-17:00', { id: 'laat', lat: DEFAULT_CENTER.lat, lon: DEFAULT_CENTER.lon })], '2026-10-31', 570, DEFAULT_CENTER);
+    expect(s.stops[0].wait).toBe(13 * 60 - s.stops[0].arrive);
+    expect(simulate([P('Sa 09:00-17:00', { id: 'vroeg' })], '2026-10-31', 570, DEFAULT_CENTER).stops[0].wait).toBe(0);
+  });
   it('slimste volgorde lost een te vroege aankomst op', () => {
     const shop = P('Tu-Sa 10:00-16:00', { id: 'shop' }), order = [shop, m('m2')];
     expect(simulate(order, '2026-10-31', 570, DEFAULT_CENTER).warn).toBe(1);
