@@ -12,9 +12,9 @@ export const isUnsure = (it: Item) => (it.t === 'm' ? it.status === 'unconf' : !
 export const CAT: Record<Cat, [string, string, string]> = {
   kringloop: ['Kringloop', 'Kringlopen', 'tag'],
   antiek: ['Antiek en brocante', 'Antiek en brocante', 'vase'],
-  kleding: ['Tweedehands kleding', 'Kleding', 'hanger'],
+  kleding: ['Vintage en kleding', 'Vintage en kleding', 'hanger'],
   schroot: ['Sloop en restpartijen', 'Sloop en restpartijen', 'hammer'],
-  pandjeshuis: ['Pandjeshuis', 'Pandjeshuizen', 'gem'],
+  pandjeshuis: ['Opkoop en pandjeshuis', 'Opkoop en pandjeshuis', 'gem'],
   vlooienmarkt: ['Vlooienmarkt (vaste plek)', 'Vaste vlooienmarkten', 'kraam'],
   tweedehands: ['Tweedehandswinkel', 'Overige tweedehands', 'store'],
 };

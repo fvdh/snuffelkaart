@@ -115,3 +115,9 @@ Keuzes en waarom. Nieuwste onderaan. "Freek" = besloten door Freek; anders voorl
 - **Tijden zonder OSM opnieuw op te halen**: `fetch-osm.mjs` schrijft de bron van elke openingstijd (OSM of eigen website) naar `app/data/hours.json`; `refresh-hours.mjs` rekent daarmee vooruit. Niet in de browser.
 - **Niet nachtelijk**: OSM, Overture en websitetijden. Die import blijft met de hand tot de Geofabrik-import (§5.1).
 - **Cloudflare**: account-id staat in `wrangler.jsonc` (geen geheim); het API-token als secret `CLOUDFLARE_API_TOKEN` in GitHub (Freek).
+
+## Overige tweedehands uitgesplitst (2026-10-28)
+
+- **Kringloop ook volgens de eigen website** (`scripts/soort.mjs`): staat "kringloop" in het adres van hun eigen site (kringloopteddy.eu, opnieuwenco.nl/kringloopwinkels/…), dan is het een kringloop. Gidssites (allekringloopwinkels, kringloop-info) tellen niet. Plus ketens op naam: Opnieuw & Co, Estafette, Kringloper, Kringloods.
+- **Nadere soort uit de naam**, alleen als Overture er geen gaf: vintage/thrift/fashion/boetiek → "Vintage en kleding"; Used Products, Cash Converters → "Opkoop en pandjeshuis"; bouwmaterialen, houtbank → "Sloop en restpartijen".
+- **Resultaat**: overige tweedehands 1068 → 824; kringloop 1089 → 1164, vintage en kleding 283 → 399, opkoop 22 → 72. De rest heeft geen signaal in naam of site; daarvoor is de beheerqueue (M2).

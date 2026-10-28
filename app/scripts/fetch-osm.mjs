@@ -6,6 +6,7 @@
 import fs from 'node:fs';
 import { precompute, holidays, todayIso, DAYS_AHEAD } from './hours-precompute.mjs';
 import { siteKey } from './hours-from-web.mjs';
+import { kindOf, refine } from './soort.mjs';
 
 const BBOX = [50.75, 3.35, 53.56, 7.23]; // z, w, n, o: heel Nederland (knippen op de grens gebeurt hieronder)
 const TILES = []; // 3 × 3 vakken: één query voor heel NL loopt op de publieke Overpass-servers vaak in een time-out
@@ -38,8 +39,6 @@ async function fetchOverpass() {
   return { elements: [...seen.values()] };
 }
 
-// Valse treffers (§14.4). "Kringloop" alleen als naam of keten het zegt; anders eerlijk "tweedehands".
-const KRINGLOOP = /kringloop|kringkoop|ringloop|kringwinkel|ecokring|het goed|woord (en|&) daad|2switch|emmaus|rataplan|reshare|humana|snuffel|weggeef|ruilwinkel|goede doel/i;
 // Geen tweedehands: winkels met nieuwe spullen. Dumpstores en dergelijke blijven, als tweedehandswinkel.
 const NOT_SECOND_HAND = /wereldwinkel|unicef|eine.welt/i;
 // Handmatig, per OSM-id: soort corrigeren of weglaten (null), met reden. Bij twijfel: OSM zelf verbeteren.
@@ -47,8 +46,6 @@ const FIXES = {
   // 'osm-n123': { kind: 'kringloop', why: 'kringloop volgens eigen website' },
   // 'osm-n456': { kind: null, why: 'gesloten, nog niet uit OSM' },
 };
-const CHARITY = /dorcas|terres? des hommes|leger des heils|leprawinkel|rode kruis/i;
-const kindOf = t => t.shop === 'charity' || CHARITY.test(t.name || '') ? 'goede-doelen' : KRINGLOOP.test(t.name || '') ? 'kringloop' : 'tweedehands';
 
 // Regio: Nederland (of een paar provincies), op de provinciegrenzen van het CBS (via PDOK).
 const PROV = new URL('../data-raw/provincies.json', import.meta.url), REGION = null; // null = heel Nederland; of bijv. ['Utrecht', 'Gelderland']
@@ -140,6 +137,8 @@ if (fs.existsSync(OV)) {
   }
   ovStat.osmOnly = osmPlaces.filter(p => !ov.rows.some(o => metres(o, p) < 150)).length;
 }
+
+places.forEach(refine); // soort pas nu: de website kan uit Overture komen
 
 // ---------- Openingstijden van de eigen website van de winkel (fetch-web-hours.mjs) ----------
 const WEB = new URL('../data-raw/web-hours.json', import.meta.url), webStat = { used: 0, shared: 0, market: 0, otherShop: 0 };
