@@ -1,35 +1,15 @@
 // Beheer: wachtrij (kandidaten uit het Gemeenteblad, markten die van de site van hun organisator verdwenen), markten van deze week,
 // winkels, bronnen en het moderatielog. Opbouw volgens het ontwerp (§07): zijbalk, lijst, detail; J/K bladeren, A/U/E/R handelen.
 // Inloggen met een link per e-mail (Supabase Auth); wat je mag, bepaalt RLS (tabel admins). Wat je hier zet, komt in `locked`:
-// een import overschrijft het niet meer. ponytail: REST met fetch, geen supabase-js; na een uur opnieuw inloggen.
+// een import overschrijft het niet meer. Sessie en REST: lib/auth.ts.
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { CATS, type Cat } from '../lib/model';
 import { queue, type MRow, type Judged } from '../lib/beheer';
 import { CAT, Ic } from './ui';
+import { SB, KEY, readSession, sendLink, logout, api as authApi, type Session } from '../lib/auth';
 
-declare const __SB_URL__: string, __SB_KEY__: string;
-const SB = __SB_URL__, KEY = __SB_KEY__, STORE = 'snuffel-beheer';
-type Session = { token: string; email: string; exp: number };
 type Row = { id: string; status: string; locked: string[]; data: Record<string, any>; date?: string; updated_at?: string };
-
-function session(): Session | null {
-  const h = new URLSearchParams(location.hash.slice(1)), token = h.get('access_token');
-  if (token) {
-    const email = JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))).email;
-    const s = { token, email, exp: Date.now() + Number(h.get('expires_in') ?? 3600) * 1000 };
-    try { localStorage.setItem(STORE, JSON.stringify(s)); } catch { /* privémodus: alleen deze sessie */ }
-    history.replaceState(null, '', location.pathname);
-    return s;
-  }
-  try { const s = JSON.parse(localStorage.getItem(STORE) ?? 'null'); return s && s.exp > Date.now() ? s : null; } catch { return null; }
-}
-
-async function api(s: Session, path: string, init: RequestInit = {}) {
-  const r = await fetch(`${SB}/rest/v1/${path}`, { ...init, headers: { apikey: KEY, Authorization: `Bearer ${s.token}`, 'Content-Type': 'application/json', Prefer: 'return=representation', ...init.headers } });
-  if (r.status === 401) throw new Error('Je sessie is verlopen. Log uit en vraag een nieuwe inloglink aan.');
-  if (!r.ok) throw new Error(`${r.status}: ${await r.text()}`);
-  return r.json();
-}
+const api = (s: Session, path: string, init: RequestInit = {}) => authApi(s, `rest/v1/${path}`, init);
 const lock = (r: Row, ...ks: string[]) => [...new Set([...r.locked, ...ks])];
 const today = () => new Date().toLocaleDateString('sv-SE');
 const plusDays = (n: number) => new Date(Date.now() + n * 864e5).toLocaleDateString('sv-SE');
@@ -40,18 +20,17 @@ const typing = (e: KeyboardEvent) => e.target instanceof HTMLElement && /^(INPUT
 
 export default function Beheer() {
   const [s, setS] = useState<Session | null>(null), [ready, setReady] = useState(false);
-  useEffect(() => { setS(session()); setReady(true); }, []);
+  useEffect(() => { setS(readSession()); setReady(true); }, []);
   if (!SB || !KEY) return <main className="bh-login"><p>Beheer is niet ingesteld: SUPABASE_URL en SUPABASE_ANON_KEY ontbreken bij de build.</p></main>;
   if (!ready) return null;
-  return s ? <Panel s={s} out={() => { try { localStorage.removeItem(STORE); } catch {} setS(null); }} /> : <Login />;
+  return s ? <Panel s={s} out={() => { logout(s); setS(null); }} /> : <Login />;
 }
 
 function Login() {
   const [email, setEmail] = useState(''), [sent, setSent] = useState(false), [err, setErr] = useState('');
   const send = async (e: React.FormEvent) => {
     e.preventDefault(); setErr('');
-    const r = await fetch(`${SB}/auth/v1/otp?redirect_to=${encodeURIComponent(location.origin + '/beheer')}`, { method: 'POST', headers: { apikey: KEY, 'Content-Type': 'application/json' }, body: JSON.stringify({ email, create_user: true }) });
-    r.ok ? setSent(true) : setErr(`Versturen lukte niet (${r.status}). Probeer het over een minuut opnieuw.`);
+    try { await sendLink(email, location.origin + '/beheer'); setSent(true); } catch (x) { setErr((x as Error).message); }
   };
   return (<main className="bh-login"><form onSubmit={send}>
     <div className="bh-brand"><span className="bh-mark"><Ic n="tag" /></span>Beheer</div>

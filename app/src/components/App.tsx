@@ -7,7 +7,8 @@ import { visible, type Filters } from '../lib/filter';
 import { simulate } from '../lib/plan';
 import type { Spot } from '../lib/pdok';
 import MapView from './MapView';
-import { ListView, DetailView, PlanView, type Ctx } from './Views';
+import { ListView, DetailView, PlanView, MeView, LoginView, type Ctx } from './Views';
+import { readSession, returnError, api, sendLink, logout as authLogout, mergeFavs, LoggedOut, type Session } from '../lib/auth';
 import { Ic, reduced } from './ui';
 
 /** "Nu", met ?nu=2026-10-31T09:10 om tijdsbewust gedrag te testen. */
@@ -24,7 +25,7 @@ function useLocal<T>(key: string, init: T): [T, (v: T) => void] {
 }
 const useDesktop = () => { const q = '(min-width: 980px)'; const [d, setD] = useState(() => matchMedia(q).matches); useEffect(() => { const m = matchMedia(q), f = () => setD(m.matches); m.addEventListener('change', f); return () => m.removeEventListener('change', f); }, []); return d; };
 
-type View = 'list' | 'detail' | 'plan';
+type View = 'list' | 'detail' | 'plan' | 'me' | 'login';
 type Snap = 'collapsed' | 'half' | 'full';
 
 export default function App() {
@@ -86,8 +87,46 @@ export default function App() {
     t.ready.catch(() => {}); // afgebroken (tab op de achtergrond): de wissel zelf gaat gewoon door
     t.finished.catch(() => {}).finally(() => { const h = title(); if (h) h.style.viewTransitionName = ''; });
   };
-  const back = () => { setDir('back'); setView(view === 'detail' ? prev : 'list'); if (view === 'detail') setSel(null); setPrev('list'); scrollTop(); };
-  const toggleFav = (id: string) => { const on = !favs.includes(id); setFavs(on ? [...favs, id] : favs.filter(x => x !== id)); setToast(on ? 'Bewaard op dit apparaat.' : 'Niet meer bewaard.'); };
+  const back = () => { setDir('back'); setView(view === 'detail' ? prev : view === 'login' ? 'me' : 'list'); if (view === 'detail') setSel(null); setPrev('list'); scrollTop(); };
+  // ---------- account (M3) ----------
+  // Na inloggen: favorieten van dit apparaat gaan mee (samenvoegen). Bij een latere start wint je account: zo komt een favoriet
+  // die je op een ander apparaat weghaalde niet terug. ponytail: offline weghalen terwijl ingelogd gaat daardoor verloren.
+  const [sess, setSess] = useState<Session | null>(null), favsRef = useRef(favs); favsRef.current = favs;
+  const rest = (path: string, init?: RequestInit) => sess ? api(sess, `rest/v1/${path}`, init, setSess).catch(e => { if (e instanceof LoggedOut) { setSess(null); setToast(e.message); } throw e; }) : Promise.reject(new Error('niet ingelogd'));
+  useEffect(() => {
+    const back = location.hash.includes('access_token'), e = returnError(), s = readSession();
+    if (e) setToast(`Inloggen lukte niet: ${e}. Vraag een nieuwe link aan.`);
+    setSess(s);
+    if (s && back) { setWelcomed(true); setView('me'); setSnap('full'); sessionStorage.setItem('snuffel-samenvoegen', '1'); }
+  }, []);
+  useEffect(() => {
+    if (!sess) return;
+    rest('favorites?select=item_id&order=created_at').then(async (rows: { item_id: string }[]) => {
+      const remote = rows.map(r => r.item_id);
+      if (sessionStorage.getItem('snuffel-samenvoegen')) {
+        sessionStorage.removeItem('snuffel-samenvoegen');
+        const { all, upload } = mergeFavs(favsRef.current, remote);
+        if (upload.length) await rest('favorites?on_conflict=user_id,item_id', { method: 'POST', headers: { Prefer: 'resolution=ignore-duplicates,return=minimal' }, body: JSON.stringify(upload.map(item_id => ({ item_id }))) });
+        setFavs(all); setToast(`Ingelogd.${upload.length ? ` Je ${upload.length === 1 ? 'bewaarde plek is' : `${upload.length} bewaarde plekken zijn`} meegenomen.` : ''}`);
+      } else setFavs(remote);
+    }).catch(() => {});
+  }, [sess?.email]);
+  const toggleFav = (id: string) => {
+    const on = !favs.includes(id); setFavs(on ? [...favs, id] : favs.filter(x => x !== id));
+    if (!sess) return setToast(on ? 'Bewaard op dit apparaat.' : 'Niet meer bewaard.');
+    setToast(on ? 'Bewaard in je account.' : 'Niet meer bewaard.');
+    (on ? rest('favorites', { method: 'POST', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ item_id: id }) }) : rest(`favorites?item_id=eq.${encodeURIComponent(id)}`, { method: 'DELETE', headers: { Prefer: 'return=minimal' } }))
+      .catch(() => setToast('Opslaan in je account lukte niet. Op dit apparaat staat het wel.'));
+  };
+  const openMe = () => { setDir('fwd'); setPrev(view); setView('me'); if (snap === 'collapsed') setSnap('half'); scrollTop(); };
+  const showFavs = () => { const pts = favs.map(id => byId.get(id)).filter(Boolean) as Item[]; setFState(o => ({ ...o, only: favs, time: 'all', q: '' })); setDir('back'); setView('list'); setSel(null); if (pts.length) setFit({ pts, key: Date.now() }); if (!desktop) setSnap('collapsed'); };
+  const logout = () => { authLogout(sess); setSess(null); setToast('Uitgelogd. Je favorieten blijven op dit apparaat.'); };
+  const download = () => {
+    const blob = new Blob([JSON.stringify({ email: sess?.email, favorieten: favs.map(id => ({ id, naam: byId.get(id)?.name ?? null })), gedownload: new Date().toISOString() }, null, 2)], { type: 'application/json' });
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'snuffelkaart-mijn-gegevens.json'; a.click(); URL.revokeObjectURL(a.href);
+  };
+  const removeAccount = () => rest('rpc/delete_me', { method: 'POST', body: '{}' }).then(() => { authLogout(null); setSess(null); setToast('Je account is verwijderd, met je e-mailadres en je favorieten in je account.'); })
+    .catch(() => setToast('Verwijderen lukte niet. Probeer het later opnieuw.'));
   const toggleStop = (id: string) => {
     const plan = planRef.current, it = byId.get(id)!, has = plan.stops.includes(id);
     if (has) return setPlan({ stops: plan.stops.filter(x => x !== id) });
@@ -114,7 +153,7 @@ export default function App() {
   const openPlan = () => { setDir('fwd'); setPrev(view); setView('plan'); setSnap(desktop ? 'half' : 'half'); scrollTop(); };
   useEffect(() => { if (view === 'plan') setFit({ pts: [origin, ...plan.stops.map(id => byId.get(id)).filter(Boolean) as Item[]], key: Date.now() }); }, [view, plan.stops.join(), plan.day]);
 
-  const c: Ctx = { now, f, online, dataFrom, install, origin, originLabel, locDenied, welcome: !welcomed && !spot && !me, spot: !!spot, pickSpot, pickPlace, me, favs, planStops: plan.stops, planDay: plan.day, setF, open, toggleStop, toggleFav, locate, back, openPlan };
+  const c: Ctx = { now, f, online, dataFrom, install, origin, originLabel, locDenied, welcome: !welcomed && !spot && !me, spot: !!spot, pickSpot, pickPlace, me, favs, planStops: plan.stops, planDay: plan.day, setF, open, toggleStop, toggleFav, locate, back, openPlan, openMe, user: sess?.email ?? null };
 
   // ---------- bottom sheet (mobiel) ----------
   const shell = useRef<HTMLDivElement>(null), sheet = useRef<HTMLDivElement>(null), scroller = useRef<HTMLDivElement>(null);
@@ -161,7 +200,7 @@ export default function App() {
   return (
     <div className="shell" ref={shell}>
       <MapView items={mapItems} sel={view === 'detail' ? sel : null} planIds={view === 'plan' ? plan.stops : []} me={me} bottomPad={bottomPad}
-        focus={focus} fit={fit} route={view === 'plan' && planItems.length ? [origin, ...planItems] : []} pinClass={pinClass} onSelect={open} />
+        focus={focus} fit={fit} route={view === 'plan' && planItems.length ? [origin, ...planItems] : []} pinClass={pinClass} onSelect={open} onLocate={() => locate()} />
       <div className={`sheet${dragTop == null ? ' snapping' : ''}`} ref={sheet} style={desktop ? undefined : { transform: `translateY(${top - 12}px)` }}
         onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp}>
         <button className="handle" aria-label="Paneel groter of kleiner" onClick={e => { if (e.detail === 0) setSnap(snap === 'collapsed' ? 'half' : snap === 'half' ? 'full' : 'collapsed'); }} />
@@ -169,7 +208,9 @@ export default function App() {
           <div className={`view${dir === 'fwd' ? ' enter' : dir === 'back' ? ' enter-back' : ''}`} key={view + (sel ?? '')}>
             {err ? <div className="empty"><h3>De gegevens laden niet</h3><p>Controleer je verbinding en probeer het opnieuw.</p><div className="btns"><button className="btn sm primary" onClick={() => location.reload()}>Opnieuw laden</button></div></div>
               : !places ? <div aria-busy="true" aria-label="Laden" style={{ paddingTop: 16 }}>{Array.from({ length: 6 }, (_, i) => <div key={i} className="skrow"><div className="sk" style={{ width: 40, height: 40, borderRadius: 11 }} /><div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}><div className="sk" style={{ height: 13, width: '70%' }} /><div className="sk" style={{ height: 11, width: '45%' }} /></div><div className="sk" style={{ width: 32, height: 32, borderRadius: '50%' }} /></div>)}</div>
-              : view === 'detail' && selItem ? <DetailView it={selItem} c={c} backLabel={prev === 'plan' ? `Mijn ${DAYS_LONG[dayStart(plan.day).getDay()]}` : 'Lijst'} />
+              : view === 'detail' && selItem ? <DetailView it={selItem} c={c} backLabel={prev === 'plan' ? `Mijn ${DAYS_LONG[dayStart(plan.day).getDay()]}` : prev === 'me' ? 'Jij' : 'Lijst'} />
+              : view === 'me' ? <MeView c={c} items={items} showFavs={showFavs} login={() => { setDir('fwd'); setView('login'); setSnap('full'); scrollTop(); }} logout={logout} download={download} remove={removeAccount} />
+              : view === 'login' ? <LoginView c={c} send={email => sendLink(email, location.origin + '/')} />
               : view === 'plan' ? <PlanView c={c} items={items} plan={plan} setPlan={p => { setPlan(p); if (p.stops && !p.day && p.stops.length === plan.stops.length) setOptimized(true); }} optimizeSeen={optimized} />
               : <ListView c={c} list={list} total={list.length} limit={limit} more={() => setLimit(limit + 40)} counts={counts} nPlaces={places.length} />}
           </div>

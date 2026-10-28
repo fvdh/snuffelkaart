@@ -2,6 +2,6 @@
 project_id = "snuffelkaart"
 
 [auth]
-# Waar de inloglink van /beheer naartoe mag terugsturen.
+# Waar een inloglink (app en /beheer) naartoe mag terugsturen.
 site_url = "https://snuffelkaart.ironfront-relay.workers.dev"
-additional_redirect_urls = ["https://snuffelkaart.ironfront-relay.workers.dev/beheer", "http://localhost:4321/beheer"]
+additional_redirect_urls = ["https://snuffelkaart.ironfront-relay.workers.dev/beheer", "http://localhost:4321/beheer", "http://localhost:4321"]

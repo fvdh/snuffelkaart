@@ -40,7 +40,7 @@ function paint(map: ML.Map) {
 export interface MapProps {
   items: Item[]; sel: string | null; planIds: string[]; me: LatLon | null; bottomPad: number;
   focus: { lat: number; lon: number; key: number } | null; fit: { pts: LatLon[]; key: number } | null; route: LatLon[];
-  pinClass: (it: Item) => string; onSelect: (id: string) => void;
+  pinClass: (it: Item) => string; onSelect: (id: string) => void; onLocate: () => void;
 }
 
 const icon = (n: string) => `<svg class="i" aria-hidden="true"><use href="#i-${n}"/></svg>`;
@@ -167,5 +167,11 @@ export default function MapView(p: MapProps) {
     return () => { cancelAnimationFrame(raf); set(pts); };
   }, [ready, p.route]);
 
-  return <div className="map" ref={box} role="region" aria-label="Kaart" />;
+  const zoom = (d: number) => mapRef.current?.easeTo({ zoom: mapRef.current.getZoom() + d, duration: reduced() ? 0 : 250 });
+  return (<>
+    <div className="map" ref={box} role="region" aria-label="Kaart" />
+    <div className="map-ctrl"><button onClick={() => zoom(1)} aria-label="Inzoomen"><svg className="i" aria-hidden="true"><use href="#i-plus" /></svg></button>
+      <button onClick={() => zoom(-1)} aria-label="Uitzoomen"><svg className="i" aria-hidden="true"><use href="#i-minus" /></svg></button>
+      <button onClick={p.onLocate} aria-label="Naar mijn locatie" aria-pressed={!!p.me}><svg className="i" aria-hidden="true"><use href="#i-loc" /></svg></button></div>
+  </>);
 }

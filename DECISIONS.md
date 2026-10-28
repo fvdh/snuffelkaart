@@ -153,3 +153,10 @@ Keuzes en waarom. Nieuwste onderaan. "Freek" = besloten door Freek; anders voorl
 - **Wachtrij** = kandidaten uit het Gemeenteblad en markten die van de site van hun organisator verdwenen (niet vastgezet). Kritiek = binnen 7 dagen.
 - **Voorbeoordeling met vaste regels** (`src/lib/beheer.ts`): dubbel (zelfde dag, < 1 km van een markt op de kaart) → waarschijnlijk afwijzen; verleend of melding, met plek en tijden → waarschijnlijk goed; anders twijfel. ponytail: de AI-voorbeoordeling (M5) vervangt dit achter dezelfde vorm.
 - **Nog niet:** meldingen, reviews, foto's en wijzigingsvoorstellen (M5); een fout per uitlezer (de nachtrun gaat bij een fout door, maar legt hem nog niet vast); de pin verplaatsen.
+
+## M3: accounts en favorieten (2026-10-28)
+- **Zelfde Supabase-project** als beheer, tabel `favorites (user_id, item_id)` met RLS: alleen eigen rijen lezen, toevoegen en verwijderen; gasten niets (getest met twee gebruikers en anon). ponytail: §13 noemt een tweede project; pas splitsen als er een reden is (bijv. aparte staging).
+- **Inloggen zonder supabase-js** (`src/lib/auth.ts`, gedeeld met /beheer): inloglink per e-mail; Apple en Google verschijnen vanzelf zodra ze in Supabase aan staan. De sessie blijft op het apparaat en wordt ververst met de refresh token.
+- **"Jij"-paneel** (knop rechtsboven, ontwerp §05): bewaarde plekken (werkt zonder account), "Toon op de kaart", uitnodiging om in te loggen. Ingelogd: uitloggen, gegevens downloaden (JSON), account verwijderen (`delete_me()`, met favorieten via cascade). "Mijn locatie" zit nu bij de kaartknoppen (+, −, locatie).
+- **Synchroniseren**: bij inloggen worden de favorieten van het apparaat samengevoegd met die van het account. Bij een latere start wint het account, zodat een favoriet die je elders weghaalde niet terugkomt. ponytail: een wijziging offline terwijl ingelogd gaat daardoor verloren.
+- **Nog nodig van Freek**: eigen SMTP (Supabase-mail bereikt alleen teamleden, dus bezoekers krijgen nu geen inloglink), Google- en Apple-sleutels in Supabase.

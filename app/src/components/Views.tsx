@@ -5,13 +5,14 @@ import { placeNow, placeDay, placeWeekend, marketStatus, week, isHoliday, openOn
 import { simulate, bestOrder, routeUrl } from '../lib/plan';
 import type { Filters } from '../lib/filter';
 import { searchSpots, type Spot } from '../lib/pdok';
+import { providers, oauthUrl } from '../lib/auth';
 import { Ic, Tile, St, Conf, Banner, CAT, kindLabel, isUnsure, EASE, reduced, pop } from './ui';
 
 export interface Ctx {
   now: Date; f: Filters; online: boolean; dataFrom: string | null; install: { add: () => void; no: () => void } | null; origin: LatLon; originLabel: string | null; locDenied: boolean; welcome: boolean; spot: boolean; me: LatLon | null;
   pickSpot: (s: Spot) => void; pickPlace: () => void; favs: string[]; planStops: string[]; planDay: string;
   setF: (p: Partial<Filters>) => void; open: (id: string, from?: HTMLElement | null) => void; toggleStop: (id: string) => void; toggleFav: (id: string) => void;
-  locate: (quiet?: boolean) => void; back: () => void; openPlan: () => void;
+  locate: (quiet?: boolean) => void; back: () => void; openPlan: () => void; openMe: () => void; user: string | null;
 }
 
 /** Status van een item in de context van het gekozen tijdfilter. */
@@ -94,9 +95,10 @@ export function ListView({ c, list, total, limit, more, counts, nPlaces }: { c: 
           ? <button onClick={() => c.setF({ time: 'today' })}><span className="cdot" />{counts.kToday} winkels open vandaag</button>
           : <button onClick={() => c.setF({ time: 'now' })}><span className="cdot" />{counts.kNow} winkels nu open</button>}
           <span>·</span><button onClick={() => c.setF({ time: 'weekend' })}>{counts.mWk} markten dit weekend</button></p></div>
-        <button className="me-btn" onClick={() => c.locate()} aria-label="Gebruik mijn locatie" aria-pressed={!!c.me}><Ic n="loc" /></button></div>
+        <button className={`me-btn${c.user ? ' in' : ''}`} onClick={c.openMe} aria-label="Jij: bewaard en account">{c.user ? c.user[0].toUpperCase() : <Ic n="user" />}</button></div>
       <label className="search"><Ic n="search" /><span className="sr">Zoeken</span><input type="search" placeholder="Zoek op naam, plaats of postcode" value={f.q} onChange={e => c.setF({ q: e.target.value })} autoComplete="off" /></label>
       <div className="chips" role="group" aria-label="Filters">
+        {f.only && <button className="chip" aria-pressed onClick={() => c.setF({ only: null })} aria-label="Toon weer alles, niet alleen bewaard"><Ic n="heart" />Bewaard · {f.only.length}<Ic n="x" /></button>}
         <div className="typeseg" role="group" aria-label="Type">
           <button {...P(f.type === 'all')} onClick={() => c.setF({ type: 'all' })}>Alles</button>
           <button {...P(f.type === 'k')} onClick={() => c.setF({ type: 'k' })}><i className="tk" />Winkels</button>
@@ -125,7 +127,7 @@ export function ListView({ c, list, total, limit, more, counts, nPlaces }: { c: 
       {spots.length > 0 && <div className="sresults"><h4>Kijk rond in</h4>{spots.map(s => <button key={s.label + s.sub} className="sres" onClick={() => c.pickSpot(s)}><span className="ic"><Ic n="pin" /></span><span><b>{s.label}</b><span>{s.sub}</span></span><Ic n="chev" /></button>)}{list.length > 0 && <h4>Winkels en markten</h4>}</div>}
       {list.length ? <ul className="rows" aria-label="Resultaten" ref={flip}>{list.slice(0, limit).map(x => <Row key={x.it.id} it={x.it} d={x.d} c={c} />)}</ul>
         : spots.length ? null : <div className="empty"><h3>{f.q ? `Niets gevonden voor “${f.q}”` : 'Geen resultaten met deze filters'}</h3><p>{f.q ? 'Zoek op de naam van een winkel of een plaats.' : f.time === 'all' ? 'Zet een filter uit.' : 'Zet het tijdfilter uit om alles te zien.'}</p>
-          <div className="btns">{f.q && <button className="btn sm" onClick={() => c.setF({ q: '' })}>Wis zoekopdracht</button>}<button className="btn sm primary" onClick={() => c.setF({ time: 'all', gratis: false, overdekt: false, hide: [] })}>Toon alles</button></div></div>}
+          <div className="btns">{f.q && <button className="btn sm" onClick={() => c.setF({ q: '' })}>Wis zoekopdracht</button>}<button className="btn sm primary" onClick={() => c.setF({ time: 'all', gratis: false, overdekt: false, hide: [], only: null })}>Toon alles</button></div></div>}
       {total > limit && <button className="more" onClick={more}>Toon meer ({total - limit})</button>}
       {f.time === 'now' && f.type !== 'k' && !f.q && <button className="hint" onClick={() => c.setF({ time: 'weekend' })}><span>{counts.mWk} markten dit weekend<small>Markten zijn er vooral op zaterdag en zondag</small></span><Ic n="chev" /></button>}
       <p className="src" style={{ marginTop: 18 }}><Ic n="info" /><span>{nPlaces} winkels uit © OpenStreetMap-bijdragers en © Overture Maps Foundation, heel Nederland. De winkelgegevens zijn vrij te gebruiken onder de <a href="https://opendatacommons.org/licenses/odbl/1-0/" target="_blank" rel="noopener">ODbL</a> (<a href="/data/places.json">download</a>). Markten uit de eigen agenda van organisatoren; bij elke markt staat welke.</span></p>
@@ -250,5 +252,49 @@ export function PlanView({ c, items, plan, setPlan, optimizeSeen }: { c: Ctx; it
     {c.install && stops.length > 0 && <div className="install"><span className="brand-mark"><Ic n="tag" /></span><div><b>Zet Snuffelkaart op je beginscherm</b><p>Dan open je dit bonnetje ook zonder bereik, bijvoorbeeld in een sporthal.</p>
       <div className="btns"><button className="btn sm primary" onClick={c.install.add}>Toevoegen</button><button className="btn sm ghost" onClick={c.install.no}>Niet nu</button></div></div></div>}
     {sugg.length > 0 && stops.length < 8 && <div className="sugg"><h3>Past ook in je {dayName}</h3><p className="sub">Open of bevestigd, vlak bij je route</p><ul className="rows">{sugg.map(x => <Row key={x.it.id} it={x.it} d={km(c.origin, x.it)} c={c} />)}</ul></div>}
+  </>);
+}
+
+/** Jij: bewaarde plekken (werkt zonder account) en, pas hier, de uitnodiging om in te loggen (ontwerp §05). */
+export function MeView({ c, items, showFavs, login, logout, download, remove }: { c: Ctx; items: Item[]; showFavs: () => void; login: () => void; logout: () => void; download: () => void; remove: () => Promise<void> }) {
+  const byId = new Map(items.map(i => [i.id, i])), favs = c.favs.map(id => byId.get(id)).filter(Boolean) as Item[], n = favs.length, [sure, setSure] = useState(false);
+  return (<>
+    <div className="dv-head" data-peek data-drag><div className="dv-top"><button className="back" onClick={c.back}><Ic n="back" />Kaart</button></div>
+      <h2>Jij</h2>{c.user && <p className="prose-s">Ingelogd als <b>{c.user}</b>. Je favorieten staan op al je apparaten.</p>}</div>
+    <section className="me-sec" style={{ borderTop: 0, paddingTop: 0 }}><h3>Bewaard{n ? ` · ${n}` : ''}</h3>
+      {n ? <><ul className="rows">{favs.map(it => <Row key={it.id} it={it} d={km(c.origin, it)} c={c} />)}</ul>
+        <button className="btn sm" style={{ alignSelf: 'flex-start' }} onClick={showFavs}><Ic n="pin" />Toon op de kaart</button></>
+        : <p className="prose-s">Tik op het hartje bij een winkel of markt om hem hier te bewaren. Dat werkt ook zonder account, op dit apparaat.</p>}
+      {c.favs.length > n && <p className="src"><Ic n="info" /><span>{c.favs.length - n} bewaarde {c.favs.length - n === 1 ? 'plek staat' : 'plekken staan'} niet meer op de kaart (gesloten, of een markt die voorbij is).</span></p>}</section>
+    {!c.user && <div className="login-card"><b>Bewaar je favorieten overal</b><p>Log in, dan staan ze ook op je laptop of je andere telefoon.{n ? ` Je ${n} bewaarde ${n === 1 ? 'plek gaat' : 'plekken gaan'} automatisch mee.` : ''}</p>
+      <button className="btn primary" onClick={login}>Inloggen of account maken</button></div>}
+    {c.user && <section className="me-sec">
+      <button className="navrow" onClick={logout}>Uitloggen <span /></button>
+      <button className="navrow" onClick={download}>Mijn gegevens downloaden <span>e-mailadres en favorieten<Ic n="chev" /></span></button>
+      {!sure ? <button className="navrow" style={{ color: 'var(--bad-ink)' }} onClick={() => setSure(true)}>Account verwijderen <span><Ic n="chev" /></span></button>
+        : <div className="unknown-box"><p><b>Account echt verwijderen?</b> Je e-mailadres en je favorieten in je account gaan weg. Wat op dit apparaat bewaard is, blijft hier staan.</p>
+          <div className="btns"><button className="btn sm" style={{ background: 'var(--bad)', borderColor: 'var(--bad)', color: 'oklch(0.99 0 0)' }} onClick={() => remove().finally(() => setSure(false))}>Verwijderen</button><button className="btn sm" onClick={() => setSure(false)}>Toch niet</button></div></div>}
+    </section>}
+  </>);
+}
+
+/** Inloggen: Apple en Google (als ze aan staan) en een inloglink per e-mail. Geen wachtwoord. */
+export function LoginView({ c, send }: { c: Ctx; send: (email: string) => Promise<void> }) {
+  const [email, setEmail] = useState(''), [sent, setSent] = useState(false), [err, setErr] = useState(''), [busy, setBusy] = useState(false), [prov, setProv] = useState<('apple' | 'google')[]>([]), n = c.favs.length;
+  useEffect(() => { providers().then(setProv); }, []);
+  const back = location.origin + '/';
+  const submit = async (e: React.FormEvent) => { e.preventDefault(); setErr(''); setBusy(true); try { await send(email.trim()); setSent(true); } catch (x) { setErr((x as Error).message); } finally { setBusy(false); } };
+  const head = <div className="dv-head" data-peek data-drag><div className="dv-top"><button className="back" onClick={c.back}><Ic n="back" />Terug</button></div></div>;
+  if (sent) return <>{head}<div className="success" style={{ paddingTop: 0 }}><span className="ok-ic"><Ic n="mail" /></span><h3>Check je mail</h3>
+    <p>We hebben een inloglink gestuurd naar <b>{email}</b>. Open hem op dit apparaat. Geen mail? Kijk ook bij ongewenst.</p><button className="link" onClick={() => setSent(false)}>Ander e-mailadres</button></div></>;
+  return (<>{head}
+    <div className="dv-head" style={{ paddingTop: 0 }}><h2>Inloggen</h2><p className="prose-s">Geen wachtwoord nodig. Nieuw? Dan maken we meteen een account.{n ? ` Je ${n} bewaarde ${n === 1 ? 'plek gaat' : 'plekken gaan'} mee.` : ''}</p></div>
+    <form className="form" onSubmit={submit}>
+      {prov.length > 0 && <><div className="oauth">{prov.map(p => <a key={p} className="btn block" href={oauthUrl(p, back)}>Doorgaan met {p === 'apple' ? 'Apple' : 'Google'}</a>)}</div><div className="divider">of met e-mail</div></>}
+      <div className="field"><label htmlFor="login-mail">E-mailadres</label><input className="input" id="login-mail" type="email" autoComplete="email" placeholder="naam@voorbeeld.nl" required value={email} onChange={e => setEmail(e.target.value)} /></div>
+      {err && <p className="issue bad" role="alert"><Ic n="alert" /><span>{err}</span></p>}
+      <button className="btn primary block" disabled={busy}>{busy ? 'Versturen…' : 'Stuur inloglink'}</button>
+      <p className="prose-s" style={{ fontSize: '.8125rem', color: 'var(--fg-3)' }}>We gebruiken je e-mailadres alleen om in te loggen. Je kunt je account altijd verwijderen, met al je gegevens.</p>
+    </form>
   </>);
 }

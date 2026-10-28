@@ -3,13 +3,14 @@ import { placeNow, openOn } from './hours';
 
 /** 'all' is het startpunt: alles, met per regel of het nu open is of wanneer de markt is. Tijdfilters zijn een keuze. */
 export type TimeFilter = 'all' | 'now' | 'today' | 'weekend' | 'date';
-/** hide: winkelsoorten die uit staan. Leeg = alles zien. */
-export interface Filters { type: 'all' | 'k' | 'm'; time: TimeFilter; date: string | null; gratis: boolean; overdekt: boolean; q: string; hide: Cat[] }
+/** hide: winkelsoorten die uit staan. Leeg = alles zien. only: alleen deze id's ("Bewaard op de kaart"). */
+export interface Filters { type: 'all' | 'k' | 'm'; time: TimeFilter; date: string | null; gratis: boolean; overdekt: boolean; q: string; hide: Cat[]; only?: string[] | null }
 
 
 const norm = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
 
 export function matches(it: Item, f: Filters, now: Date): boolean {
+  if (f.only && !f.only.includes(it.id)) return false;
   if (f.type !== 'all' && it.t !== f.type) return false;
   if (it.t === 'k' && f.hide.includes(catOf(it))) return false;
   if (f.gratis && it.t === 'm' && it.entree !== 'gratis') return false;
