@@ -5,7 +5,7 @@ import { placeNow, placeDay, placeWeekend, marketStatus, week, isHoliday, openOn
 import { simulate, bestOrder, routeUrl } from '../lib/plan';
 import type { Filters } from '../lib/filter';
 import { searchSpots, type Spot } from '../lib/pdok';
-import { providers, oauthUrl, verifyCode, type Session } from '../lib/auth';
+import { providers, oauthUrl, verifyCode, SB, KEY, type Session } from '../lib/auth';
 import { Ic, Tile, St, Conf, Banner, CAT, kindLabel, isUnsure, EASE, reduced, pop } from './ui';
 
 export interface Ctx {
@@ -176,10 +176,37 @@ function PlaceDetail({ p, c, top, d, actions }: { p: Place; c: Ctx; top: ReactEl
       {p.phone && <div className="inforow"><Ic n="phone" /><span className="tnum">{p.phone}</span></div>}
       {p.website && <div className="inforow"><Ic n="globe" /><a href={webUrl(p.website)} target="_blank" rel="noopener">{p.website.replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '')}</a></div>}
     </section>
-    <footer className="dv-foot">{osm ? <a className="report-btn" href={osm} target="_blank" rel="noopener"><Ic n="flag" />Klopt er iets niet? Pas het aan op OpenStreetMap</a>
+    <footer className="dv-foot"><Report id={p.id} what={SHOP_WHAT} />
+      {osm ? <a className="report-btn" href={osm} target="_blank" rel="noopener"><Ic n="edit" />Zelf aanpassen op OpenStreetMap</a>
       : <><p className="src"><Ic n="info" /><span>Bron: © Overture Maps Foundation (CDLA Permissive 2.0). Nog niet gecontroleerd.</span></p>
         <a className="report-btn" href={`https://www.openstreetmap.org/edit#map=19/${p.lat}/${p.lon}`} target="_blank" rel="noopener"><Ic n="edit" />Ken je deze winkel? Zet hem op OpenStreetMap</a></>}</footer>
   </article>);
+}
+
+const SHOP_WHAT: [string, string][] = [['dicht', 'Gesloten of bestaat niet meer'], ['tijden', 'Andere openingstijden'], ['plek', 'Verkeerde plek of adres'], ['anders', 'Iets anders']];
+const MARKET_WHAT: [string, string][] = [['afgelast', 'Gaat niet door'], ['tijden', 'Andere datum of tijden'], ['plek', 'Verkeerde plek'], ['anders', 'Iets anders']];
+
+/** "Klopt er iets niet?": melding zonder account, komt in /beheer (rpc report; zie migratie meldingen). */
+function Report({ id, what }: { id: string; what: [string, string][] }) {
+  const [open, setOpen] = useState(false), [w, setW] = useState(''), [note, setNote] = useState(''), [state, setState] = useState<'' | 'busy' | 'done' | string>('');
+  const send = async (e: React.FormEvent) => {
+    e.preventDefault(); setState('busy');
+    try {
+      const r = await fetch(`${SB}/rest/v1/rpc/report`, { method: 'POST', headers: { apikey: KEY, 'Content-Type': 'application/json' }, body: JSON.stringify({ item_id: id, what: w, note: note.trim() || null }) });
+      if (!r.ok) throw new Error((await r.json().catch(() => null))?.message ?? '');
+      setState('done');
+    } catch (x) { setState(`Versturen lukte niet${(x as Error).message ? `: ${(x as Error).message}` : '. Ben je online?'}`); }
+  };
+  if (state === 'done') return <p className="src"><Ic n="check" /><span><b>Bedankt!</b> We kijken ernaar; een correctie staat meestal binnen een dag op de kaart.</span></p>;
+  if (!open) return <button className="report-btn" onClick={() => setOpen(true)}><Ic n="flag" />Klopt er iets niet?</button>;
+  return (<form className="login-card report" onSubmit={send}>
+    <b>Wat klopt er niet?</b>
+    <div className="btns" role="radiogroup">{what.map(([k, l]) => <button key={k} type="button" role="radio" className="chip" aria-checked={w === k} aria-pressed={w === k} onClick={() => setW(k)}>{l}</button>)}</div>
+    <textarea className="textarea" maxLength={500} placeholder="Wat weet je? Bijv. de nieuwe tijden of waar je het zag (mag leeg)" value={note} onChange={e => setNote(e.target.value)} aria-label="Toelichting" />
+    <p className="src"><Ic n="info" /><span>Anoniem: we bewaren alleen je melding, niet wie je bent.</span></p>
+    {state && state !== 'busy' && <p role="alert" style={{ color: 'var(--bad-ink)', fontSize: '.875rem' }}>{state}</p>}
+    <div className="btns"><button className="btn primary sm" disabled={!w || state === 'busy' || !SB}>Versturen</button><button type="button" className="btn sm" onClick={() => setOpen(false)}>Annuleren</button></div>
+  </form>);
 }
 
 function MarketDetail({ m, c, top, d, actions }: { m: Market; c: Ctx; top: ReactElement; d: number; actions: ReactElement }) {
@@ -209,6 +236,7 @@ function MarketDetail({ m, c, top, d, actions }: { m: Market; c: Ctx; top: React
     <section className="dv-sec"><h3>Organisator</h3><div className="inforow"><Ic n="user" /><span>{m.org}</span></div>
       {m.url && <div className="inforow"><Ic n="globe" /><a href={m.url} target="_blank" rel="noopener">Bekijk bij {m.org}: ook kraam boeken en doorgaan bij slecht weer</a></div>}
       {m.url && <p className="src"><Ic n="info" /><span>Bron: website van {m.org}, gecontroleerd op {m.checked && dDay(m.checked)}.</span></p>}</section>
+    {!m.sample && <footer className="dv-foot"><Report id={m.id} what={MARKET_WHAT} /></footer>}
   </article>);
 }
 

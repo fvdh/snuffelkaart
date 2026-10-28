@@ -185,3 +185,9 @@ Keuzes en waarom. Nieuwste onderaan. "Freek" = besloten door Freek; anders voorl
 - **Nog niet vindbaar**: robots.txt blijft `Disallow: /` (+ noindex) zolang het de preview op workers.dev is. Open zetten = `SITE` in `src/lib/sitedata.ts` naar het echte domein, noindex en Disallow weg.
 - ponytail: geen kaartje op de stadspagina (knop naar de app), geen provincie in het kruimelpad, twee plaatsen met dezelfde naam vallen samen.
 - Kaart: de focus-animatie bij openen via een link werd onderbroken door de padding-animatie; die wacht nu als de kaart beweegt. (Let op bij testen in Chrome: in een achtergrondtabblad laadt de kaart niet, omdat requestAnimationFrame stilstaat. Dat is geen fout in de app.)
+
+## Meldknop "Klopt er iets niet?" (2026-10-28)
+- Bij elke winkel en markt; zonder account. Bezoeker kiest wat er niet klopt (+ optionele toelichting, max. 500 tekens).
+- Gasten krijgen geen toegang tot de tabel `reports`; alleen `report()` (security definer) die het id controleert, de naam erbij zet en een rem heeft van 60 meldingen per uur voor iedereen samen. Geen IP of account opgeslagen (AVG). Per-bezoeker-rem pas als er spam komt.
+- In /beheer: "Meldingen" met Afgehandeld, Bekijk op de kaart en (bij "gesloten") Winkel verbergen. De correctie zelf gaat via Winkels of Markten.
+- OSM-link blijft ernaast ("Zelf aanpassen op OpenStreetMap"): wie het zelf kan, verbetert de bron.

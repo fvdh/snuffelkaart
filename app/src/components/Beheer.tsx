@@ -41,8 +41,8 @@ function Login() {
   </form></main>);
 }
 
-type View = 'wachtrij' | 'kandidaten' | 'week' | 'winkels' | 'bronnen' | 'log';
-const NAV: [View, string][] = [['wachtrij', 'Wachtrij'], ['kandidaten', 'Kandidaten'], ['week', 'Markten deze week'], ['winkels', 'Winkels'], ['bronnen', 'Bronnen'], ['log', 'Moderatielog']];
+type View = 'wachtrij' | 'meldingen' | 'kandidaten' | 'week' | 'winkels' | 'bronnen' | 'log';
+const NAV: [View, string][] = [['wachtrij', 'Wachtrij'], ['meldingen', 'Meldingen'], ['kandidaten', 'Kandidaten'], ['week', 'Markten deze week'], ['winkels', 'Winkels'], ['bronnen', 'Bronnen'], ['log', 'Moderatielog']];
 const STATUS: Record<string, string> = { org: 'Bevestigd door organisator', chk: 'Gecontroleerd', unconf: 'Nog niet bevestigd', cancel: 'Afgelast', kandidaat: 'Kandidaat', afgewezen: 'Afgewezen' };
 
 function Panel({ s, out }: { s: Session; out: () => void }) {
@@ -55,13 +55,14 @@ function Panel({ s, out }: { s: Session; out: () => void }) {
       setRows(rs => rs!.map(x => x.id === r.id ? n : x)); setErr('');
     } catch (e) { setErr((e as Error).message); }
   };
-  const [runs, setRuns] = useState<Run[]>([]);
+  const [runs, setRuns] = useState<Run[]>([]), [reps, setReps] = useState<Rep[]>([]);
+  useEffect(() => { api(s, 'reports?select=*&done_at=is.null&order=created_at').then(setReps).catch(() => {}); }, []);
   useEffect(() => { api(s, 'import_runs?select=*&order=at.desc&limit=30').then(setRuns).catch(() => {}); }, []);
   const warn = alerts(runs, new Date());
   const q = useMemo(() => rows ? queue(rows, today()) : [], [rows]);
   const week = useMemo(() => (rows ?? []).filter(r => r.date <= plusDays(7) && STATUS[r.status] && !['kandidaat', 'afgewezen'].includes(r.status)), [rows]);
   const cands = useMemo(() => (rows ?? []).filter(r => r.status === 'kandidaat' || r.status === 'afgewezen'), [rows]);
-  const count: Partial<Record<View, number>> = { wachtrij: q.length, kandidaten: cands.filter(r => r.status === 'kandidaat').length, week: week.length };
+  const count: Partial<Record<View, number>> = { wachtrij: q.length, kandidaten: cands.filter(r => r.status === 'kandidaat').length, week: week.length, meldingen: reps.length };
 
   return (<div className="admin">
     <nav className="adm-nav" aria-label="Beheer">
@@ -78,6 +79,7 @@ function Panel({ s, out }: { s: Session; out: () => void }) {
         filters={[['Te keuren', i => i.row.status === 'kandidaat'], ['Afgewezen', i => i.row.status === 'afgewezen']]} empty="Geen kandidaten." />
       : view === 'week' ? <Markets key="w" title="Markten deze week" items={week.map(row => ({ row }))} save={save}
         filters={[['Alles', () => true], ...(['org', 'chk', 'unconf', 'cancel'] as const).map(k => [STATUS[k].replace(' door organisator', ''), (i: Item) => i.row.status === k] as Filter)]} empty="Geen markten de komende 7 dagen." />
+      : view === 'meldingen' ? <Reports s={s} reps={reps} setReps={setReps} rows={rows ?? []} />
       : view === 'winkels' ? <Shops s={s} />
       : view === 'bronnen' ? <Sources runs={runs} warn={warn} rows={rows ?? []} />
       : <Log s={s} />}
@@ -177,6 +179,42 @@ function MarketDetail({ item: { row: r, j }, save }: { item: Item; save: (r: Row
         {r.status === 'afgewezen' && <button className="btn" onClick={() => setStatus('kandidaat')}>Terug naar kandidaten</button>}
       </div></>}
   </aside>);
+}
+
+type Rep = { id: number; item_id: string; name: string; what: string; note: string | null; created_at: string };
+const WHAT: Record<string, string> = { dicht: 'Gesloten of bestaat niet meer', tijden: 'Andere tijden', plek: 'Verkeerde plek of adres', afgelast: 'Markt gaat niet door', anders: 'Iets anders' };
+
+/** Meldingen van bezoekers ("Klopt er iets niet?"). Afhandelen = uit de lijst; de correctie zelf doe je bij Winkels of Markten. */
+function Reports({ s, reps, setReps, rows }: { s: Session; reps: Rep[]; setReps: (r: Rep[]) => void; rows: MRow[] }) {
+  const [sel, setSel] = useState(0), [err, setErr] = useState('');
+  const r = reps[Math.min(sel, reps.length - 1)], market = r && rows.find(x => x.id === r.item_id);
+  const done = async (also?: Promise<unknown>) => {
+    try { await also; await api(s, `reports?id=eq.${r.id}`, { method: 'PATCH', body: JSON.stringify({ done_at: new Date().toISOString() }) }); setReps(reps.filter(x => x !== r)); setErr(''); }
+    catch (e) { setErr((e as Error).message); }
+  };
+  const hide = () => done(api(s, `places?id=eq.${encodeURIComponent(r.item_id)}`, { method: 'PATCH', body: JSON.stringify({ status: 'verborgen', updated_at: new Date().toISOString() }) }));
+  return (<>
+    <section className="adm-q" aria-label="Meldingen">
+      <header><h2>Meldingen</h2></header>
+      {reps.length ? <ul className="adm-list">{reps.map((x, i) => <li key={x.id}><button className={`adm-item${x === r ? ' on' : ''}`} aria-current={x === r} onClick={() => setSel(i)}>
+        <span className="tile"><Ic n="flag" /></span>
+        <span><b>{x.name}</b><span>{WHAT[x.what]}{x.note ? ` · ${x.note.slice(0, 60)}` : ''}</span></span>
+        <time dateTime={x.created_at}>{new Date(x.created_at).toLocaleDateString('nl-NL', { day: 'numeric', month: 'short' })}</time></button></li>)}</ul>
+        : <p className="adm-empty">Geen open meldingen. Bezoekers melden fouten via “Klopt er iets niet?” bij een winkel of markt.</p>}
+    </section>
+    {r ? <aside className="adm-detail" aria-label="Details">
+      <div><p className="eyebrow"><span className="tile"><Ic n="flag" /></span>{market ? 'Markt' : 'Winkel'}</p><h3>{r.name}</h3>
+        <p className="adm-sub">{WHAT[r.what]} · gemeld op {new Date(r.created_at).toLocaleString('nl-NL', { dateStyle: 'medium', timeStyle: 'short' })}</p></div>
+      {r.note ? <blockquote className="adm-quote">{r.note}</blockquote> : <p className="muted">Geen toelichting.</p>}
+      {err && <p className="bh-err">{err}</p>}
+      <p className="src"><Ic n="info" /><span>{market ? `Corrigeer de markt onder “Markten deze week” of de wachtrij (status nu: ${STATUS[market.status] ?? market.status}).` : 'Corrigeer de winkel onder “Winkels” (zoek op naam), of verberg hem hier als hij echt dicht is.'}</span></p>
+      <div className="adm-btns">
+        <a className="btn" href={`/?open=${encodeURIComponent(r.item_id)}`} target="_blank" rel="noopener">Bekijk op de kaart <Ic n="ext" /></a>
+        {!market && r.what === 'dicht' && <button className="btn" onClick={hide}>Winkel verbergen en afhandelen</button>}
+        <button className="btn primary" onClick={() => done()}><Ic n="check" />Afgehandeld</button>
+      </div>
+    </aside> : <aside className="adm-detail" />}
+  </>);
 }
 
 const catOfData = (d: Record<string, any>): Cat => (d.kind === 'tweedehands' ? d.sub ?? 'tweedehands' : 'kringloop');
