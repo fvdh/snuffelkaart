@@ -46,13 +46,16 @@ export async function api(s: Session, path: string, init: RequestInit = {}, onSe
   const t = await r.text(); return t ? JSON.parse(t) : null;
 }
 
+/** fetch, maar een netwerkfout (Supabase onbereikbaar, offline) wordt een Nederlandse melding. */
+const post = (url: string, init: RequestInit) => fetch(url, init).catch(() => { throw new Error('Inloggen lukt nu niet: geen verbinding met de inlogdienst. Probeer het straks opnieuw.'); });
+
 export async function sendLink(email: string, back: string) {
-  const r = await fetch(`${SB}/auth/v1/otp?redirect_to=${encodeURIComponent(back)}`, { method: 'POST', headers: { apikey: KEY, 'Content-Type': 'application/json' }, body: JSON.stringify({ email, create_user: true }) });
+  const r = await post(`${SB}/auth/v1/otp?redirect_to=${encodeURIComponent(back)}`, { method: 'POST', headers: { apikey: KEY, 'Content-Type': 'application/json' }, body: JSON.stringify({ email, create_user: true }) });
   if (!r.ok) throw new Error(r.status === 429 ? 'Er zijn net te veel inloglinks gestuurd. Probeer het over een minuut opnieuw.' : `Versturen lukte niet (${r.status}).`);
 }
 /** De code uit de mail (8 cijfers) in plaats van de link: werkt ook als de link in een andere browser opent. */
 export async function verifyCode(email: string, code: string): Promise<Session> {
-  const r = await fetch(`${SB}/auth/v1/verify`, { method: 'POST', headers: { apikey: KEY, 'Content-Type': 'application/json' }, body: JSON.stringify({ type: 'email', email, token: code }) });
+  const r = await post(`${SB}/auth/v1/verify`, { method: 'POST', headers: { apikey: KEY, 'Content-Type': 'application/json' }, body: JSON.stringify({ type: 'email', email, token: code }) });
   if (!r.ok) throw new Error(r.status === 429 ? 'Te veel pogingen. Wacht een minuut.' : 'Deze code klopt niet of is verlopen. Alleen de code uit de nieuwste mail werkt.');
   const j = await r.json();
   return save({ token: j.access_token, refresh: j.refresh_token, email: j.user?.email ?? email, exp: Date.now() + j.expires_in * 1000 })!;

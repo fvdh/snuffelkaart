@@ -40,6 +40,42 @@ describe('openingstijden (vooruitgerekend)', () => {
   });
 });
 
+describe('openingstijden: randgevallen (M4)', () => {
+  it('rond middernacht', () => {
+    const late = P('Fr 22:00-02:00');
+    expect(placeNow(late, new Date('2026-10-30T23:30:00'))).toMatchObject({ cls: 'open', txt: 'Open · sluit 2:00' });
+    expect(placeNow(late, new Date('2026-10-31T00:30:00'))).toMatchObject({ cls: 'open', txt: 'Open · sluit 2:00' });
+    expect(placeNow(late, new Date('2026-10-31T01:45:00'))).toMatchObject({ cls: 'warn', txt: 'Sluit over 15 min' });
+    expect(placeNow(late, new Date('2026-10-30T23:59:00')).open).toBe(true);
+    expect(placeNow(P('Mo-Su 10:00-24:00'), new Date('2026-10-27T23:45:00'))).toMatchObject({ cls: 'warn', txt: 'Sluit over 15 min' });
+    expect(placeNow(P('Tu 10:00-17:00'), new Date('2026-10-27T17:00:00')).open).toBeUndefined(); // precies sluitingstijd: dicht
+    expect(placeNow(P('Tu 10:00-17:00'), new Date('2026-10-27T09:59:00'))).toMatchObject({ cls: 'later', txt: 'Opent om 10:00' });
+  });
+  it('wintertijd (25 okt 2026) en zomertijd (28 mrt 2027): dag van 25 of 23 uur verschuift niets', () => {
+    win('2026-10-24');
+    expect(intervals(P('Su 10:00-17:00'), '2026-10-25')).toEqual([[600, 1020]]);
+    expect(intervals(P('Mo-Su 00:00-24:00'), '2026-10-25')).toEqual([[0, 1440]]);
+    expect(intervals(P('Mo 10:00-17:00'), '2026-10-26')).toEqual([[600, 1020]]); // dag na de wissel: juiste index
+    expect(placeNow(P('Su 10:00-17:00'), new Date('2026-10-25T16:45:00'))).toMatchObject({ cls: 'warn', txt: 'Sluit over 15 min' });
+    win('2027-03-27');
+    expect(intervals(P('Su 10:00-17:00'), '2027-03-28')).toEqual([[600, 1020]]);
+    expect(intervals(P('Mo 09:00-12:00'), '2027-03-29')).toEqual([[540, 720]]);
+    expect(placeNow(P('Su 10:00-17:00'), new Date('2027-03-28T10:05:00'))).toMatchObject({ cls: 'open' });
+  });
+  it('feestdagen in het voorjaar, zoals de opening_hours-bibliotheek ze kent; PH-tijden', () => {
+    // Bibliotheek: Goede Vrijdag en 5 mei (elk jaar) tellen als feestdag, 1e Paas- en Pinksterdag (zondag) niet.
+    // Bewust zo gelaten (DECISIONS.md): "dicht" op Goede Vrijdag is de veilige fout, met de banner "bel even".
+    win('2027-03-26');
+    expect(['2027-03-26', '2027-03-28', '2027-03-29'].filter(isHoliday)).toEqual(['2027-03-26', '2027-03-29']);
+    win('2027-04-26');
+    expect(['2027-04-27', '2027-05-05', '2027-05-06'].every(isHoliday)).toBe(true);
+    expect(placeDay(P('Mo-Sa 10:00-17:00; PH 12:00-16:00'), '2027-05-06').txt).toBe('Do 12–16');
+    expect(placeDay(P('Mo-Sa 10:00-17:00'), '2027-05-06').txt).toBe('Do 10–17'); // zonder PH-regel: gewone tijden (we weten niet beter)
+    win('2027-05-10');
+    expect(isHoliday('2027-05-17')).toBe(true); // 2e Pinksterdag
+  });
+});
+
 describe('filters', () => {
   const f = { type: 'all' as const, time: 'now' as const, date: null, gratis: false, overdekt: false, q: '', hide: [] as Cat[] };
   it('onbekende tijden nooit bij Nu open, wel in het weekend', () => {

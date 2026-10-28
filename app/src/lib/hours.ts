@@ -28,9 +28,9 @@ export function placeNow(p: Place, now: Date): Status {
   if (!iv) return UNKNOWN;
   const min = minutesOf(now), cur = iv.find(([a, b]) => min >= a && min < b);
   if (cur) {
-    // open tot middernacht en morgen vanaf 0:00 verder? dan loopt het door
-    const tomorrow = cur[1] === 1440 ? intervals(p, addDays(today, 1)) : null;
-    const close = tomorrow && tomorrow[0]?.[0] === 0 ? null : cur[1], left = close == null ? Infinity : close - min;
+    // open tot middernacht en morgen vanaf 0:00 verder? dan sluit hij morgen (02:00), of nooit als hij dan ook tot 24:00 open is
+    const next = cur[1] === 1440 ? intervals(p, addDays(today, 1))?.[0] : null;
+    const close = next && next[0] === 0 ? (next[1] === 1440 ? null : 1440 + next[1]) : cur[1], left = close == null ? Infinity : close - min;
     return left <= 30 ? { cls: 'warn', txt: `Sluit over ${left} min`, open: true } : { cls: 'open', txt: close == null ? 'Open' : `Open · sluit ${hm(close % 1440)}`, open: true };
   }
   const later = iv.find(([a]) => a > min);
