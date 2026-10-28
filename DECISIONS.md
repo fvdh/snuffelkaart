@@ -257,7 +257,7 @@ Op ≥ 980 px toont de lijst alleen wat op de kaart in beeld is ("N plekken in b
 
 ## Eén dagkeuze: "Wanneer ga je?" (28 okt 2026)
 - Niet iedereen snuffelt op zaterdag. Eén gekozen dag geldt overal: lijst, statussen, kaartpinnen, tellers en het dagplan (de plandag ís de gekozen dag; elke dag binnen twee weken).
-- De app opent op **vandaag** met het filter **"Open vandaag"** aan (nu open of gaat vandaag nog open): de meeste mensen openen de kaart als ze in de buurt zijn. Met een dagplan opent hij op de dag van dat plan.
+- De app opent op **vandaag**: de meeste mensen openen de kaart als ze in de buurt zijn. Met een dagplan opent hij op de dag van dat plan. Het filter "Open vandaag" (nu open of gaat vandaag nog open) staat standaard **uit** (Freek: standaard filteren is niet handig); de status per regel laat zien wat open is.
 - De tijdchips "Nu open", "Vandaag", "Dit weekend" en "Kies datum" zijn vervangen door de dagkeuze plus één filter dat meebeweegt ("Open vandaag" / "Open op za"). Winkels zonder bekende tijden vallen buiten dat filter (A6).
 - Weekend als twee dagen tegelijk: nog niet; eerst kijken of za en zo los kiezen onhandig is.
 

@@ -1,7 +1,7 @@
 import { type Item, type LatLon, type Cat, catOf, km, isoDay, minutesOf } from './model';
 import { intervals, openOn } from './hours';
 
-/** open: alleen wat open is op de gekozen dag; vandaag: wat nu open is of nog opengaat (staat standaard aan). De dag zelf staat los van de filters: hij geldt overal,
+/** open: alleen wat open is op de gekozen dag; vandaag: wat nu open is of nog opengaat. Staat standaard uit. De dag zelf staat los van de filters: hij geldt overal,
  *  ook in het dagplan (DECISIONS: één dagkeuze). hide: winkelsoorten die uit staan. only: alleen deze id's ("Bewaard op de kaart"). */
 export interface Filters { type: 'all' | 'k' | 'm'; open: boolean; gratis: boolean; overdekt: boolean; q: string; hide: Cat[]; only?: string[] | null }
 
