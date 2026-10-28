@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState, type ReactElement } from 'react';
 import type { Item, LatLon, Place, Market } from '../lib/model';
-import { dDay, dShort, dLong, fkm, hm, isoDay, addDays, dayStart, DAYS, DAYS_LONG, km, weekendOf, CATS } from '../lib/model';
-import { placeNow, placeDay, placeWeekend, marketStatus, week, isHoliday, openOn, type Status } from '../lib/hours';
+import { dDay, dShort, dLong, fkm, hm, isoDay, addDays, dayStart, DAYS, DAYS_LONG, km, cap, CATS } from '../lib/model';
+import { placeNow, placeDay, marketStatus, week, isHoliday, openOn, type Status } from '../lib/hours';
 import { simulate, bestOrder, routeUrl } from '../lib/plan';
 import type { Filters } from '../lib/filter';
 import { searchSpots, type Spot } from '../lib/pdok';
@@ -11,24 +11,36 @@ import { PhotoStrip, ReviewsSection, type Bij } from './Bijdragen';
 
 export interface Ctx {
   now: Date; f: Filters; online: boolean; dataFrom: string | null; install: { add: () => void; no: () => void } | null; origin: LatLon; originLabel: string | null; locDenied: boolean; welcome: boolean; spot: boolean; me: LatLon | null;
-  pickSpot: (s: Spot) => void; pickPlace: () => void; favs: string[]; bij: Bij; planStops: string[]; planDay: string;
+  pickSpot: (s: Spot) => void; pickPlace: () => void; favs: string[]; bij: Bij; planStops: string[]; day: string; setDay: (iso: string) => void;
   setF: (p: Partial<Filters>) => void; open: (id: string, from?: HTMLElement | null) => void; toggleStop: (id: string) => void; toggleFav: (id: string) => void;
   locate: (quiet?: boolean) => void; back: () => void; openPlan: () => void; openMe: () => void; user: string | null;
 }
 
-/** Status van een item in de context van het gekozen tijdfilter. Heb je een dagplan voor een andere dag en geen tijdfilter,
- *  dan geldt de plandag: je plant zaterdag, dus "dicht, opent morgen" van vandaag zegt je niets (UX-review 28 okt). */
-export function statusFor(it: Item, f: Filters, now: Date, planDay: string | null = null): Status {
+/** Status op de gekozen dag: vandaag "open, sluit 17:00", een andere dag "Za 10–17". Ga je zaterdag, dan zegt "dicht, opent morgen"
+ *  van vandaag je niets (UX-review 28 okt). */
+export function statusFor(it: Item, now: Date, day: string): Status {
   if (it.t === 'm') return marketStatus(it, now);
-  const today = isoDay(now);
-  if (f.time === 'all' && planDay && planDay !== today) return placeDay(it, planDay);
-  if (f.time === 'all' || f.time === 'now' || f.time === 'today' || (f.time === 'date' && f.date === today) || (f.time === 'weekend' && weekendOf(now).includes(today))) return placeNow(it, now);
-  if (f.time === 'weekend') return placeWeekend(it, weekendOf(now));
-  return placeDay(it, f.date ?? today);
+  return day === isoDay(now) ? placeNow(it, now) : placeDay(it, day);
+}
+
+const dayPill = (iso: string) => { const d = dayStart(iso); return `${DAYS[d.getDay()]} ${d.getDate()}`; };
+/** "Wanneer ga je?": vandaag, morgen, het komende weekend, of een andere dag binnen twee weken. */
+export function DayPick({ day, now, set, label = 'Wanneer ga je?' }: { day: string; now: Date; set: (iso: string) => void; label?: string }) {
+  const today = isoDay(now), tom = addDays(today, 1), [more, setMore] = useState(false);
+  const wk = Array.from({ length: 6 }, (_, i) => addDays(today, i + 2)).filter(d => [6, 0].includes(dayStart(d).getDay())).slice(0, 2);
+  const fixed = [today, tom, ...wk], other = !fixed.includes(day);
+  return (<div className="daypick">
+    <span className="dp-l" id="dp-l">{label}</span>
+    <div className="typeseg" role="group" aria-labelledby="dp-l">
+      {fixed.map(d => <button key={d} aria-pressed={d === day} onClick={() => { set(d); setMore(false); }} aria-label={dLong(d)}>{d === today ? 'Vandaag' : d === tom ? 'Morgen' : dayPill(d)}</button>)}
+      <button aria-pressed={other} aria-expanded={more} onClick={() => setMore(!more)}>{other ? dayPill(day) : 'Andere dag'}</button></div>
+    {more && <div className="daystrip" role="group" aria-label="Kies een dag">{Array.from({ length: 14 }, (_, i) => { const iso = addDays(today, i), d = dayStart(iso); return (
+      <button key={iso} className="day" aria-pressed={day === iso} onClick={() => { set(iso); setMore(false); }} aria-label={dLong(iso) + (isHoliday(iso) ? ', feestdag' : '')}><span>{i === 0 ? 'vand.' : DAYS[d.getDay()]}</span><b className="tnum">{d.getDate()}</b><i className={`mk${isHoliday(iso) ? '' : ' none'}`} /></button>); })}</div>}
+  </div>);
 }
 
 export function Row({ it, d, c }: { it: Item; d: number; c: Ctx }) {
-  const st = statusFor(it, c.f, c.now, c.planStops.length ? c.planDay : null), inPlan = c.planStops.includes(it.id), cancel = it.t === 'm' && it.status === 'cancel';
+  const st = statusFor(it, c.now, c.day), inPlan = c.planStops.includes(it.id), cancel = it.t === 'm' && it.status === 'cancel';
   return (
     <li className="rowli" data-key={it.id}>
       <button className="row" onClick={e => c.open(it.id, e.currentTarget.querySelector<HTMLElement>('.r-name'))} aria-label={`${it.name}, ${st.txt}, ${fkm(d)} kilometer`}>
@@ -84,32 +96,28 @@ function Welcome({ c }: { c: Ctx }) {
   );
 }
 
-export function ListView({ c, inView, list, total, limit, more, counts, nPlaces }: { c: Ctx; inView: { nearest: () => void } | null; list: { it: Item; d: number }[]; total: number; limit: number; more: () => void; counts: { kNow: number; kToday: number; mWk: number }; nPlaces: number }) {
-  const { f, now } = c, today = isoDay(now), weekend = weekendOf(now).includes(today), spots = useSpots(f.q), flip = useFlip(list), [cats, setCats] = useState(false);
+export function ListView({ c, inView, list, total, limit, more, counts, nPlaces }: { c: Ctx; inView: { nearest: () => void } | null; list: { it: Item; d: number }[]; total: number; limit: number; more: () => void; counts: { kOpen: number; mDay: number }; nPlaces: number }) {
+  const { f, now, day } = c, today = isoDay(now), spots = useSpots(f.q), flip = useFlip(list), [cats, setCats] = useState(false);
   if (c.welcome) return <Welcome c={c} />;
   const near = c.originLabel ? `rond ${c.originLabel}` : 'bij jou in de buurt';
-  const title = f.time === 'all' ? `Snuffelen ${near}` : f.time === 'now' ? `Nu ${near}` : f.time === 'weekend' ? `Dit weekend ${near}` : f.time === 'today' ? `Vandaag ${near}` : dLong(f.date ?? today);
+  const isToday = day === today, dn = DAYS[dayStart(day).getDay()], openLbl = isToday ? 'Open vandaag' : `Open op ${dn}`;
   const P = (b: boolean) => ({ 'aria-pressed': b });
   const extra = f.hide.length + (f.gratis ? 1 : 0) + (f.overdekt ? 1 : 0);
   return (<>
     <div className="lv-head" data-drag>
       <a className="brand" href="/" aria-label="Snuffelkaart, naar het begin"><span className="brand-mark"><Ic n="tag" /></span>Snuffelkaart</a>
-      <div className="greet"><div><h2>{title}</h2>
-        <p className="counts">{weekend
-          ? <button onClick={() => c.setF({ time: 'today' })}><span className="cdot" />{counts.kToday} winkels open vandaag</button>
-          : <button onClick={() => c.setF({ time: 'now' })}><span className="cdot" />{counts.kNow} winkels nu open</button>}
-          <span aria-hidden="true">·</span><button onClick={() => c.setF({ time: 'weekend' })}>{counts.mWk} markten dit weekend</button></p></div>
+      <div className="greet"><div><h2>Snuffelen {near}</h2>
+        <p className="counts"><button onClick={() => c.setF({ open: true })}><span className="cdot" />{counts.kOpen} winkels open {isToday ? 'vandaag' : `op ${dShort(day).toLowerCase()}`}</button>
+          <span aria-hidden="true">·</span><button onClick={() => c.setF({ type: 'm', open: true })}>{counts.mDay} {counts.mDay === 1 ? 'markt' : 'markten'} {isToday ? 'vandaag' : `op ${dn}`}</button></p></div>
         <button className={`me-btn${c.user ? ' in' : ''}`} onClick={c.openMe} aria-label="Jij: bewaard en account">{c.user ? c.user[0].toUpperCase() : <Ic n="user" />}</button></div>
+      <DayPick day={day} now={now} set={c.setDay} />
     </div>
     {/* Alleen zoeken en filters blijven staan bij scrollen: op de stoep wil je regels zien, geen bediening (UX-review 28 okt). */}
     <div className="lv-tools" data-peek data-drag>
       <label className="search"><Ic n="search" /><span className="sr">Zoeken</span><input type="search" placeholder="Zoek op naam, plaats of postcode" value={f.q} onChange={e => c.setF({ q: e.target.value })} autoComplete="off" /></label>
       <div className="chips" role="group" aria-label="Filters">
         {f.only && <button className="chip" aria-pressed onClick={() => c.setF({ only: null })} aria-label="Toon weer alles, niet alleen bewaard"><Ic n="heart" />Bewaard · {f.only.length}<Ic n="x" /></button>}
-        <button className="chip" {...P(f.time === 'now')} onClick={() => c.setF({ time: f.time === 'now' ? 'all' : 'now' })}><span className="gdot" />Nu open</button>
-        <button className="chip" {...P(f.time === 'today')} onClick={() => c.setF({ time: f.time === 'today' ? 'all' : 'today' })}>Vandaag</button>
-        <button className="chip" {...P(f.time === 'weekend')} onClick={() => c.setF({ time: f.time === 'weekend' ? 'all' : 'weekend' })}>Dit weekend</button>
-        <button className="chip" {...P(f.time === 'date')} onClick={() => c.setF(f.time === 'date' ? { time: 'all' } : { time: 'date', date: f.date ?? addDays(today, 1) })}><Ic n="cal" />{f.time === 'date' && f.date ? dShort(f.date) : 'Kies datum'}</button>
+        <button className="chip" {...P(f.open)} onClick={() => c.setF({ open: !f.open })}><span className="gdot" />{openLbl}</button>
         <span className="sep" />
         <div className="typeseg" role="group" aria-label="Type">
           <button {...P(f.type === 'all')} onClick={() => c.setF({ type: 'all' })}>Alles</button>
@@ -123,12 +131,10 @@ export function ListView({ c, inView, list, total, limit, more, counts, nPlaces 
         {f.type !== 'm' && <div className="catstrip" role="group" aria-label="Soort winkel">
           {CATS.map(k => { const on = !f.hide.includes(k); return <button key={k} className={`catchip c-${k}`} aria-pressed={on} onClick={() => c.setF({ hide: on ? [...f.hide, k] : f.hide.filter(x => x !== k) })}><span className="tile"><Ic n={CAT[k][2]} /></span>{CAT[k][1]}</button>; })}
           {f.hide.length > 0 && <button className="chip" onClick={() => c.setF({ hide: [] })}>Alle soorten</button>}</div>}</div>}
-      {f.time === 'date' && <div className="daystrip" role="group" aria-label="Kies een dag">{Array.from({ length: 10 }, (_, i) => { const iso = addDays(today, i), d = dayStart(iso); return (
-        <button key={iso} className="day" aria-pressed={f.date === iso} onClick={() => c.setF({ date: iso })} aria-label={dLong(iso) + (isHoliday(iso) ? ', feestdag' : '')}><span>{i === 0 ? 'vand.' : DAYS[d.getDay()]}</span><b className="tnum">{d.getDate()}</b><i className={`mk${isHoliday(iso) ? '' : ' none'}`} /></button>); })}</div>}
     </div>
     <div className="lv-notes">
       {!c.online && <Banner icon="wifi-off"><b>Je bent offline.</b> Je ziet de gegevens van {c.dataFrom ? dShort(isoDay(new Date(c.dataFrom))) : 'je laatste bezoek'}. Afgelastingen van daarna zie je pas weer met verbinding.</Banner>}
-      {isHoliday(f.time === 'date' && f.date ? f.date : today) && <Banner kind="warn" icon="cal"><b>Het is een feestdag.</b> Kringlopen hebben dan vaak andere tijden. Bel even voordat je gaat.</Banner>}
+      {isHoliday(day) && <Banner kind="warn" icon="cal"><b>{isToday ? 'Het is een feestdag.' : `${cap(DAYS_LONG[dayStart(day).getDay()])} is een feestdag.`}</b> Kringlopen hebben dan vaak andere tijden. Bel even voordat je gaat.</Banner>}
       {c.locDenied && !c.me ? <Banner icon="pin"><b>Je locatie staat uit.</b> Geen probleem: zoek hierboven een plaats of postcode. Wil je hem toch aanzetten, dan kan dat in de instellingen van je browser.</Banner>
         : !c.me && !f.q && (!c.spot ? <Banner icon="pin"><b>Waar wil je snuffelen?</b> We tonen nu Amersfoort. <button className="link" onClick={() => c.locate()}>Gebruik mijn locatie</button> of zoek een plaats.</Banner>
           : <p className="lv-loc"><Ic n="pin" />Afstanden vanaf {c.originLabel} · <button className="link" onClick={() => c.locate()}>gebruik mijn locatie</button></p>)}
@@ -137,12 +143,11 @@ export function ListView({ c, inView, list, total, limit, more, counts, nPlaces 
     <div className="rows-wrap">
       {spots.length > 0 && <div className="sresults"><h4>Kijk rond in</h4>{spots.map(s => <button key={s.label + s.sub} className="sres" onClick={() => c.pickSpot(s)}><span className="ic"><Ic n="pin" /></span><span><b>{s.label}</b><span>{s.sub}</span></span><Ic n="chev" /></button>)}{list.length > 0 && <h4>Winkels en markten</h4>}</div>}
       {list.length ? <ul className="rows" aria-label="Resultaten" ref={flip}>{list.slice(0, limit).map(x => <Row key={x.it.id} it={x.it} d={x.d} c={c} />)}</ul>
-        : spots.length ? null : inView ? <div className="empty"><h3>Niets op dit stuk van de kaart</h3><p>{f.time === 'all' && !f.hide.length && !f.gratis && !f.overdekt ? 'Verschuif de kaart of zoom uit.' : 'Verschuif de kaart, zoom uit, of zet een filter uit.'}</p>
-          <div className="btns"><button className="btn sm primary" onClick={inView.nearest}>Toon de dichtstbijzijnde</button>{f.time !== 'all' && <button className="btn sm" onClick={() => c.setF({ time: 'all' })}>Zet het tijdfilter uit</button>}</div></div>
-        : <div className="empty"><h3>{f.q ? `Niets gevonden voor “${f.q}”` : 'Geen resultaten met deze filters'}</h3><p>{f.q ? 'Zoek op de naam van een winkel of een plaats.' : f.time === 'all' ? 'Zet een filter uit.' : 'Zet het tijdfilter uit om alles te zien.'}</p>
-          <div className="btns">{f.q && <button className="btn sm" onClick={() => c.setF({ q: '' })}>Wis zoekopdracht</button>}<button className="btn sm primary" onClick={() => c.setF({ time: 'all', gratis: false, overdekt: false, hide: [], only: null })}>Toon alles</button></div></div>}
+        : spots.length ? null : inView ? <div className="empty"><h3>Niets op dit stuk van de kaart</h3><p>{!f.open && !f.hide.length && !f.gratis && !f.overdekt ? 'Verschuif de kaart of zoom uit.' : 'Verschuif de kaart, zoom uit, of zet een filter uit.'}</p>
+          <div className="btns"><button className="btn sm primary" onClick={inView.nearest}>Toon de dichtstbijzijnde</button>{f.open && <button className="btn sm" onClick={() => c.setF({ open: false })}>Toon ook wat dicht is</button>}</div></div>
+        : <div className="empty"><h3>{f.q ? `Niets gevonden voor “${f.q}”` : 'Geen resultaten met deze filters'}</h3><p>{f.q ? 'Zoek op de naam van een winkel of een plaats.' : f.open ? `Zet “${openLbl}” uit om alles te zien, of kies een andere dag.` : 'Zet een filter uit.'}</p>
+          <div className="btns">{f.q && <button className="btn sm" onClick={() => c.setF({ q: '' })}>Wis zoekopdracht</button>}<button className="btn sm primary" onClick={() => c.setF({ open: false, gratis: false, overdekt: false, hide: [], only: null })}>Toon alles</button></div></div>}
       {total > limit && <button className="more" onClick={more}>Toon meer ({total - limit})</button>}
-      {f.time === 'now' && f.type !== 'k' && !f.q && <button className="hint" onClick={() => c.setF({ time: 'weekend' })}><span>{counts.mWk} markten dit weekend<small>Markten zijn er vooral op zaterdag en zondag</small></span><Ic n="chev" /></button>}
       <p className="src" style={{ marginTop: 18 }}><Ic n="info" /><span>{nPlaces} winkels uit © OpenStreetMap-bijdragers en © Overture Maps Foundation, heel Nederland. De winkelgegevens zijn vrij te gebruiken onder de <a href="https://opendatacommons.org/licenses/odbl/1-0/" target="_blank" rel="noopener">ODbL</a> (<a href="/data/places.json">download</a>). Markten uit de eigen agenda van organisatoren; bij elke markt staat welke. <a href="/plaatsen/">Alle plaatsen</a> · <a href="/hoe-we-controleren">Hoe we controleren</a> · <a href="/privacy">Privacy</a> · <a href="/voorwaarden">Voorwaarden</a> · <a href="/colofon">Colofon</a></span></p>
     </div>
   </>);
@@ -258,7 +263,7 @@ function MarketDetail({ m, c, top, d, actions }: { m: Market; c: Ctx; top: React
 
 export function PlanView({ c, items, plan, setPlan, optimizeSeen }: { c: Ctx; items: Item[]; plan: { day: string; start: number; stops: string[] }; setPlan: (p: Partial<{ day: string; start: number; stops: string[] }>) => void; optimizeSeen: boolean }) {
   const byId = new Map(items.map(i => [i.id, i])), stops = plan.stops.map(id => byId.get(id)).filter(Boolean) as Item[];
-  const sim = simulate(stops, plan.day, plan.start, c.origin), [sat, sun] = weekendOf(c.now), dayName = DAYS_LONG[dayStart(plan.day).getDay()];
+  const sim = simulate(stops, plan.day, plan.start, c.origin), dayName = DAYS_LONG[dayStart(plan.day).getDay()];
   const isBest = stops.length < 2 || bestOrder(stops, plan.day, plan.start, c.origin).map(x => x.id).join() === stops.map(x => x.id).join();
   const stt = sim.bad ? { c: 'bad', i: 'alert', t: `${sim.bad === 1 ? '1 stop klopt' : `${sim.bad} stops kloppen`} niet op ${dayName}.`, x: optimizeSeen ? 'Haal de stop weg of kies een andere dag.' : 'Probeer Slimste volgorde, of haal de stop weg.' }
     : sim.warn ? { c: 'warn', i: 'info', t: `${sim.warn === 1 ? '1 aandachtspunt' : `${sim.warn} aandachtspunten`}.`, x: 'Staat hieronder bij de stop.' } : { c: 'ok', i: 'check', t: 'Alles open en bevestigd.', x: 'Je kunt gaan.' };
@@ -269,13 +274,13 @@ export function PlanView({ c, items, plan, setPlan, optimizeSeen }: { c: Ctx; it
   const head = (
     <div className="pv-head" data-peek data-drag>
       <div className="dv-top"><button className="back" onClick={c.back}><Ic n="back" />Terug</button></div>
-      <div className="pv-title"><h2>Mijn {dayName}</h2>
-        <div className="typeseg" role="group" aria-label="Dag"><button aria-pressed={plan.day === sat} onClick={() => setPlan({ day: sat })}>{dShort(sat)}</button><button aria-pressed={plan.day === sun} onClick={() => setPlan({ day: sun })}>{dShort(sun)}</button></div></div>
+      <div className="pv-title"><h2>Mijn {dayName}</h2></div>
+      <DayPick day={plan.day} now={c.now} set={c.setDay} label="Welke dag?" />
       <div className="pv-opts"><label>Vertrek<select value={plan.start} onChange={e => setPlan({ start: +e.target.value })}>{[...new Set([480, 510, 540, 570, 600, 630, 660, 720, 780, plan.start])].sort((a, b) => a - b).map(m => <option key={m} value={m}>{hm(m)}</option>)}</select></label>
         <span>vanaf {c.me ? 'je locatie' : 'Amersfoort'}</span></div>
       {later && <button className="btn sm" style={{ alignSelf: 'flex-start' }} onClick={() => setPlan({ start: later })}><Ic n="clock" />Vertrek om {hm(later)}, dan hoef je bij de eerste stop niet {sim.stops[0].wait} min te wachten</button>}
     </div>);
-  if (!stops.length) return <>{head}<div className="empty"><h3>Nog geen stops</h3><p>Tik op <b>+</b> bij een kringloop of markt. We rekenen uit wanneer je waar bent, en of het dan open is.</p><div className="btns"><button className="btn sm primary" onClick={() => { c.setF({ time: 'weekend' }); c.back(); }}>Wat is er dit weekend?</button></div></div></>;
+  if (!stops.length) return <>{head}<div className="empty"><h3>Nog geen stops</h3><p>Tik op <b>+</b> bij een kringloop of markt. We rekenen uit wanneer je waar bent, en of het dan open is.</p><div className="btns"><button className="btn sm primary" onClick={() => { c.setF({ open: true }); c.back(); }}>Wat is er open op {dayName}?</button></div></div></>;
   return (<>{head}
     <div className="rc-wrap"><div className="receipt print" aria-label="Je dagplan als bon">
       <p className="rc-shop"><Ic n="tag" />SNUFFELKAART</p>

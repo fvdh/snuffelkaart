@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
 import type { Item, LatLon, Market, Place } from '../lib/model';
-import { km, DEFAULT_CENTER, isoDay, weekendOf, DAYS_LONG, dayStart, hm, dShort } from '../lib/model';
+import { km, DEFAULT_CENTER, isoDay, addDays, DAYS_LONG, dayStart, hm, dShort } from '../lib/model';
 import { placeNow, openOn, setWindow } from '../lib/hours';
-import { visible, type Filters } from '../lib/filter';
+import { visible, matches, type Filters } from '../lib/filter';
 import { simulate } from '../lib/plan';
 import type { Spot } from '../lib/pdok';
 import MapView, { type Bounds } from './MapView';
@@ -72,7 +72,7 @@ export default function App() {
   const items: Item[] = useMemo(() => [...(places ? shown.places : []), ...markets], [places, shown, markets]);
   const byId = useMemo(() => new Map(items.map(i => [i.id, i])), [items]);
 
-  const [f, setFState] = useState<Filters>(() => ({ type: 'all', time: 'all', date: null, gratis: false, overdekt: false, q: '', hide: [] }));
+  const [f, setFState] = useState<Filters>(() => ({ type: 'all', open: true, gratis: false, overdekt: false, q: '', hide: [] }));
   const [view, setView] = useState<View>('list'), [prev, setPrev] = useState<View>('list'), [sel, setSel] = useState<string | null>(null);
   const [dir, setDir] = useState<'fwd' | 'back' | null>(null), [snap, setSnap] = useState<Snap>('half'), [limit, setLimit] = useState(40);
   // Locatie pas na een tik (A10) en nooit opgeslagen; een gekozen plaats wel.
@@ -80,12 +80,15 @@ export default function App() {
   const [locDenied, setLocDenied] = useState(false), [welcomed, setWelcomed] = useLocal('snuffel-welkom', false);
   const origin = me ?? spot ?? DEFAULT_CENTER, originLabel = me ? null : spot?.label ?? 'Amersfoort';
   const [favs, setFavs] = useLocal<string[]>('snuffel-favs', []);
-  const [sat] = weekendOf(now);
-  const [planRaw, setPlanRaw] = useLocal('snuffel-plan', { day: sat, start: 570, stops: [] as string[] });
-  const plan = { ...planRaw, day: weekendOf(now).includes(planRaw.day) ? planRaw.day : sat }; // een plan van vorige week schuift door naar dit weekend
+  const [planRaw, setPlanRaw] = useLocal('snuffel-plan', { day: today, start: 570, stops: [] as string[] });
+  // "Wanneer ga je?": één dag voor de hele app (lijst, kaart, dagvoorstel en dagplan). De app opent op vandaag (je bent meestal in de buurt),
+  // tenzij je een dagplan hebt: dan op die dag. Binnen twee weken: verder vooruit zijn de tijden niet uitgerekend.
+  const [dayRaw, setDay] = useState<string | null>(() => planRaw.stops.length ? planRaw.day : null);
+  const day = dayRaw && dayRaw >= today && dayRaw <= addDays(today, 13) ? dayRaw : today;
+  const plan = { ...planRaw, day };
   // Altijd vanaf de laatste stand rekenen: snelle tikken achter elkaar mogen elkaar niet overschrijven.
   const planRef = useRef(plan); planRef.current = plan;
-  const setPlan = (p: Partial<typeof plan>) => { const n = { ...planRef.current, ...p }; planRef.current = n; setPlanRaw(n); if (p.stops) setOptimized(false); };
+  const setPlan = (p: Partial<typeof plan>) => { const n = { ...planRef.current, ...p }; planRef.current = n; setPlanRaw(n); if (p.day) setDay(p.day); if (p.stops) setOptimized(false); };
   const [optimized, setOptimized] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   // Breedte van de lijst op desktop/iPad: versleepbaar, onthouden per apparaat. Kaart houdt minstens 320 px.
@@ -94,7 +97,7 @@ export default function App() {
   const [focus, setFocus] = useState<{ lat: number; lon: number; key: number } | null>(null), [fit, setFit] = useState<{ pts: LatLon[]; key: number } | null>(null);
   useEffect(() => { if (!toast) return; const t = setTimeout(() => setToast(null), 3200); return () => clearTimeout(t); }, [toast]);
 
-  const all = useMemo(() => visible(items, f, now, origin), [items, f, now, origin]);
+  const all = useMemo(() => visible(items, f, now, origin, day), [items, f, now, origin, day]);
   // Desktop/iPad: de lijst toont wat er op de kaart in beeld is (lijst en kaart staan naast elkaar). Zoeken op naam blijft landelijk.
   // Telefoon: niet, daar bedekt het paneel de kaart grotendeels. ponytail: rechthoek van de kaart, geen rekening met de dagplanbalk.
   const [bounds, setBounds] = useState<Bounds | null>(null);
@@ -102,9 +105,9 @@ export default function App() {
   const list = useMemo(() => inView ? all.filter(({ it }) => it.lon >= bounds!.w && it.lon <= bounds!.e && it.lat >= bounds!.s && it.lat <= bounds!.n) : all, [all, inView, bounds]);
   const counts = useMemo(() => {
     // Tellers horen bij de kop "rond <plaats>": alleen binnen 25 km, niet heel Nederland (UX-review 28 okt).
-    const [a, b] = weekendOf(now), near = (x: LatLon) => km(origin, x) < 25, ps = places ? shown.places.filter(near) : [];
-    return { kNow: ps.filter(p => placeNow(p, now).open).length, kToday: ps.filter(p => openOn(p, today)).length, mWk: markets.filter(m => near(m) && (m.date === a || m.date === b) && m.status !== 'cancel').length };
-  }, [places, shown, markets, now, origin]);
+    const near = (x: LatLon) => km(origin, x) < 25, ps = places ? shown.places.filter(near) : [];
+    return { kOpen: ps.filter(p => matches(p, { ...f, open: true, q: '', only: null }, now, day)).length, mDay: markets.filter(m => near(m) && m.date === day && m.status !== 'cancel').length };
+  }, [places, shown, markets, now, origin, day, f]);
 
   const setF = useCallback((p: Partial<Filters>) => { setFState(o => ({ ...o, ...p })); setLimit(40); if (view !== 'list') { setView('list'); setSel(null); } }, [view]);
   const go = (id: string) => { const it = byId.get(id); if (!it) return; setDir('fwd'); if (view !== 'detail') setPrev(view); setSel(id); setView('detail'); if (snap === 'collapsed') setSnap('half'); setFocus({ lat: it.lat, lon: it.lon, key: Date.now() }); scrollTop(); };
@@ -181,7 +184,7 @@ export default function App() {
       .catch(() => setToast('Opslaan in je account lukte niet. Op dit apparaat staat het wel.'));
   };
   const openMe = () => { setDir('fwd'); setPrev(view); setView('me'); if (snap === 'collapsed') setSnap('half'); scrollTop(); };
-  const showFavs = () => { const pts = favs.map(id => byId.get(id)).filter(Boolean) as Item[]; setFState(o => ({ ...o, only: favs, time: 'all', q: '' })); setDir('back'); setView('list'); setSel(null); if (pts.length) setFit({ pts, key: Date.now() }); if (!desktop) setSnap('collapsed'); };
+  const showFavs = () => { const pts = favs.map(id => byId.get(id)).filter(Boolean) as Item[]; setFState(o => ({ ...o, only: favs, open: false, q: '' })); setDir('back'); setView('list'); setSel(null); if (pts.length) setFit({ pts, key: Date.now() }); if (!desktop) setSnap('collapsed'); };
   const logout = () => { authLogout(sess); setSess(null); setToast('Uitgelogd. Je favorieten blijven op dit apparaat.'); };
   const download = () => {
     const blob = new Blob([JSON.stringify({ email: sess?.email, favorieten: favs.map(id => ({ id, naam: byId.get(id)?.name ?? null })), schermnaam: name, bijdragen: mine.map(({ id, ...c }) => ({ ...c, winkel: byId.get(c.item_id)?.name ?? null })), gedownload: new Date().toISOString() }, null, 2)], { type: 'application/json' });
@@ -223,7 +226,7 @@ export default function App() {
   const openPlan = () => { setDir('fwd'); setPrev(view); setView('plan'); setSnap(desktop ? 'half' : 'half'); scrollTop(); };
   useEffect(() => { if (view === 'plan') setFit({ pts: [origin, ...plan.stops.map(id => byId.get(id)).filter(Boolean) as Item[]], key: Date.now() }); }, [view, plan.stops.join(), plan.day]);
 
-  const c: Ctx = { now, f, online, dataFrom, install, origin, originLabel, locDenied, welcome: !welcomed && !spot && !me, spot: !!spot, pickSpot, pickPlace, me, favs, bij, planStops: plan.stops, planDay: plan.day, setF, open, toggleStop, toggleFav, locate, back, openPlan, openMe, user: sess?.email ?? null };
+  const c: Ctx = { now, f, online, dataFrom, install, origin, originLabel, locDenied, welcome: !welcomed && !spot && !me, spot: !!spot, pickSpot, pickPlace, me, favs, bij, planStops: plan.stops, day, setDay: (d: string) => setDay(d === today ? null : d), setF, open, toggleStop, toggleFav, locate, back, openPlan, openMe, user: sess?.email ?? null };
 
   // ---------- bottom sheet (mobiel) ----------
   const shell = useRef<HTMLDivElement>(null), sheet = useRef<HTMLElement>(null), scroller = useRef<HTMLDivElement>(null);
@@ -234,7 +237,7 @@ export default function App() {
     const H = shell.current!.clientHeight, peek = sheet.current!.querySelector<HTMLElement>('[data-peek]');
     const ph = (peek ? peek.offsetTop + peek.offsetHeight : 180) + (barOn ? 78 : 0), half = Math.round(H * 0.5);
     setTops({ full: 12, half, collapsed: Math.max(half + 40, H - ph) });
-  }, [view, sel, f.time, barOn, places, desktop, welcomed, locDenied, me, spot]);
+  }, [view, sel, f.open, day, barOn, places, desktop, welcomed, locDenied, me, spot]);
   // Toegankelijkheid: na een wissel van scherm (door de gebruiker) gaat de focus naar de titel, zodat een schermlezer het nieuwe scherm voorleest.
   useEffect(() => {
     if (!dir) return;
@@ -269,8 +272,9 @@ export default function App() {
   const pinClass = useCallback((it: Item) => {
     if (it.t === 'm') return it.status === 'unconf' ? 'unconf' : it.status === 'cancel' ? 'cancel' : '';
     if (!it.h) return '';
-    const s = placeNow(it, now); return s.open ? 'open-now' : (f.time === 'now' || f.time === 'today') ? 'closed' : '';
-  }, [now, f.time]);
+    const open = day === today ? placeNow(it, now).open : openOn(it, day);
+    return open ? 'open-now' : f.open ? 'closed' : '';
+  }, [now, f.open, day]);
   const selItem = sel ? byId.get(sel) : null;
 
   return (

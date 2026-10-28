@@ -207,6 +207,11 @@ svg.i{width:20px;height:20px;flex:none;fill:none;stroke:currentColor;stroke-widt
 .typeseg button[aria-pressed="true"]{background:var(--surface);color:var(--fg);box-shadow:0 1px 3px oklch(0.2 0.02 260 / .14)}
 .typeseg .tk{width:10px;height:10px;border-radius:3px;background:var(--kring)}
 .typeseg .tm{width:10px;height:10px;border-radius:50%;background:var(--markt)}
+/* "Wanneer ga je?": één dag voor de hele app */
+.daypick{display:flex;flex-direction:column;gap:6px}
+.dp-l{font-size:.8125rem;font-weight:650;color:var(--fg-2)}
+.daypick .typeseg{display:flex;width:100%}
+.daypick .typeseg button{flex:1 1 auto;justify-content:center;padding:0 6px}
 .daystrip{display:flex;gap:6px;overflow-x:auto;margin:0 -16px;padding:0 16px;scrollbar-width:none}
 .day{flex:none;width:50px;border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:6px 0 5px;display:flex;flex-direction:column;align-items:center;font-size:.75rem;color:var(--fg-2)}
 .day b{font-size:1.0625rem;color:var(--fg);font-weight:700;line-height:1.2}

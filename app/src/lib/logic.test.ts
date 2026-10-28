@@ -77,13 +77,18 @@ describe('openingstijden: randgevallen (M4)', () => {
 });
 
 describe('filters', () => {
-  const f = { type: 'all' as const, time: 'now' as const, date: null, gratis: false, overdekt: false, q: '', hide: [] as Cat[] };
-  it('onbekende tijden nooit bij Nu open, wel in het weekend', () => {
+  const f = { type: 'all' as const, open: true, gratis: false, overdekt: false, q: '', hide: [] as Cat[] };
+  it('open volgt de gekozen dag; onbekende tijden nooit bij open', () => {
     expect(matches(P(null), f, TUE)).toBe(false);
-    expect(matches(P(null), { ...f, time: 'weekend' }, TUE)).toBe(true);
+    expect(matches(P(null), { ...f, open: false }, TUE)).toBe(true);
+    const zat = P('Sa 10:00-17:00');
+    expect(matches(zat, f, TUE)).toBe(false); // dinsdag: dicht
+    expect(matches(P('Tu 16:00-18:00'), f, TUE)).toBe(true); // gaat vandaag nog open
+    expect(matches(P('Tu 09:00-12:00'), f, TUE)).toBe(false); // vandaag al dicht
+    expect(matches(zat, f, TUE, '2026-10-31')).toBe(true); // gekozen dag zaterdag
   });
   it('winkelsoort uitzetten; een kringloop met antiek blijft kringloop', () => {
-    const all = { ...f, time: 'all' as const }, antiek = P(null, { kind: 'tweedehands', sub: 'antiek' });
+    const all = { ...f, open: false }, antiek = P(null, { kind: 'tweedehands', sub: 'antiek' });
     expect(catOf(antiek)).toBe('antiek');
     expect(matches(antiek, { ...all, hide: ['antiek'] }, TUE)).toBe(false);
     expect(matches(P(null, { sub: 'antiek' }), { ...all, hide: ['antiek'] }, TUE)).toBe(true);
