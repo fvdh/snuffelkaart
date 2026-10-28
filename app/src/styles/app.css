@@ -29,6 +29,9 @@ a.btn.primary{color:var(--on-ink)}
 
 /* desktop: lijst links (standaard 400px, versleepbaar via .resizer: --side), kaart rechts; de sheet wordt een vast paneel */
 @media (min-width: 980px){
+  /* Scrollbalk pas zichtbaar als je over de lijst beweegt: anders staan er twee verticale balken naast de greep. Ruimte blijft gereserveerd (geen verspringen). */
+  .shell .sheet-scroll{scrollbar-width:thin;scrollbar-gutter:stable;scrollbar-color:transparent transparent;transition:scrollbar-color .2s}
+  .shell .sheet-scroll:hover,.shell .sheet-scroll:focus-within{scrollbar-color:var(--line-strong) transparent}
   /* Greep tussen lijst en kaart: altijd zichtbaar lipje (anders weet niemand dat het kan), raakvlak 24 px breed over de hele hoogte. */
   .resizer{position:absolute;top:0;bottom:0;left:calc(var(--side,400px) - 12px);width:24px;z-index:13;cursor:col-resize;touch-action:none;display:grid;place-items:center}
   .resizer::before{content:"";width:14px;height:44px;border-radius:7px;background:var(--surface);border:1px solid var(--line-strong);box-shadow:0 1px 2px oklch(0.2 0.02 260 / .08),0 3px 10px oklch(0.2 0.02 260 / .10);
