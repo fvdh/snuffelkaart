@@ -32,6 +32,10 @@ jobs:
         env: &supabase
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      - name: Gemeenteblad → kandidaten (keuren in /beheer)
+        run: node scripts/fetch-gemeenteblad.mjs
+        continue-on-error: true
+        env: *supabase
       - name: Kaartdata uit Supabase (tijden vooruit vanaf vandaag)
         run: node scripts/db.mjs export
         env: *supabase

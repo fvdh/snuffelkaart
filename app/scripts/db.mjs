@@ -47,17 +47,18 @@ function env() {
   if (!url || !key) throw new Error('SUPABASE_URL en SUPABASE_SERVICE_ROLE_KEY ontbreken (app/.env of GitHub-secrets).');
   return { url: `${url}/rest/v1`, headers: { apikey: key, 'Content-Type': 'application/json' } };
 }
-async function req(path, init = {}) {
+export async function req(path, init = {}) {
   const { url, headers } = env(), res = await fetch(`${url}/${path}`, { ...init, headers: { ...headers, ...init.headers } });
   if (!res.ok) throw new Error(`${init.method ?? 'GET'} ${path}: ${res.status} ${await res.text()}`);
   return res.status === 204 || init.method === 'POST' ? null : res.json();
 }
-async function all(table) {
+export async function all(table) {
   const out = []; for (let i = 0; ; i += 1000) { const page = await req(`${table}?select=*&order=id`, { headers: { Range: `${i}-${i + 999}` } }); out.push(...page); if (page.length < 1000) return out; }
 }
-async function upsert(table, rows) {
+/** ignore: alleen nieuwe rijen (bestaande, ook afgewezen kandidaten, blijven zoals ze zijn). */
+export async function upsert(table, rows, { ignore = false } = {}) {
   for (let i = 0; i < rows.length; i += 500)
-    await req(`${table}?on_conflict=id`, { method: 'POST', headers: { Prefer: 'resolution=merge-duplicates,return=minimal' }, body: JSON.stringify(rows.slice(i, i + 500)) });
+    await req(`${table}?on_conflict=id`, { method: 'POST', headers: { Prefer: `resolution=${ignore ? 'ignore' : 'merge'}-duplicates,return=minimal` }, body: JSON.stringify(rows.slice(i, i + 500)) });
 }
 
 const FILE = name => new URL(`../public/data/${name}.json`, import.meta.url);

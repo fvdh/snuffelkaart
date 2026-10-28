@@ -1,4 +1,5 @@
 // Gemeenteblad-test (M0, zie sources/gemeenteblad.md). Los script, niet gekoppeld aan de app.
+// Opgevolgd door fetch-gemeenteblad.mjs (kandidaten in Supabase); dit blijft alleen voor onderzoek.
 // Zoekt in de SRU-zoekdienst van Officiële Bekendmakingen (CC-0) naar Gemeenteblad-publicaties over
 // markten, haalt van elke treffer de XML-tekst op en schrijft alles naar één JSON-bestand.
 // Gebruik: node scripts/gemeenteblad-test.mjs [van] [tot] [uitvoer.json]

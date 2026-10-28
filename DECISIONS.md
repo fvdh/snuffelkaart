@@ -140,3 +140,10 @@ Keuzes en waarom. Nieuwste onderaan. "Freek" = besloten door Freek; anders voorl
 - **Geen supabase-js**: login (`/auth/v1/otp`) en data (REST) met fetch; na een uur opnieuw inloggen.
 - **Publishable key in de build** via `astro.config.mjs` (`SUPABASE_ANON_KEY` uit `.env` of het secret in GitHub); de secret key komt nooit in de site (gecontroleerd in `dist`).
 - **Supabase Auth-URL's** in `supabase/config.toml` (`npx supabase config push`); alleen wat daar staat wordt gezet.
+
+## M2 deel 3: Gemeenteblad-uitlezer (2026-10-28)
+
+- **`scripts/fetch-gemeenteblad.mjs`**, elke nacht (publicaties van de laatste 3 dagen): SRU-zoekdienst, regelgeving eruit op rubriek, per toekomstige datum één **kandidaat** (`status: kandidaat`, `source: gemeenteblad`). Nooit direct op de kaart: keuren in /beheer (tekstfragment en link erbij).
+- **Regels, geen AI**: datums met jaar (termijnen als "bezwaar … tot en met" niet), eerste tijdvak, soort uit de zoekterm, plek uit de coördinaat in de metadata, anders het midden van de gemeente (PDOK, `exact: false`). Hooguit ruim een jaar vooruit.
+- **Dubbel** = zelfde dag binnen 1 km van een bekende markt (organisator of eerdere publicatie): overslaan. Bestaande kandidaten worden nooit overschreven, ook afgewezen niet (`ignore-duplicates`).
+- **Bekend zwak punt**: verzamellijsten (Landgraaf, Rhenen) geven ook datums van andere evenementen (Sinterklaas). De beheerder wijst die af; AI-extractie pas als het afwijzen te veel werk wordt.

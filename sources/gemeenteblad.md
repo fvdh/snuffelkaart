@@ -5,7 +5,7 @@ Gemeenteblad-test (M0, §5.2 en §9). Onderzoek 2026-10-27, periode **2026-09-27
 - **Wat**: gemeentelijke bekendmakingen, waaronder aanvragen en besluiten voor evenementenvergunningen en meldingen klein evenement.
 - **Licentie**: CC-0 ([data.overheid.nl, "officiele-bekendmakingen"](https://data.overheid.nl/dataset/officiele-bekendmakingen)). Feiten mogen we overnemen; bronvermelding toch tonen ("Bron: Gemeenteblad [gemeente], [datum]" + link).
 - **Hoe vaak**: één keer per dag, 1 s tussen verzoeken, User-Agent `Snuffelkaart-PoC/0.1 (gemeenteblad-test; freek@draad.nu)`. Geen sleutel nodig.
-- **Testscript**: `app/scripts/gemeenteblad-test.mjs` (los, niet gekoppeld aan de app).
+- **Uitlezer**: `app/scripts/fetch-gemeenteblad.mjs` (elke nacht, kandidaten in Supabase, keuren in /beheer). Het testscript `app/scripts/gemeenteblad-test.mjs` blijft voor onderzoek.
 
 ## Zo bevraag je het
 

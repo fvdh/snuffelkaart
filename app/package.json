@@ -15,7 +15,8 @@
     "data:markets": "node scripts/fetch-markets.mjs",
     "db:push:places": "node scripts/db.mjs push places",
     "db:push:markets": "node scripts/db.mjs push markets",
-    "db:export": "node scripts/db.mjs export"
+    "db:export": "node scripts/db.mjs export",
+    "data:gemeenteblad": "node scripts/fetch-gemeenteblad.mjs"
   },
   "dependencies": {
     "@astrojs/react": "^5.0.7",

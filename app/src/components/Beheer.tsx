@@ -67,7 +67,7 @@ const STATUS: [string, string][] = [['org', 'Bevestigd'], ['chk', 'Gecontroleerd
 const label = (st: string) => STATUS.find(([k]) => k === st)?.[1] ?? st;
 
 function Markets({ s }: { s: Session }) {
-  const [rows, setRows] = useState<Row[] | null>(null), [show, setShow] = useState('alle'), [err, setErr] = useState(''), [why, setWhy] = useState<Record<string, string>>({});
+  const [rows, setRows] = useState<Row[] | null>(null), [show, setShow] = useState('kandidaat'), [err, setErr] = useState(''), [why, setWhy] = useState<Record<string, string>>({});
   const today = new Date().toLocaleDateString('sv-SE');
   useEffect(() => { api(s, `markets?select=id,date,status,locked,data&date=gte.${today}&order=date,id`).then(setRows).catch(e => setErr(e.message)); }, []);
   const set = async (r: Row, status: string) => {
@@ -83,7 +83,8 @@ function Markets({ s }: { s: Session }) {
     <div className="chips">{[['alle', 'Alle'], ...STATUS].map(([k, l]) => <button key={k} className="chip" aria-pressed={show === k} onClick={() => setShow(k)}>{l} ({k === 'alle' ? rows.length : rows.filter(r => r.status === k).length})</button>)}</div>
     <ul className="bh-list">{list.map(r => (<li key={r.id}>
       <div><b>{r.data.name}</b> <span className={`bh-st ${r.status}`}>{label(r.status)}</span>{r.locked.includes('status') && <small> · met de hand</small>}{r.data.vanished && <small> · verdwenen van hun site op {r.data.vanished}</small>}
-        <p>{r.date} · {r.data.place}{r.data.venue ? ` · ${r.data.venue}` : ''} · {r.data.org} {r.data.url && <a href={r.data.url} target="_blank" rel="noopener">bron</a>}</p></div>
+        <p>{r.date}{r.data.timeKnown ? ` ${Math.floor(r.data.start / 60)}:${String(r.data.start % 60).padStart(2, '0')}` : ''} · {r.data.place}{r.data.venue ? ` · ${r.data.venue}` : ''} · {r.data.org}{r.data.stage ? ` (${r.data.stage})` : ''} {r.data.url && <a href={r.data.url} target="_blank" rel="noopener">bron</a>}</p>
+        {r.data.snippet && <details><summary>Tekst van de publicatie</summary><p>{r.data.snippet}</p></details>}</div>
       <div className="bh-acts">{STATUS.filter(([k]) => k !== r.status && (r.status === 'kandidaat' || k !== 'kandidaat')).map(([k, l]) => <button key={k} className="btn sm" onClick={() => set(r, k)}>{l}</button>)}
         <input placeholder="Reden bij afgelast" value={why[r.id] ?? r.data.cancelWhy ?? ''} onChange={e => setWhy({ ...why, [r.id]: e.target.value })} /></div>
     </li>))}</ul>

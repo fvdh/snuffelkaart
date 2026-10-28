@@ -32,6 +32,7 @@ import Beheer from '../components/Beheer.tsx';
       .bh-st.cancel, .bh-st.afgewezen { background: var(--bad-soft); color: var(--bad-ink) }
       .bh-st.kandidaat, .bh-st.unconf { background: var(--warn-soft); color: var(--warn-ink) }
       .bh-err { color: var(--bad-ink) }
+      .bh-list details { margin-top: 4px; max-width: 60ch } .bh-list summary { cursor: pointer; color: var(--fg-2); font-size: .875rem }
     </style>
   </head>
   <body><Beheer client:only="react" /></body>
