@@ -307,43 +307,61 @@ export function PlanView({ c, items, plan, setPlan, optimizeSeen }: { c: Ctx; it
   </>);
 }
 
-/** Jij: een groot paneel (desktop 720 px in twee kolommen, mobiel het hele scherm). Bewaard werkt zonder account; inloggen pas hier (ontwerp §05). */
+const STAMP: Record<string, string> = { review: 'star', foto: 'cam', tijden: 'clock' };
+const TILT = [-9, 6, -4, 11, -7, 3, -12, 8, -2, 5];
+
+/** Jij als Snuffelpas: een stempelkaart in het papier van het dagplanbonnetje. Elke bijdrage die online komt is een stempel,
+ *  een bijdrage in behandeling een stippellijn. Daaronder bewaard en je dagplan; account en info zakken naar een stille voet. */
 export function MeView({ c, items, showFavs, login, logout, download, remove }: { c: Ctx; items: Item[]; showFavs: () => void; login: () => void; logout: () => void; download: () => void; remove: () => Promise<void> }) {
   const byId = new Map(items.map(i => [i.id, i])), favs = c.favs.map(id => byId.get(id)).filter(Boolean) as Item[], n = favs.length, [sure, setSure] = useState(false);
-  const mine = c.bij.mine, wait = mine.filter(x => x.status === 'nieuw').length, title = c.bij.name ?? 'Jij';
-  const stats = [`${n} bewaard`, c.user && `${mine.length} ${mine.length === 1 ? 'bijdrage' : 'bijdragen'}${wait ? `, ${wait} in behandeling` : ''}`].filter(Boolean).join(' · ');
-  return (<>
-    <div className="dv-head" data-peek data-drag><div className="dv-top"><button className="back" onClick={c.back}><Ic n="back" />Lijst</button></div>
-      <div className="me-id"><span className={`me-av${c.user ? ' in' : ''}`} aria-hidden="true">{c.user ? (c.bij.name ?? c.user)[0].toUpperCase() : <Ic n="user" />}</span>
-        <div><h2>{title}</h2><p>{stats}</p></div></div></div>
+  const mine = c.bij.mine.filter(x => x.status !== 'afgewezen'), done = mine.filter(x => x.status === 'goed').length, wait = mine.length - done;
+  // ponytail: tien vakjes; wie er meer heeft ziet de nieuwste tien en een teller
+  const slots = Array.from({ length: 10 }, (_, i) => [...mine].reverse()[i] ?? null), over = Math.max(0, mine.length - 10);
+  const stops = c.planStops.map(id => byId.get(id)).filter(Boolean) as Item[], dayName = DAYS_LONG[dayStart(c.day).getDay()];
+  return (<div className="me">
+    <div className="dv-top" data-peek data-drag><button className="back" onClick={c.back}><Ic n="back" />Lijst</button></div>
+    <section className="pas" aria-labelledby="pas-naam">
+      <div className="pas-top"><span className="pas-brand"><Ic n="tag" />SNUFFELPAS</span><span className="pas-mail">{c.user ?? 'op dit apparaat'}</span></div>
+      <h2 id="pas-naam" className="pas-name">{c.user ? (c.bij.name ?? 'Snuffelaar') : 'Gast'}</h2>
+      <ol className="stamps" aria-label={`${done} ${done === 1 ? 'stempel' : 'stempels'}${wait ? `, ${wait} in behandeling` : ''}`}>
+        {slots.map((x, i) => <li key={x?.id ?? i} className={x ? (x.status === 'goed' ? 'on' : 'wait') : ''} style={{ ['--r' as string]: `${TILT[i]}deg`, ['--d' as string]: `${i * 45}ms` }}
+          title={x ? `${WHAT[x.kind]} · ${byId.get(x.item_id)?.name ?? 'winkel'}${x.status === 'nieuw' ? ' (in behandeling)' : ''}` : undefined}>{x && <Ic n={STAMP[x.kind]} />}</li>)}
+      </ol>
+      <p className="pas-cap">{!c.user ? 'Elke review, foto of openingstijd die je doorgeeft en die online komt, is een stempel op je pas.'
+        : mine.length ? <>{done} {done === 1 ? 'stempel' : 'stempels'}{wait ? ` · ${wait} wacht${wait === 1 ? '' : 'en'} op controle` : ''}{over ? ` · en nog ${over} eerder` : ''}</>
+        : 'Nog geen stempels. Je eerste: een review, foto of de openingstijden van een winkel waar je was.'}</p>
+      {!c.user ? <div className="pas-cta"><button className="btn primary" onClick={login}>Inloggen of account maken</button><span>Dan staan je bewaarde plekken ook op je andere apparaten.</span></div>
+        : mine.length > 0 && <button className="link pas-all" onClick={() => c.bij.go('contrib')}>Al je bijdragen bekijken<Ic n="chev" /></button>}
+    </section>
+
     <div className="me-grid">
-      <section className="me-sec"><h3 className="me-h">Bewaard</h3>
-        {n ? <><ul className="rows">{favs.map(it => <Row key={it.id} it={it} d={km(c.origin, it)} c={c} />)}</ul>
-          <button className="btn sm" style={{ alignSelf: 'flex-start' }} onClick={showFavs}><Ic n="pin" />Toon op de kaart</button></>
-          : <p className="prose-s">Tik op het hartje bij een winkel of markt om hem hier te bewaren. Dat werkt ook zonder account, op dit apparaat.</p>}
-        {c.favs.length > n && <p className="src"><Ic n="info" /><span>{c.favs.length - n} bewaarde {c.favs.length - n === 1 ? 'plek staat' : 'plekken staan'} niet meer op de kaart (gesloten, of een markt die voorbij is).</span></p>}</section>
-      <div>
-        {!c.user ? <div className="login-card"><b>Bewaar je favorieten overal</b><p>Log in, dan staan ze ook op je laptop of je andere telefoon, en kun je reviews, foto's en tijden toevoegen.{n ? ` Je ${n} bewaarde ${n === 1 ? 'plek gaat' : 'plekken gaan'} automatisch mee.` : ''}</p>
-          <button className="btn primary" onClick={login}>Inloggen of account maken</button></div>
-          : <section className="me-sec"><h3 className="me-h">Mijn bijdragen</h3>
-            {mine.length ? <ul className="contrib">{mine.slice(0, 3).map(x => <li key={x.id}><div className="c-top"><b>{WHAT[x.kind]} · {byId.get(x.item_id)?.name ?? 'winkel'}</b><span className={`pill ${PILL[x.status][0]}`}>{PILL[x.status][1]}</span></div></li>)}</ul>
-              : <p className="prose-s">Nog niets. Bij elke winkel kun je een review schrijven, foto's toevoegen of de openingstijden doorgeven.</p>}
-            {mine.length > 0 && <button className="navrow" onClick={() => c.bij.go('contrib')}>Alle bijdragen <span>{mine.length}<Ic n="chev" /></span></button>}</section>}
-        <section className="me-sec"><h3 className="me-h">{c.user ? 'Account' : 'Meer'}</h3>
-          {c.planStops.length > 0 && <button className="navrow" onClick={c.openPlan}>Mijn dagplan <span>{dShort(c.day).toLowerCase()} · {c.planStops.length} stop{c.planStops.length > 1 ? 's' : ''}<Ic n="chev" /></span></button>}
-          {c.user && <>
-            <button className="navrow" onClick={download}>Mijn gegevens downloaden <span><Ic n="chev" /></span></button>
-            <button className="navrow" onClick={logout}>Uitloggen <span>{c.user}</span></button>
-            {!sure ? <button className="navrow" style={{ color: 'var(--bad-ink)' }} onClick={() => setSure(true)}>Account verwijderen <span><Ic n="chev" /></span></button>
-              : <div className="unknown-box"><p><b>Account echt verwijderen?</b> Je e-mailadres, je favorieten in je account en je schermnaam gaan weg. Wat op dit apparaat bewaard is, blijft hier staan.</p>
-                <div className="btns"><button className="btn sm" style={{ background: 'var(--bad)', borderColor: 'var(--bad)', color: 'oklch(0.99 0 0)' }} onClick={() => remove().finally(() => setSure(false))}>Verwijderen</button><button className="btn sm" onClick={() => setSure(false)}>Toch niet</button></div></div>}</>}
-          <a className="navrow" href="/hoe-we-controleren">Hoe we controleren <span>en onze bronnen<Ic n="chev" /></span></a>
-          <a className="navrow" href="/privacy">Privacy <span><Ic n="chev" /></span></a>
-          <a className="navrow" href="/voorwaarden">Gebruiksvoorwaarden <span><Ic n="chev" /></span></a>
-          <a className="navrow" href="/colofon">Colofon <span>en contact<Ic n="chev" /></span></a></section>
-      </div>
+      <section className="me-block" aria-labelledby="me-fav">
+        <div className="me-bh"><h3 id="me-fav">Bewaard{n ? <span className="tnum"> {n}</span> : null}</h3>{n > 0 && <button className="link" onClick={showFavs}><Ic n="pin" />Op de kaart</button>}</div>
+        {n ? <ul className="favs">{favs.map(it => { const st = statusFor(it, c.now, c.day); return (
+          <li key={it.id}><button onClick={e => c.open(it.id, e.currentTarget.querySelector<HTMLElement>('.f-name'))}>
+            <Tile it={it} /><span className="f-main"><span className="f-name">{it.name}</span><St s={st} /></span><span className="f-km tnum">{fkm(km(c.origin, it))} km</span></button></li>); })}</ul>
+          : <p className="me-empty"><Ic n="heart" /><span>Tik op het hartje bij een winkel of markt. Bewaren werkt ook zonder account.</span></p>}
+        {c.favs.length > n && <p className="src"><Ic n="info" /><span>{c.favs.length - n} bewaarde {c.favs.length - n === 1 ? 'plek staat' : 'plekken staan'} niet meer op de kaart (gesloten, of een markt die voorbij is).</span></p>}
+      </section>
+
+      <section className="me-block" aria-labelledby="me-plan">
+        <div className="me-bh"><h3 id="me-plan">Mijn {dayName}</h3></div>
+        {stops.length ? <button className="minibon" onClick={c.openPlan} aria-label={`Open mijn dagplan: ${stops.length} stops op ${dayName}`}>
+          <span className="mb-h">{dShort(c.day).toUpperCase()} · {stops.length} STOP{stops.length > 1 ? 'S' : ''}</span>
+          <ol>{stops.slice(0, 5).map(it => <li key={it.id}>{it.name}</li>)}{stops.length > 5 && <li className="mb-more">en nog {stops.length - 5}</li>}</ol>
+          <span className="mb-go">Open dagplan<Ic n="chev" /></span></button>
+          : <p className="me-empty"><Ic n="cal" /><span>Nog geen plan. Tik op <b>+</b> bij een winkel of markt, of kies hierboven in de lijst een dag.</span></p>}
+      </section>
     </div>
-  </>);
+
+    <footer className="me-foot">
+      {c.user && <div className="me-acc"><span className="tnum">{c.user}</span><button className="link" onClick={logout}>Uitloggen</button><button className="link" onClick={download}>Mijn gegevens downloaden</button>
+        {!sure && <button className="link danger" onClick={() => setSure(true)}>Account verwijderen</button>}</div>}
+      {sure && <div className="unknown-box"><p><b>Account echt verwijderen?</b> Je e-mailadres, je favorieten in je account en je schermnaam gaan weg. Wat op dit apparaat bewaard is, blijft hier staan.</p>
+        <div className="btns"><button className="btn sm" style={{ background: 'var(--bad)', borderColor: 'var(--bad)', color: 'oklch(0.99 0 0)' }} onClick={() => remove().finally(() => setSure(false))}>Verwijderen</button><button className="btn sm" onClick={() => setSure(false)}>Toch niet</button></div></div>}
+      <nav aria-label="Over Snuffelkaart"><a href="/hoe-we-controleren">Hoe we controleren</a><a href="/privacy">Privacy</a><a href="/voorwaarden">Voorwaarden</a><a href="/colofon">Colofon en contact</a></nav>
+    </footer>
+  </div>);
 }
 
 /** Inloggen: Apple en Google (als ze aan staan) en een inloglink per e-mail. Geen wachtwoord. */

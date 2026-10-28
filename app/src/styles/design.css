@@ -192,14 +192,73 @@ svg.i{width:20px;height:20px;flex:none;fill:none;stroke:currentColor;stroke-widt
 .me-av{width:30px;height:30px;border-radius:50%;background:var(--surface-2);color:var(--fg-2);display:grid;place-items:center;font-weight:740;flex:none}
 .me-btn.in .me-av,.me-av.in{background:var(--kring-soft);color:var(--kring)}
 .me-av svg{width:16px;height:16px}
-.me-id{display:flex;align-items:center;gap:14px;margin-top:6px}
-.me-id .me-av{width:56px;height:56px;font-size:1.5rem}
-.me-id .me-av svg{width:24px;height:24px}
-.me-id h2{font-size:1.5rem;font-weight:740;letter-spacing:-.015em;overflow-wrap:anywhere}
-.me-id p{font-size:.875rem;color:var(--fg-2);margin-top:2px}
-.me-h{font-size:.75rem!important;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--fg-2)}
-.me-grid{display:grid;grid-template-columns:minmax(0,1fr);column-gap:32px}
-@media (min-width: 980px){.me-grid{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.me-grid>*>.me-sec:first-child,.me-grid>.me-sec{border-top:0}}
+/* ---------- Jij: de Snuffelpas ---------- */
+.me{display:flex;flex-direction:column;gap:22px;padding-bottom:28px}
+.me .dv-top{margin-bottom:-10px}
+/* de pas: papier van het bonnetje, ponsgaatjes langs de linkerrand, een inktband bovenin */
+.pas{position:relative;background:var(--paper);border-radius:14px;padding:18px 20px 18px 34px;overflow:hidden;
+  box-shadow:0 1px 1px oklch(0.2 0.02 260 / .08),0 10px 24px -8px oklch(0.2 0.02 260 / .18);
+  -webkit-mask:radial-gradient(circle at 0 50%,transparent 0 6px,#000 6.5px) 0 0/100% 22px;mask:radial-gradient(circle at 0 50%,transparent 0 6px,#000 6.5px) 0 0/100% 22px;
+  animation:pasIn .5s var(--ease) both}
+.pas::before{content:"";position:absolute;inset:0 0 auto 0;height:5px;background:repeating-linear-gradient(90deg,var(--ink) 0 18px,var(--kring) 18px 36px)}
+.pas::after{content:"";position:absolute;left:18px;top:14px;bottom:14px;border-left:1.5px dashed var(--line-strong)}
+.pas-top{display:flex;justify-content:space-between;align-items:center;gap:12px;font-family:var(--mono);font-size:.75rem;color:var(--fg-2);margin-top:4px}
+.pas-brand{display:inline-flex;align-items:center;gap:6px;letter-spacing:.22em;font-weight:500;color:var(--fg)}
+.pas-brand svg{width:14px;height:14px}
+.pas-mail{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.pas-name{font-size:clamp(1.75rem,4vw,2.25rem);font-weight:780;letter-spacing:-.025em;line-height:1.05;margin:14px 0 16px;overflow-wrap:anywhere}
+.stamps{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(10,minmax(0,1fr));gap:6px;max-width:440px}
+.stamps li{aspect-ratio:1;border-radius:50%;border:1.5px dotted var(--line-strong);display:grid;place-items:center;color:var(--kring)}
+.stamps li svg{width:46%;height:46%}
+.stamps li.on{border:2px solid var(--kring);background:radial-gradient(circle,var(--kring-soft) 0 55%,transparent 56%);transform:rotate(var(--r));
+  box-shadow:inset 0 0 0 2.5px var(--paper),inset 0 0 0 3.5px oklch(0.47 0.15 262 / .55);animation:stamp .42s var(--ease) both;animation-delay:calc(var(--d) + .25s)}
+.stamps li.wait{border:1.5px dashed var(--kring);color:oklch(0.47 0.15 262 / .55);transform:rotate(var(--r))}
+@keyframes stamp{0%{opacity:0;transform:rotate(var(--r)) scale(1.6)}60%{opacity:1}100%{transform:rotate(var(--r)) scale(1)}}
+@keyframes pasIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@media (max-width: 420px){.stamps{grid-template-columns:repeat(5,minmax(0,1fr));max-width:230px}}
+.pas-cap{font-size:.875rem;color:var(--fg-2);margin-top:12px;max-width:52ch}
+.pas-cta{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;margin-top:14px}
+.pas-cta span{font-size:.8125rem;color:var(--fg-3);flex:1 1 180px}
+.pas-all{display:inline-flex;align-items:center;gap:2px;margin-top:10px;font-weight:600;font-size:.875rem}
+.pas-all svg{width:14px;height:14px}
+.me-grid{display:grid;grid-template-columns:minmax(0,1fr);gap:22px 32px}
+.me-block{display:flex;flex-direction:column;gap:8px;min-width:0}
+.me-bh{display:flex;justify-content:space-between;align-items:baseline;gap:8px;border-bottom:1.5px solid var(--fg);padding-bottom:6px}
+.me-bh h3{font-size:.75rem;font-weight:750;letter-spacing:.08em;text-transform:uppercase}
+.me-bh h3 span{color:var(--fg-3)}
+.me-bh .link{display:inline-flex;align-items:center;gap:4px;font-size:.8125rem;font-weight:600}
+.me-bh .link svg{width:14px;height:14px}
+.favs{list-style:none;margin:0;padding:0}
+.favs button{display:grid;grid-template-columns:40px minmax(0,1fr) auto;gap:12px;align-items:center;width:100%;padding:9px 6px;margin:0 -6px;width:calc(100% + 12px);border:0;border-bottom:1px solid var(--line);background:none;text-align:left;color:inherit;border-radius:10px 10px 0 0}
+.favs li:last-child button{border-bottom:0}
+.favs button:hover{background:var(--surface-2)}
+.f-main{display:flex;flex-direction:column;gap:2px;min-width:0}
+.f-name{font-weight:650;font-size:.9375rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.f-km{font-size:.8125rem;color:var(--fg-3)}
+.me-empty{display:flex;gap:10px;align-items:flex-start;font-size:.875rem;color:var(--fg-2);padding:6px 0}
+.me-empty svg{width:16px;height:16px;flex:none;margin-top:2px;color:var(--fg-3)}
+/* mini-bonnetje van het dagplan */
+.minibon{position:relative;display:flex;flex-direction:column;gap:6px;text-align:left;border:0;color:inherit;background:var(--paper);font-family:var(--mono);font-size:.8125rem;padding:14px 14px 18px;
+  -webkit-mask:linear-gradient(#000 0 0) top/100% calc(100% - 6px) no-repeat,conic-gradient(from -45deg at bottom,#0000,#000 1deg 89deg,#0000 90deg) bottom/12px 6px repeat-x;
+  mask:linear-gradient(#000 0 0) top/100% calc(100% - 6px) no-repeat,conic-gradient(from -45deg at bottom,#0000,#000 1deg 89deg,#0000 90deg) bottom/12px 6px repeat-x;
+  filter:drop-shadow(0 1px 1px oklch(0.2 0.02 260 / .10));transition:transform .2s var(--ease)}
+.minibon:hover{transform:translateY(-2px) rotate(-.4deg)}
+.mb-h{letter-spacing:.12em;color:var(--fg-2);font-size:.75rem}
+.minibon ol{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:2px}
+.minibon li{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mb-more{list-style:none;color:var(--fg-3);margin-left:-20px}
+.mb-go{display:inline-flex;align-items:center;gap:2px;font-family:var(--font);font-weight:650;font-size:.875rem;margin-top:4px;border-top:1.5px dashed var(--line-strong);padding-top:8px}
+.mb-go svg{width:14px;height:14px}
+/* account en info: een stille voet, geen instellingenlijst */
+.me-foot{display:flex;flex-direction:column;gap:12px;border-top:1px solid var(--line);padding-top:14px;font-size:.8125rem;color:var(--fg-3)}
+.me-acc{display:flex;flex-wrap:wrap;align-items:center;gap:6px 16px}
+.me-acc span{color:var(--fg-2);font-weight:600}
+.me-foot .link{font-size:.8125rem;color:var(--fg-2)}
+.me-foot .link.danger{color:var(--bad-ink)}
+.me-foot nav{display:flex;flex-wrap:wrap;gap:6px 16px}
+.me-foot nav a{color:var(--fg-3);text-decoration:underline;text-decoration-color:var(--line-strong);text-underline-offset:3px}
+.me-foot nav a:hover{color:var(--fg)}
+@media (min-width: 980px){.me{padding:4px 12px 32px}.me-grid{grid-template-columns:minmax(0,1.35fr) minmax(0,1fr)}}
 .search{display:flex;align-items:center;gap:8px;background:var(--surface-2);border-radius:12px;padding:0 12px;height:44px;color:var(--fg-3)}
 .search input{flex:1;border:0;background:none;outline:none;height:100%;font-size:1rem;color:var(--fg);min-width:0}
 .search input::placeholder{color:var(--fg-3)}
