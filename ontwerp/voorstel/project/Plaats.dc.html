@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<title>Waar wil je snuffelen</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.ic{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.opt{display:grid;grid-template-columns:40px minmax(0,1fr) 20px;gap:12px;align-items:center;padding:10px 0;border:0;border-bottom:1px solid oklch(0.89 0.006 85);background:none;width:100%;text-align:left;font-family:Figtree,sans-serif;color:oklch(0.24 0.012 260)}
+.ico{width:40px;height:40px;border-radius:50%;background:oklch(0.955 0.005 85);display:grid;place-items:center;color:oklch(0.43 0.012 260)}
+.t{font-weight:650;font-size:16px;display:block}
+.s{font-size:13px;color:oklch(0.53 0.010 260);display:block}
+.lbl{font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:oklch(0.43 0.012 260);margin:20px 0 2px}
+</style>
+</helmet>
+<div style="width:390px;height:844px;position:relative;overflow:hidden;background:oklch(0.958 0.006 95);font-family:Figtree,sans-serif;color:oklch(0.24 0.012 260)">
+  <div style="position:absolute;left:0;right:0;top:12px;bottom:0;background:oklch(0.995 0.002 85);border-radius:22px 22px 0 0;box-shadow:0 -12px 32px oklch(0.2 0.02 260 / .10);padding:0 16px">
+    <div style="height:22px;display:grid;place-items:center"><div style="width:38px;height:5px;border-radius:3px;background:oklch(0.80 0.008 85)"></div></div>
+    <button style="border:0;background:none;padding:6px 0;font:600 15px Figtree,sans-serif;color:oklch(0.43 0.012 260);display:flex;align-items:center;gap:4px"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>Lijst</button>
+    <h2 style="margin:6px 0 4px;font-size:24px;font-weight:740;letter-spacing:-.015em">Waar wil je snuffelen?</h2>
+    <p style="margin:0 0 14px;color:oklch(0.43 0.012 260);font-size:15px">Thuis, of waar je dit weekend heen gaat.</p>
+    <label style="height:46px;border-radius:12px;border:1px solid oklch(0.55 0.17 262);box-shadow:0 0 0 3px oklch(0.55 0.17 262 / .2);background:oklch(0.995 0.002 85);display:flex;align-items:center;gap:8px;padding:0 12px;font-size:16px"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" style="color:oklch(0.53 0.010 260)"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg><input style="border:0;background:none;font:inherit;color:inherit;flex:1;outline:none" value="Zwo" aria-label="Plaats of postcode"></label>
+    <button class="opt"><span class="ico" style="background:oklch(0.93 0.035 262);color:oklch(0.47 0.15 262)"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-7-6.2-7-12a7 7 0 0 1 14 0c0 5.8-7 12-7 12z"/><circle cx="12" cy="9" r="2.5"/></svg></span><span><span class="t">Zwolle</span><span class="s">Gemeente Zwolle, Overijssel</span></span><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>
+    <button class="opt"><span class="ico"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-7-6.2-7-12a7 7 0 0 1 14 0c0 5.8-7 12-7 12z"/><circle cx="12" cy="9" r="2.5"/></svg></span><span><span class="t">Zwolle-Zuid</span><span class="s">Zwolle, Overijssel</span></span><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>
+    <p class="lbl">Snel kiezen</p>
+    <button class="opt"><span class="ico"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="6"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg></span><span><span class="t">Mijn locatie</span><span class="s">We vragen het pas als je hierop tikt; hij blijft op je telefoon</span></span><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>
+    <p class="lbl">Recent</p>
+    <button class="opt"><span class="ico"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span><span><span class="t">Nunspeet</span><span class="s">Gelderland</span></span><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>
+    <button class="opt"><span class="ico"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span><span><span class="t">Utrecht</span><span class="s">Utrecht</span></span><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>
+    <button class="opt" style="border-bottom:0"><span class="ico"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span><span><span class="t">Amersfoort</span><span class="s">Utrecht</span></span><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>
+    <p style="margin:18px 0 0;font-size:13px;color:oklch(0.53 0.010 260);display:flex;gap:6px"><svg class="ic" style="width:15px;height:15px" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg>Recente plaatsen staan alleen op dit apparaat.</p>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>
