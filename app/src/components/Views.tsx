@@ -7,7 +7,7 @@ import type { Filters } from '../lib/filter';
 import { searchSpots, type Spot } from '../lib/pdok';
 import { providers, oauthUrl, verifyCode, SB, KEY, type Session } from '../lib/auth';
 import { Ic, Tile, St, Conf, Banner, CAT, kindLabel, isUnsure, EASE, reduced, pop } from './ui';
-import { PhotoStrip, ReviewsSection, type Bij } from './Bijdragen';
+import { PhotoStrip, ReviewsSection, PILL, WHAT, type Bij } from './Bijdragen';
 
 export interface Ctx {
   now: Date; f: Filters; online: boolean; dataFrom: string | null; install: { add: () => void; no: () => void } | null; origin: LatLon; originLabel: string | null; locDenied: boolean; welcome: boolean; spot: boolean; me: LatLon | null;
@@ -109,7 +109,7 @@ export function ListView({ c, inView, list, total, limit, more, counts, nPlaces 
       <div className="greet"><div><h2>Snuffelen {near}</h2>
         <p className="counts"><button onClick={() => c.setF({ open: true })}><span className="cdot" />{counts.kOpen} winkels open {isToday ? 'vandaag' : `op ${dShort(day).toLowerCase()}`}</button>
           <span aria-hidden="true">·</span><button onClick={() => c.setF({ type: 'm', open: true })}>{counts.mDay} {counts.mDay === 1 ? 'markt' : 'markten'} {isToday ? 'vandaag' : `op ${dn}`}</button></p></div>
-        <button className={`me-btn${c.user ? ' in' : ''}`} onClick={c.openMe} aria-label="Jij: bewaard en account">{c.user ? c.user[0].toUpperCase() : <Ic n="user" />}</button></div>
+        <button className={`me-btn${c.user ? ' in' : ''}`} onClick={c.openMe} aria-label="Jij: bewaard, bijdragen en account"><span className="me-av" aria-hidden="true">{c.user ? (c.bij.name ?? c.user)[0].toUpperCase() : <Ic n="user" />}</span>Jij</button></div>
       <DayPick day={day} now={now} set={c.setDay} />
     </div>
     {/* Alleen zoeken en filters blijven staan bij scrollen: op de stoep wil je regels zien, geen bediening (UX-review 28 okt). */}
@@ -307,34 +307,42 @@ export function PlanView({ c, items, plan, setPlan, optimizeSeen }: { c: Ctx; it
   </>);
 }
 
-/** Jij: bewaarde plekken (werkt zonder account) en, pas hier, de uitnodiging om in te loggen (ontwerp §05). */
+/** Jij: een groot paneel (desktop 720 px in twee kolommen, mobiel het hele scherm). Bewaard werkt zonder account; inloggen pas hier (ontwerp §05). */
 export function MeView({ c, items, showFavs, login, logout, download, remove }: { c: Ctx; items: Item[]; showFavs: () => void; login: () => void; logout: () => void; download: () => void; remove: () => Promise<void> }) {
   const byId = new Map(items.map(i => [i.id, i])), favs = c.favs.map(id => byId.get(id)).filter(Boolean) as Item[], n = favs.length, [sure, setSure] = useState(false);
+  const mine = c.bij.mine, wait = mine.filter(x => x.status === 'nieuw').length, title = c.bij.name ?? 'Jij';
+  const stats = [`${n} bewaard`, c.user && `${mine.length} ${mine.length === 1 ? 'bijdrage' : 'bijdragen'}${wait ? `, ${wait} in behandeling` : ''}`].filter(Boolean).join(' · ');
   return (<>
-    <div className="dv-head" data-peek data-drag><div className="dv-top"><button className="back" onClick={c.back}><Ic n="back" />Kaart</button></div>
-      <h2>Jij</h2>{c.user && <p className="prose-s">Ingelogd als <b>{c.user}</b>. Je favorieten staan op al je apparaten.</p>}</div>
-    <section className="me-sec" style={{ borderTop: 0, paddingTop: 0 }}><h3>Bewaard{n ? ` · ${n}` : ''}</h3>
-      {n ? <><ul className="rows">{favs.map(it => <Row key={it.id} it={it} d={km(c.origin, it)} c={c} />)}</ul>
-        <button className="btn sm" style={{ alignSelf: 'flex-start' }} onClick={showFavs}><Ic n="pin" />Toon op de kaart</button></>
-        : <p className="prose-s">Tik op het hartje bij een winkel of markt om hem hier te bewaren. Dat werkt ook zonder account, op dit apparaat.</p>}
-      {c.favs.length > n && <p className="src"><Ic n="info" /><span>{c.favs.length - n} bewaarde {c.favs.length - n === 1 ? 'plek staat' : 'plekken staan'} niet meer op de kaart (gesloten, of een markt die voorbij is).</span></p>}</section>
-    {!c.user && <div className="login-card"><b>Bewaar je favorieten overal</b><p>Log in, dan staan ze ook op je laptop of je andere telefoon.{n ? ` Je ${n} bewaarde ${n === 1 ? 'plek gaat' : 'plekken gaan'} automatisch mee.` : ''}</p>
-      <button className="btn primary" onClick={login}>Inloggen of account maken</button></div>}
-    {c.user && <section className="me-sec" style={{ borderTop: 0, paddingTop: 0 }}>
-      <button className="navrow" onClick={() => c.bij.go('contrib')}>Mijn bijdragen <span>{c.bij.mine.length ? `${c.bij.mine.length} · ${c.bij.mine.filter(x => x.status === 'nieuw').length} in behandeling` : 'reviews, foto\'s en tijden'}<Ic n="chev" /></span></button></section>}
-    <section className="me-sec" style={{ borderTop: 0 }}>
-      <a className="navrow" href="/hoe-we-controleren">Hoe we controleren <span>en onze bronnen<Ic n="chev" /></span></a>
-      <a className="navrow" href="/privacy">Privacy <span><Ic n="chev" /></span></a>
-      <a className="navrow" href="/voorwaarden">Gebruiksvoorwaarden <span><Ic n="chev" /></span></a>
-      <a className="navrow" href="/colofon">Colofon <span>en contact<Ic n="chev" /></span></a>
-    </section>
-    {c.user && <section className="me-sec">
-      <button className="navrow" onClick={logout}>Uitloggen <span /></button>
-      <button className="navrow" onClick={download}>Mijn gegevens downloaden <span>e-mailadres, favorieten en bijdragen<Ic n="chev" /></span></button>
-      {!sure ? <button className="navrow" style={{ color: 'var(--bad-ink)' }} onClick={() => setSure(true)}>Account verwijderen <span><Ic n="chev" /></span></button>
-        : <div className="unknown-box"><p><b>Account echt verwijderen?</b> Je e-mailadres en je favorieten in je account gaan weg. Wat op dit apparaat bewaard is, blijft hier staan.</p>
-          <div className="btns"><button className="btn sm" style={{ background: 'var(--bad)', borderColor: 'var(--bad)', color: 'oklch(0.99 0 0)' }} onClick={() => remove().finally(() => setSure(false))}>Verwijderen</button><button className="btn sm" onClick={() => setSure(false)}>Toch niet</button></div></div>}
-    </section>}
+    <div className="dv-head" data-peek data-drag><div className="dv-top"><button className="back" onClick={c.back}><Ic n="back" />Lijst</button></div>
+      <div className="me-id"><span className={`me-av${c.user ? ' in' : ''}`} aria-hidden="true">{c.user ? (c.bij.name ?? c.user)[0].toUpperCase() : <Ic n="user" />}</span>
+        <div><h2>{title}</h2><p>{stats}</p></div></div></div>
+    <div className="me-grid">
+      <section className="me-sec"><h3 className="me-h">Bewaard</h3>
+        {n ? <><ul className="rows">{favs.map(it => <Row key={it.id} it={it} d={km(c.origin, it)} c={c} />)}</ul>
+          <button className="btn sm" style={{ alignSelf: 'flex-start' }} onClick={showFavs}><Ic n="pin" />Toon op de kaart</button></>
+          : <p className="prose-s">Tik op het hartje bij een winkel of markt om hem hier te bewaren. Dat werkt ook zonder account, op dit apparaat.</p>}
+        {c.favs.length > n && <p className="src"><Ic n="info" /><span>{c.favs.length - n} bewaarde {c.favs.length - n === 1 ? 'plek staat' : 'plekken staan'} niet meer op de kaart (gesloten, of een markt die voorbij is).</span></p>}</section>
+      <div>
+        {!c.user ? <div className="login-card"><b>Bewaar je favorieten overal</b><p>Log in, dan staan ze ook op je laptop of je andere telefoon, en kun je reviews, foto's en tijden toevoegen.{n ? ` Je ${n} bewaarde ${n === 1 ? 'plek gaat' : 'plekken gaan'} automatisch mee.` : ''}</p>
+          <button className="btn primary" onClick={login}>Inloggen of account maken</button></div>
+          : <section className="me-sec"><h3 className="me-h">Mijn bijdragen</h3>
+            {mine.length ? <ul className="contrib">{mine.slice(0, 3).map(x => <li key={x.id}><div className="c-top"><b>{WHAT[x.kind]} · {byId.get(x.item_id)?.name ?? 'winkel'}</b><span className={`pill ${PILL[x.status][0]}`}>{PILL[x.status][1]}</span></div></li>)}</ul>
+              : <p className="prose-s">Nog niets. Bij elke winkel kun je een review schrijven, foto's toevoegen of de openingstijden doorgeven.</p>}
+            {mine.length > 0 && <button className="navrow" onClick={() => c.bij.go('contrib')}>Alle bijdragen <span>{mine.length}<Ic n="chev" /></span></button>}</section>}
+        <section className="me-sec"><h3 className="me-h">{c.user ? 'Account' : 'Meer'}</h3>
+          {c.planStops.length > 0 && <button className="navrow" onClick={c.openPlan}>Mijn dagplan <span>{dShort(c.day).toLowerCase()} · {c.planStops.length} stop{c.planStops.length > 1 ? 's' : ''}<Ic n="chev" /></span></button>}
+          {c.user && <>
+            <button className="navrow" onClick={download}>Mijn gegevens downloaden <span><Ic n="chev" /></span></button>
+            <button className="navrow" onClick={logout}>Uitloggen <span>{c.user}</span></button>
+            {!sure ? <button className="navrow" style={{ color: 'var(--bad-ink)' }} onClick={() => setSure(true)}>Account verwijderen <span><Ic n="chev" /></span></button>
+              : <div className="unknown-box"><p><b>Account echt verwijderen?</b> Je e-mailadres, je favorieten in je account en je schermnaam gaan weg. Wat op dit apparaat bewaard is, blijft hier staan.</p>
+                <div className="btns"><button className="btn sm" style={{ background: 'var(--bad)', borderColor: 'var(--bad)', color: 'oklch(0.99 0 0)' }} onClick={() => remove().finally(() => setSure(false))}>Verwijderen</button><button className="btn sm" onClick={() => setSure(false)}>Toch niet</button></div></div>}</>}
+          <a className="navrow" href="/hoe-we-controleren">Hoe we controleren <span>en onze bronnen<Ic n="chev" /></span></a>
+          <a className="navrow" href="/privacy">Privacy <span><Ic n="chev" /></span></a>
+          <a className="navrow" href="/voorwaarden">Gebruiksvoorwaarden <span><Ic n="chev" /></span></a>
+          <a className="navrow" href="/colofon">Colofon <span>en contact<Ic n="chev" /></span></a></section>
+      </div>
+    </div>
   </>);
 }
 

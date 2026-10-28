@@ -183,7 +183,7 @@ export default function App() {
     (on ? rest('favorites', { method: 'POST', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ item_id: id }) }) : rest(`favorites?item_id=eq.${encodeURIComponent(id)}`, { method: 'DELETE', headers: { Prefer: 'return=minimal' } }))
       .catch(() => setToast('Opslaan in je account lukte niet. Op dit apparaat staat het wel.'));
   };
-  const openMe = () => { setDir('fwd'); setPrev(view); setView('me'); if (snap === 'collapsed') setSnap('half'); scrollTop(); };
+  const openMe = () => { setDir('fwd'); setPrev(view); setView('me'); setSnap('full'); scrollTop(); }; // groot paneel: op mobiel het hele scherm
   const showFavs = () => { const pts = favs.map(id => byId.get(id)).filter(Boolean) as Item[]; setFState(o => ({ ...o, only: favs, open: false, q: '' })); setDir('back'); setView('list'); setSel(null); if (pts.length) setFit({ pts, key: Date.now() }); if (!desktop) setSnap('collapsed'); };
   const logout = () => { authLogout(sess); setSess(null); setToast('Uitgelogd. Je favorieten blijven op dit apparaat.'); };
   const download = () => {
@@ -278,7 +278,7 @@ export default function App() {
   const selItem = sel ? byId.get(sel) : null;
 
   return (
-    <div className="shell" ref={shell} style={{ ['--side' as string]: `${Math.max(300, Math.min(side, 680))}px` }}>
+    <div className="shell" ref={shell} style={{ ['--side' as string]: `${view === 'me' ? Math.max(side, Math.min(720, innerWidth - 320)) : Math.max(300, Math.min(side, 680))}px` }}>
       <MapView home={spot ?? undefined} onBounds={setBounds} items={mapItems} sel={view === 'detail' ? sel : null} planIds={view === 'plan' ? plan.stops : []} me={me} bottomPad={bottomPad}
         focus={focus} fit={fit} route={view === 'plan' && planItems.length ? [origin, ...planItems] : []} pinClass={pinClass} onSelect={open} onLocate={() => locate()} />
       <main className={`sheet${dragTop == null ? ' snapping' : ''}`} ref={sheet} style={desktop ? undefined : { transform: `translateY(${top - 12}px)` }}
@@ -298,7 +298,7 @@ export default function App() {
           </div>
         </div>
       </main>
-      {desktop && <div className={`resizer${resizing ? ' on' : ''}`} role="separator" aria-orientation="vertical" aria-label="Breedte van de lijst" tabIndex={0}
+      {desktop && view !== 'me' && <div className={`resizer${resizing ? ' on' : ''}`} role="separator" aria-orientation="vertical" aria-label="Breedte van de lijst" tabIndex={0}
         aria-valuemin={300} aria-valuemax={680} aria-valuenow={side} title="Sleep om de lijst breder of smaller te maken; dubbelklik voor de standaardbreedte"
         onPointerDown={e => { try { e.currentTarget.setPointerCapture(e.pointerId); } catch { /* zonder capture werkt slepen ook */ } dragging.current = true; setResizing(true); }}
         onPointerMove={e => { if (dragging.current) setSide(e.clientX); }}

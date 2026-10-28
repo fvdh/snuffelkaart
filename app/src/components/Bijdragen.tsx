@@ -152,8 +152,8 @@ export function SuggestView({ p, b, back }: { p: Place; b: Bij; back: () => void
     </form></>);
 }
 
-const PILL: Record<Contribution['status'], [string, string]> = { nieuw: ['wait', 'In behandeling'], goed: ['ok', 'Online'], afgewezen: ['no', 'Niet geplaatst'] };
-const WHAT: Record<Kind, string> = { tijden: 'Openingstijden', review: 'Review', foto: 'Foto' };
+export const PILL: Record<Contribution['status'], [string, string]> = { nieuw: ['wait', 'In behandeling'], goed: ['ok', 'Online'], afgewezen: ['no', 'Niet geplaatst'] };
+export const WHAT: Record<Kind, string> = { tijden: 'Openingstijden', review: 'Review', foto: 'Foto' };
 
 export function ContribView({ b, items, back, open }: { b: Bij; items: Item[]; back: () => void; open: (id: string) => void }) {
   const byId = new Map(items.map(i => [i.id, i.name])), [err, setErr] = useState('');
