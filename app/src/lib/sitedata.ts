@@ -13,4 +13,4 @@ export const places: Place[] = applyExtra(P.places, X); // tijden van bezoekers 
 export const markets: Market[] = M.markets.filter((m: Market) => m.date >= P.from);
 export const from: string = P.from, holidays: string[] = P.holidays ?? [], generated: string = P.generated;
 export const ix = siteIndex(places, markets);
-export const SITE = 'https://snuffelkaart.ironfront-relay.workers.dev'; // ponytail: één plek om te wijzigen zodra D1 een domein oplevert
+export const SITE = 'https://snuffelkaart.nl';

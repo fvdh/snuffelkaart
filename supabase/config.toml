@@ -3,8 +3,8 @@ project_id = "snuffelkaart"
 
 [auth]
 # Waar een inloglink (app en /beheer) naartoe mag terugsturen.
-site_url = "https://snuffelkaart.ironfront-relay.workers.dev"
-additional_redirect_urls = ["https://snuffelkaart.ironfront-relay.workers.dev/beheer", "http://localhost:4321/beheer", "http://localhost:4321"]
+site_url = "https://snuffelkaart.nl"
+additional_redirect_urls = ["https://snuffelkaart.nl/beheer", "https://www.snuffelkaart.nl", "https://www.snuffelkaart.nl/beheer", "https://snuffelkaart.ironfront-relay.workers.dev/beheer", "http://localhost:4321/beheer", "http://localhost:4321"]
 
 # Mail via Resend (tijdelijk vanaf runebinder.app, tot D1 een eigen domein oplevert). De sleutel staat in app/.env als RESEND_API_KEY:
 #   set -a; . app/.env; set +a; npx supabase config push --yes
