@@ -234,7 +234,7 @@ export default function App() {
     if (!navigator.geolocation) return setLocDenied(true);
     if (!quiet) setLocating(true);
     navigator.geolocation.getCurrentPosition(
-      p => { const ll = { lat: p.coords.latitude, lon: p.coords.longitude }; setMe(ll); setLocating(false); setLocDenied(false); setFocus({ ...ll, key: Date.now() }); },
+      p => { const ll = { lat: p.coords.latitude, lon: p.coords.longitude }; setMe(ll); setLocating(false); try { localStorage.setItem('snuffel-loc-ok', '1'); } catch { /* privémodus */ } setLocDenied(false); setFocus({ ...ll, key: Date.now() }); },
       e => { setLocating(false); if (quiet) return; if (e.code === e.PERMISSION_DENIED) setLocDenied(true); else setToast('Je locatie lukte nu niet. Probeer het nog eens, of kies een plaats.'); },
       { enableHighAccuracy: false, timeout: 8000, maximumAge: 300_000 });
   };
@@ -249,7 +249,8 @@ export default function App() {
     if (!q.has('open') && !q.has('plek') && /[?&](open|plek|dag|s)=/.test(location.search)) history.replaceState(null, '', location.pathname + (q.toString() ? `?${q}` : ''));
   }, [byId]);
   // Al eerder toestemming gegeven? Dan zonder vragen opnieuw ophalen.
-  useEffect(() => { navigator.permissions?.query({ name: 'geolocation' }).then(s => s.state === 'granted' && locate(true)).catch(() => {}); }, []);
+  // Safari (iPhone) meldt een eerdere toestemming niet via de permissions-API; daarom onthouden we zelf dat het eerder lukte.
+  useEffect(() => { let ok = false; try { ok = !!localStorage.getItem('snuffel-loc-ok'); } catch { /* niets */ } if (ok) locate(true); else navigator.permissions?.query({ name: 'geolocation' }).then(s => s.state === 'granted' && locate(true)).catch(() => {}); }, []);
   const here: From = me ? { ...me, label: 'je locatie', me: true } : spot ? { lat: spot.lat, lon: spot.lon, label: spot.label } : { ...DEFAULT_CENTER, label: 'Amersfoort', fallback: true };
   hereRef.current = here;
   const [shared, setShared] = useState<{ day: string; start: number; stops: string[] } | null>(null);
