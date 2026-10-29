@@ -27,6 +27,11 @@ function useLocal<T>(key: string, init: T): [T, (v: T) => void] {
   const [v, setV] = useState<T>(() => { try { const s = localStorage.getItem(key); return s ? JSON.parse(s) : init; } catch { return init; } });
   return [v, (n: T) => { setV(n); try { localStorage.setItem(key, JSON.stringify(n)); } catch { /* privémodus */ } }];
 }
+/** Alleen voor dit bezoek: een gekozen plaats geldt tot je de app sluit (Freek, 29 okt: niet elke keer weer Zwolle). Recent bewaart hem wel. */
+function useSession<T>(key: string, init: T): [T, (v: T) => void] {
+  const [v, setV] = useState<T>(() => { try { const s = sessionStorage.getItem(key); return s ? JSON.parse(s) : init; } catch { return init; } });
+  return [v, (n: T) => { setV(n); try { sessionStorage.setItem(key, JSON.stringify(n)); } catch { /* privémodus */ } }];
+}
 const useMQ = (q: string) => { const [d, setD] = useState(() => matchMedia(q).matches); useEffect(() => { const m = matchMedia(q), f = () => setD(m.matches); m.addEventListener('change', f); return () => m.removeEventListener('change', f); }, []); return d; };
 /** Vanaf 700 px: paneel naast de kaart (iPad staand zwevend); vanaf 980 px: menu bovenin; vanaf 1200 px: Mijn dag als derde kolom. */
 const PLANISH = ['plan', 'dag', 'onderweg'] as const;
@@ -79,8 +84,10 @@ export default function App() {
   const [view, setView] = useState<View>('list'), [prev, setPrev] = useState<View>('list'), [sel, setSel] = useState<string | null>(null), [aside, setAside] = useState<Aside>(null);
   const [dir, setDir] = useState<'fwd' | 'back' | null>(null), [snap, setSnap] = useState<Snap>('half'), [limit, setLimit] = useState(40);
   // Locatie pas na een tik (A10) en nooit opgeslagen; een gekozen plaats wel.
-  const [me, setMe] = useState<LatLon | null>(null), [spot, setSpot] = useLocal<Spot | null>('snuffel-plek', null);
+  const [me, setMe] = useState<LatLon | null>(null), [spot, setSpot] = useSession<Spot | null>('snuffel-plek', null);
   const [locDenied, setLocDenied] = useState(false), [locating, setLocating] = useState(false), [recent, setRecent] = useLocal<Spot[]>('snuffel-recent', []);
+  // Eenmalig: een plaats die vroeger voor altijd bewaard werd, gaat naar Recent.
+  useEffect(() => { try { const old = localStorage.getItem('snuffel-plek'); if (old) { const o: Spot = JSON.parse(old); if (!recent.some(r => r.label === o.label)) setRecent([o, ...recent].slice(0, 3)); localStorage.removeItem('snuffel-plek'); } } catch { /* niets */ } }, []);
   const origin = me ?? spot ?? DEFAULT_CENTER, originLabel = me ? null : spot?.label ?? 'Amersfoort';
   const [favs, setFavs] = useLocal<string[]>('snuffel-favs', []);
   // Het moment voor lijst, kaart en detail: nu (null) of een dag + vertrektijd binnen twee weken. Niet bewaard: de app opent op nu.

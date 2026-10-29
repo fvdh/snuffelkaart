@@ -287,3 +287,6 @@ Ontwerp `ontwerp/lus/` (canvas "Snuffelkaart: de snuffellus"), na de UX-synthese
 - **Delen** zonder backend: een winkel via zijn eigen pagina (`/winkel/…`), een markt via `/?open=`, een rondje als `/?dag=&v=&s=` (zonder vertrekpunt: privacy). De ontvanger ziet de status van nu en kan het overnemen.
 - **Bugs uit de synthese**: losse "0" in de plankop, "vanaf Amersfoort" vast in de tekst, vertrek alleen 8–13 uur, na inloggen naar Jij (nu terug naar het formulier, ook na een inloglink), 10–17 vooringevuld bij onbekende tijden (nu alles uit), route uit het detail negeerde de gekozen plek, slimste volgorde bij elke render.
 - **Nog niet**: "Klopt" zonder account (vraagt een rpc met rem; Freek beslist), alleen doorgeven wat anders is, inloggen pas bij versturen, zoeken op adres, Thuis als vast vertrekpunt, deel-afbeelding (og:image).
+
+## Gekozen plaats alleen voor dit bezoek (29 okt 2026, Freek)
+- Freek: de app moet niet bij elke start weer "Rond Zwolle" tonen. Een gekozen plaats geldt nu alleen tijdens het bezoek (sessionStorage); hij staat wel bij Recent. Bij openen: je locatie als je eerder toestemming gaf, anders "Waar wil je snuffelen?" in de pil (kaart en afstanden vanaf Amersfoort, met de banner). Vervangt "Gekozen plaats wordt bewaard" (27 okt).

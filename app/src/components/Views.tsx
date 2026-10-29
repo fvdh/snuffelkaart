@@ -99,8 +99,8 @@ const SEC: Record<Group, (live: boolean, day: string, min: number) => string> = 
 
 /** Bovenaan: waar en wanneer in één pil. Tikken opent het scherm "Waar en wanneer". */
 function ContextPill({ c }: { c: Ctx }) {
-  return (<button className="ctx-pil" onClick={c.openWaar} aria-label={`Waar en wanneer: ${c.originLabel ? `rond ${c.originLabel}` : 'bij jou'}, ${momentLabel(c)}. Wijzigen`}>
-    <Ic n={c.me ? 'loc' : 'pin'} /><span className="cp-w">{c.locating ? 'Locatie zoeken…' : c.originLabel ? `Rond ${c.originLabel}` : 'Bij jou in de buurt'}</span>
+  return (<button className="ctx-pil" onClick={c.openWaar} aria-label={`Waar en wanneer: ${c.me ? 'bij jou' : c.spot ? `rond ${c.originLabel}` : 'nog geen plek gekozen'}, ${momentLabel(c)}. Wijzigen`}>
+    <Ic n={c.me ? 'loc' : 'pin'} /><span className="cp-w">{c.locating ? 'Locatie zoeken…' : c.me ? 'Bij jou in de buurt' : c.spot ? `Rond ${c.originLabel}` : 'Waar wil je snuffelen?'}</span>
     <span className="cp-m">{c.live && <i className="cdot" />}{momentLabel(c)}<Ic n="chevd" /></span></button>);
 }
 
