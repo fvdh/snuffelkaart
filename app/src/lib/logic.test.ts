@@ -1,9 +1,9 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import type { Place, Cat } from './model';
 import { weekendOf, DEFAULT_CENTER, catOf } from './model';
-import { placeNow, placeDay, isHoliday, week, setWindow, intervals } from './hours';
+import { placeNow, placeDay, placeAt, isHoliday, week, setWindow, intervals } from './hours';
 import { simulate, bestOrder, routeUrl, dayProposals } from './plan';
-import { matches } from './filter';
+import { matches, visible, groupOf, groupRows } from './filter';
 import { sampleMarkets } from './markets';
 import { parsePdok } from './pdok';
 // dezelfde code als de import gebruikt
@@ -97,6 +97,24 @@ describe('filters', () => {
   it('zoeken negeert hoofdletters en accenten', () => {
     expect(matches(P('Mo-Su 00:00-24:00', { name: 'Kringloop Één' }), { ...f, q: 'een' }, TUE)).toBe(true);
   });
+  it('moment later: open als je er bent, gaat later open, al dicht', () => {
+    const shop = P('Sa 09:00-17:00');
+    expect(placeAt(shop, '2026-10-31', 600)).toMatchObject({ cls: 'open', txt: 'Open · tot 17:00' });
+    expect(placeAt(P('Sa 13:00-17:00'), '2026-10-31', 600)).toMatchObject({ cls: 'later', txt: 'Za open vanaf 13:00' });
+    expect(placeAt(P('Sa 08:00-09:30'), '2026-10-31', 600).cls).toBe('closed');
+    expect(placeAt(P('Tu 10:00-17:00'), '2026-10-31', 600).txt).toBe('Za dicht');
+    expect(matches(P('Sa 08:00-09:30'), f, TUE, '2026-10-31', 600)).toBe(false); // open filter volgt de vertrektijd
+  });
+  it('secties: op afstand, dan ingedeeld; dichtbij zonder tijden komt niet achter heel Nederland', () => {
+    const at = (km: number) => ({ lat: DEFAULT_CENTER.lat + km / 111, lon: DEFAULT_CENTER.lon });
+    const ver = P('Tu 10:00-17:00', { id: 'ver', ...at(30) }), dichtbij = P(null, { id: 'dichtbij', ...at(0.4) }), later = P('Tu 16:00-18:00', { id: 'later', ...at(2) });
+    const rows = visible([ver, dichtbij, later], { ...f, open: false }, TUE, DEFAULT_CENTER);
+    expect(rows.map(r => r.it.id)).toEqual(['dichtbij', 'later', 'ver']);
+    expect(groupRows(rows, '2026-10-27', 860).map(x => [x.g, x.rows.map(r => r.it.id)])).toEqual([['open', ['ver']], ['later', ['later']], ['unknown', ['dichtbij']]]);
+    const markets = sampleMarkets(TUE);
+    expect(groupOf(markets.find(x => x.status === 'cancel')!, '2026-10-31', 600)).toBe('cancel');
+    expect(groupOf({ ...markets[0], status: 'org', date: '2026-11-07' }, '2026-10-31', 600)).toBe('other');
+  });
   it('weekend van een dag', () => {
     expect(weekendOf(TUE)).toEqual(['2026-10-31', '2026-11-01']);
     expect(weekendOf(new Date('2026-11-01T10:00:00'))).toEqual(['2026-10-31', '2026-11-01']);
@@ -122,6 +140,11 @@ describe('dagplan', () => {
     const best = bestOrder(order, '2026-10-31', 570, DEFAULT_CENTER);
     expect(best.map(x => x.id)).toEqual(['m2', 'shop']);
     expect(simulate(best, '2026-10-31', 570, DEFAULT_CENTER).warn).toBe(0);
+  });
+  it('terug bij het vertrekpunt na de laatste stop', () => {
+    const s = simulate([P('Sa 09:00-17:00', { id: 'a', lat: DEFAULT_CENTER.lat + 0.1, lon: DEFAULT_CENTER.lon })], '2026-10-31', 570, DEFAULT_CENTER);
+    expect(s.home).toBeGreaterThan(s.end);
+    expect(simulate([], '2026-10-31', 570, DEFAULT_CENTER).home).toBe(570);
   });
   it('route-links bevatten alle stops', () => {
     const shop = P('Tu-Sa 10:00-16:00', { id: 'shop' });

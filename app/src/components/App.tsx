@@ -1,13 +1,13 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
 import type { Item, LatLon, Market, Place } from '../lib/model';
-import { km, DEFAULT_CENTER, isoDay, addDays, DAYS_LONG, dayStart, hm, dShort } from '../lib/model';
+import { km, DEFAULT_CENTER, isoDay, addDays, DAYS_LONG, dayStart, hm, dShort, minutesOf } from '../lib/model';
 import { placeNow, openOn, setWindow } from '../lib/hours';
-import { visible, matches, type Filters } from '../lib/filter';
-import { simulate } from '../lib/plan';
+import { visible, matches, groupOf, type Filters } from '../lib/filter';
+import { siteIndex } from '../lib/seo';
 import type { Spot } from '../lib/pdok';
 import MapView, { type Bounds } from './MapView';
-import { ListView, DetailView, PlanView, MeView, LoginView, DagView, type Ctx } from './Views';
+import { ListView, DetailView, PlanView, MeView, LoginView, DagView, WaarView, OnderwegView, GedeeldView, statusFor, effStart, type Ctx, type Plan } from './Views';
 import { ReviewView, PhotoView, SuggestView, ContribView, type Bij, type BijView } from './Bijdragen';
 import { applyExtra, NO_EXTRA, type Extra, type Contribution, type Kind } from '../lib/bijdragen';
 import { readSession, returnError, api, sendLink, userId, logout as authLogout, mergeFavs, LoggedOut, SB, KEY, type Session } from '../lib/auth';
@@ -27,15 +27,18 @@ function useLocal<T>(key: string, init: T): [T, (v: T) => void] {
   const [v, setV] = useState<T>(() => { try { const s = localStorage.getItem(key); return s ? JSON.parse(s) : init; } catch { return init; } });
   return [v, (n: T) => { setV(n); try { localStorage.setItem(key, JSON.stringify(n)); } catch { /* privémodus */ } }];
 }
-const useDesktop = () => { const q = '(min-width: 980px)'; const [d, setD] = useState(() => matchMedia(q).matches); useEffect(() => { const m = matchMedia(q), f = () => setD(m.matches); m.addEventListener('change', f); return () => m.removeEventListener('change', f); }, []); return d; };
+const useMQ = (q: string) => { const [d, setD] = useState(() => matchMedia(q).matches); useEffect(() => { const m = matchMedia(q), f = () => setD(m.matches); m.addEventListener('change', f); return () => m.removeEventListener('change', f); }, []); return d; };
+/** Vanaf 700 px: paneel naast de kaart (iPad staand zwevend); vanaf 980 px: menu bovenin; vanaf 1200 px: Mijn dag als derde kolom. */
+const PLANISH = ['plan', 'dag', 'onderweg'] as const;
 
-type View = 'list' | 'detail' | 'plan' | 'me' | 'login' | 'dag' | BijView;
+type View = 'list' | 'detail' | 'plan' | 'me' | 'login' | 'dag' | 'waar' | 'onderweg' | 'gedeeld' | BijView;
+type Aside = null | (typeof PLANISH)[number];
 type Snap = 'collapsed' | 'half' | 'full';
 
 watchErrors(); // één keer bij het laden van de module
 
 export default function App() {
-  const [now, testClock] = useNow(), desktop = useDesktop(), today = isoDay(now);
+  const [now, testClock] = useNow(), desktop = useMQ('(min-width: 700px)'), topNav = useMQ('(min-width: 980px)'), wide = useMQ('(min-width: 1200px)'), today = isoDay(now);
   const [places, setPlaces] = useState<Place[] | null>(null), [err, setErr] = useState(false);
   const [dataFrom, setDataFrom] = useState<string | null>(null);
   const [extra, setExtra] = useState<Extra>(NO_EXTRA);
@@ -73,22 +76,23 @@ export default function App() {
   const byId = useMemo(() => new Map(items.map(i => [i.id, i])), [items]);
 
   const [f, setFState] = useState<Filters>(() => ({ type: 'all', open: false, gratis: false, overdekt: false, q: '', hide: [] }));
-  const [view, setView] = useState<View>('list'), [prev, setPrev] = useState<View>('list'), [sel, setSel] = useState<string | null>(null);
+  const [view, setView] = useState<View>('list'), [prev, setPrev] = useState<View>('list'), [sel, setSel] = useState<string | null>(null), [aside, setAside] = useState<Aside>(null);
   const [dir, setDir] = useState<'fwd' | 'back' | null>(null), [snap, setSnap] = useState<Snap>('half'), [limit, setLimit] = useState(40);
   // Locatie pas na een tik (A10) en nooit opgeslagen; een gekozen plaats wel.
   const [me, setMe] = useState<LatLon | null>(null), [spot, setSpot] = useLocal<Spot | null>('snuffel-plek', null);
-  const [locDenied, setLocDenied] = useState(false), [welcomed, setWelcomed] = useLocal('snuffel-welkom', false);
+  const [locDenied, setLocDenied] = useState(false), [locating, setLocating] = useState(false), [recent, setRecent] = useLocal<Spot[]>('snuffel-recent', []);
   const origin = me ?? spot ?? DEFAULT_CENTER, originLabel = me ? null : spot?.label ?? 'Amersfoort';
   const [favs, setFavs] = useLocal<string[]>('snuffel-favs', []);
-  const [planRaw, setPlanRaw] = useLocal('snuffel-plan', { day: today, start: 570, stops: [] as string[] });
-  // "Wanneer ga je?": één dag voor de hele app (lijst, kaart, dagvoorstel en dagplan). De app opent op vandaag (je bent meestal in de buurt),
-  // tenzij je een dagplan hebt: dan op die dag. Binnen twee weken: verder vooruit zijn de tijden niet uitgerekend.
-  const [dayRaw, setDay] = useState<string | null>(() => planRaw.stops.length ? planRaw.day : null);
-  const day = dayRaw && dayRaw >= today && dayRaw <= addDays(today, 13) ? dayRaw : today;
-  const plan = { ...planRaw, day };
+  // Het moment voor lijst, kaart en detail: nu (null) of een dag + vertrektijd binnen twee weken. Niet bewaard: de app opent op nu.
+  const [whenRaw, setWhen] = useState<{ day: string; start: number } | null>(null);
+  const when = whenRaw && whenRaw.day >= today && whenRaw.day <= addDays(today, 13) ? whenRaw : null;
+  const day = when?.day ?? today, min = when ? when.start : minutesOf(now), nowMode = !when;
+  // Het dagplan heeft een eigen dag en vertrektijd (-1 = nu), los van wat je in de lijst bekijkt (Freek, 29 okt: ontwerp "de snuffellus").
+  const [planRaw, setPlanRaw] = useLocal<Plan>('snuffel-plan', { day: today, start: -1, stops: [] });
+  const plan: Plan = { ...planRaw, day: planRaw.day >= today && planRaw.day <= addDays(today, 13) ? planRaw.day : today };
   // Altijd vanaf de laatste stand rekenen: snelle tikken achter elkaar mogen elkaar niet overschrijven.
   const planRef = useRef(plan); planRef.current = plan;
-  const setPlan = (p: Partial<typeof plan>) => { const n = { ...planRef.current, ...p }; planRef.current = n; setPlanRaw(n); if (p.day) setDay(p.day); if (p.stops) setOptimized(false); };
+  const setPlan = (p: Partial<Plan>) => { const n = { ...planRef.current, ...p }; planRef.current = n; setPlanRaw(n); if (p.stops) setOptimized(false); };
   const [optimized, setOptimized] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   // Breedte van de lijst op desktop/iPad: versleepbaar, onthouden per apparaat. Kaart houdt minstens 320 px.
@@ -97,7 +101,7 @@ export default function App() {
   const [focus, setFocus] = useState<{ lat: number; lon: number; key: number } | null>(null), [fit, setFit] = useState<{ pts: LatLon[]; key: number } | null>(null);
   useEffect(() => { if (!toast) return; const t = setTimeout(() => setToast(null), 3200); return () => clearTimeout(t); }, [toast]);
 
-  const all = useMemo(() => visible(items, f, now, origin, day), [items, f, now, origin, day]);
+  const all = useMemo(() => visible(items, f, now, origin, day, min), [items, f, now, origin, day, min]);
   // Desktop/iPad: de lijst toont wat er op de kaart in beeld is (lijst en kaart staan naast elkaar). Zoeken op naam blijft landelijk.
   // Telefoon: niet, daar bedekt het paneel de kaart grotendeels. ponytail: rechthoek van de kaart, geen rekening met de dagplanbalk.
   const [bounds, setBounds] = useState<Bounds | null>(null);
@@ -105,9 +109,9 @@ export default function App() {
   const list = useMemo(() => inView ? all.filter(({ it }) => it.lon >= bounds!.w && it.lon <= bounds!.e && it.lat >= bounds!.s && it.lat <= bounds!.n) : all, [all, inView, bounds]);
   const counts = useMemo(() => {
     // Tellers horen bij de kop "rond <plaats>": alleen binnen 25 km, niet heel Nederland (UX-review 28 okt).
-    const near = (x: LatLon) => km(origin, x) < 25, ps = places ? shown.places.filter(near) : [];
-    return { kOpen: ps.filter(p => matches(p, { ...f, open: true, q: '', only: null }, now, day)).length, mDay: markets.filter(m => near(m) && m.date === day && m.status !== 'cancel').length };
-  }, [places, shown, markets, now, origin, day, f]);
+    const near = (x: LatLon) => km(origin, x) < 25, g = items.filter(it => near(it) && matches(it, { ...f, open: false, q: '', only: null }, now, day, min)).map(it => groupOf(it, day, min));
+    return { open: g.filter(x => x === 'open').length, later: g.filter(x => x === 'later').length, unknown: g.filter(x => x === 'unknown').length };
+  }, [items, now, origin, day, min, f]);
 
   const setF = useCallback((p: Partial<Filters>) => { setFState(o => ({ ...o, ...p })); setLimit(40); if (view !== 'list') { setView('list'); setSel(null); } }, [view]);
   const go = (id: string) => { const it = byId.get(id); if (!it) return; setDir('fwd'); if (view !== 'detail') setPrev(view); setSel(id); setView('detail'); if (snap === 'collapsed') setSnap('half'); setFocus({ lat: it.lat, lon: it.lon, key: Date.now() }); scrollTop(); };
@@ -124,7 +128,7 @@ export default function App() {
   const back = () => {
     setDir('back'); scrollTop();
     if (FORMS.includes(view)) return setView('detail'); // terug naar de winkel; prev blijft staan
-    setView(view === 'detail' ? prev : view === 'login' || view === 'contrib' ? 'me' : 'list'); if (view === 'detail') setSel(null); setPrev('list');
+    setView(view === 'detail' ? prev : view === 'login' || view === 'contrib' ? 'me' : view === 'onderweg' || view === 'dag' ? 'plan' : 'list'); if (view === 'detail') setSel(null); setPrev('list');
   };
   // ---------- account (M3) ----------
   // Na inloggen: favorieten van dit apparaat gaan mee (samenvoegen). Bij een latere start wint je account: zo komt een favoriet
@@ -133,9 +137,9 @@ export default function App() {
   const rest = (path: string, init?: RequestInit) => sess ? api(sess, `rest/v1/${path}`, init, setSess).catch(e => { if (e instanceof LoggedOut) { setSess(null); setToast(e.message); } throw e; }) : Promise.reject(new Error('niet ingelogd'));
   useEffect(() => {
     const back = location.hash.includes('access_token'), e = returnError(), s = readSession();
-    if (e) { setToast(/invalid|expired/i.test(e) ? 'Deze inloglink is al gebruikt of verlopen. Alleen de nieuwste link werkt; vraag er hier een nieuwe aan.' : `Inloggen lukte niet (${e}). Vraag een nieuwe link aan.`); setWelcomed(true); setView('login'); setSnap('full'); }
+    if (e) { setToast(/invalid|expired/i.test(e) ? 'Deze inloglink is al gebruikt of verlopen. Alleen de nieuwste link werkt; vraag er hier een nieuwe aan.' : `Inloggen lukte niet (${e}). Vraag een nieuwe link aan.`); setView('login'); setSnap('full'); }
     setSess(s);
-    if (s && back) { setWelcomed(true); setView('me'); setSnap('full'); sessionStorage.setItem('snuffel-samenvoegen', '1'); }
+    if (s && back) { setSnap('full'); sessionStorage.setItem('snuffel-samenvoegen', '1'); if (!resume()) setView('me'); }
   }, []);
   useEffect(() => {
     if (!sess) return;
@@ -159,7 +163,8 @@ export default function App() {
   const bij: Bij = {
     extra, mine, name, user: sess?.email ?? null,
     go: (v, id) => {
-      if (!sess && v !== 'contrib') { setToast('Log in om bij te dragen. Daarna kun je meteen verder.'); setDir('fwd'); setPrev(view); setView('login'); setSnap('full'); return; }
+      // Na inloggen terug naar wat je wilde doen, ook als de inloglink de app opnieuw opent (UX-review 29 okt).
+      if (!sess && v !== 'contrib') { try { sessionStorage.setItem('snuffel-terug', JSON.stringify({ v, id: id ?? sel })); } catch { /* privémodus */ } setToast('Log in om bij te dragen. Daarna ga je meteen verder.'); setDir('fwd'); setPrev(view); setView('login'); setSnap('full'); return; }
       setDir('fwd'); if (id) setSel(id); setView(v); setSnap('full'); scrollTop();
     },
     send: async (kind: Kind, itemId: string, data: Record<string, unknown>, file?: Blob) => {
@@ -176,6 +181,7 @@ export default function App() {
     setName: async n => { await (name ? rest(`profiles?user_id=eq.${userId(sess!)}`, { method: 'PATCH', body: JSON.stringify({ name: n }) }) : rest('profiles', { method: 'POST', body: JSON.stringify({ name: n }) })); setName(n); },
     withdraw: async id => { await rest(`contributions?id=eq.${id}`, { method: 'DELETE' }); await loadMine(); },
   };
+  const resume = () => { try { const t = JSON.parse(sessionStorage.getItem('snuffel-terug') ?? 'null'); sessionStorage.removeItem('snuffel-terug'); if (!t?.v) return false; if (t.id) setSel(t.id); setView(t.v); return true; } catch { return false; } };
   const toggleFav = (id: string) => {
     const on = !favs.includes(id); setFavs(on ? [...favs, id] : favs.filter(x => x !== id));
     if (!sess) return setToast(on ? 'Bewaard op dit apparaat.' : 'Niet meer bewaard.');
@@ -185,6 +191,14 @@ export default function App() {
   };
   const openMe = () => { setDir('fwd'); setPrev(view); setView('me'); setSnap('full'); scrollTop(); }; // groot paneel: op mobiel het hele scherm
   const showFavs = () => { const pts = favs.map(id => byId.get(id)).filter(Boolean) as Item[]; setFState(o => ({ ...o, only: favs, open: false, q: '' })); setDir('back'); setView('list'); setSel(null); if (pts.length) setFit({ pts, key: Date.now() }); if (!desktop) setSnap('collapsed'); };
+  // Delen: een winkel via zijn eigen pagina (vast adres, ook vindbaar), een markt via de app; het systeemmenu, anders kopiëren.
+  const shareIdx = useMemo(() => places ? siteIndex(places, []) : null, [places]);
+  const shareLink = (title: string, text: string, url: string) => {
+    if (navigator.share) return navigator.share({ title, text, url }).catch(() => {});
+    navigator.clipboard?.writeText(`${text} ${url}`).then(() => setToast('Link gekopieerd. Plak hem in een bericht.'), () => setToast(url));
+  };
+  const shareItem = (it: Item) => { const st = statusFor(it, now, day, nowMode ? undefined : min); shareLink(it.name, `${it.name}${it.place ? `, ${it.place}` : ''} · ${st.txt}`, location.origin + (it.t === 'k' && shareIdx ? shareIdx.url(it.id) : `/?open=${encodeURIComponent(it.id)}`)); };
+  const sharePlan = () => { const q = new URLSearchParams({ dag: plan.day, v: String(effStart(plan, now)), s: plan.stops.join(',') }); shareLink(`Mijn ${DAYS_LONG[dayStart(plan.day).getDay()]}`, `Mijn ${DAYS_LONG[dayStart(plan.day).getDay()]} op Snuffelkaart: ${plan.stops.length} ${plan.stops.length === 1 ? 'stop' : 'stops'}.`, `${location.origin}/?${q}`); };
   const logout = () => { authLogout(sess); setSess(null); setToast('Uitgelogd. Je favorieten blijven op dit apparaat.'); };
   const download = () => {
     const blob = new Blob([JSON.stringify({ email: sess?.email, favorieten: favs.map(id => ({ id, naam: byId.get(id)?.name ?? null })), schermnaam: name, bijdragen: mine.map(({ id, ...c }) => ({ ...c, winkel: byId.get(c.item_id)?.name ?? null })), gedownload: new Date().toISOString() }, null, 2)], { type: 'application/json' });
@@ -196,19 +210,22 @@ export default function App() {
     const plan = planRef.current, it = byId.get(id)!, has = plan.stops.includes(id);
     if (has) return setPlan({ stops: plan.stops.filter(x => x !== id) });
     if (plan.stops.length >= 8) return setToast('Maximaal 8 stops per dag. Haal er eerst een weg.');
-    const next = { stops: [...plan.stops, id] } as Partial<typeof plan>;
-    if (it.t === 'm' && it.date !== plan.day) { if (!plan.stops.length) { next.day = it.date; setToast(`Je dagplan staat nu op ${DAYS_LONG[dayStart(it.date).getDay()]}, de dag van deze markt.`); } else setToast(`Let op: deze markt is op ${DAYS_LONG[dayStart(it.date).getDay()]}.`); }
+    const next: Partial<Plan> = { stops: [...plan.stops, id] };
+    // Eerste stop: het plan neemt het moment over dat je bekijkt (of de dag van de markt).
+    if (!plan.stops.length) { next.from = here; next.day = it.t === 'm' ? it.date : day; next.start = next.day === today && nowMode ? -1 : when && next.day === when.day ? when.start : 600; next.done = []; next.skip = []; }
+    if (it.t === 'm' && it.date !== (next.day ?? plan.day)) setToast(`Let op: deze markt is op ${DAYS_LONG[dayStart(it.date).getDay()]}.`);
+    else if (it.t === 'm' && !plan.stops.length && it.date !== day) setToast(`Je dag staat nu op ${DAYS_LONG[dayStart(it.date).getDay()]}, de dag van deze markt.`);
     else if (it.t === 'm' && it.status === 'unconf') setToast('Toegevoegd. Deze datum is nog niet bevestigd.');
     else if (it.t === 'k' && !it.h) setToast('Toegevoegd. De openingstijden zijn onbekend; bel even.');
-    else if (it.t === 'k' && !openOn(it, plan.day)) setToast(`Let op: deze winkel is op ${DAYS_LONG[dayStart(plan.day).getDay()]} dicht.`);
+    else if (it.t === 'k' && !openOn(it, next.day ?? plan.day)) setToast(`Let op: deze winkel is op ${DAYS_LONG[dayStart(next.day ?? plan.day).getDay()]} dicht.`);
     setPlan(next);
   };
   const locate = (quiet = false) => {
-    if (!quiet) setWelcomed(true);
     if (!navigator.geolocation) return setLocDenied(true);
+    if (!quiet) setLocating(true);
     navigator.geolocation.getCurrentPosition(
-      p => { const ll = { lat: p.coords.latitude, lon: p.coords.longitude }; setMe(ll); setLocDenied(false); setFocus({ ...ll, key: Date.now() }); },
-      e => { if (quiet) return; if (e.code === e.PERMISSION_DENIED) setLocDenied(true); else setToast('Je locatie lukte nu niet. Probeer het nog eens, of zoek een plaats.'); },
+      p => { const ll = { lat: p.coords.latitude, lon: p.coords.longitude }; setMe(ll); setLocating(false); setLocDenied(false); setFocus({ ...ll, key: Date.now() }); },
+      e => { setLocating(false); if (quiet) return; if (e.code === e.PERMISSION_DENIED) setLocDenied(true); else setToast('Je locatie lukte nu niet. Probeer het nog eens, of kies een plaats.'); },
       { enableHighAccuracy: false, timeout: 8000, maximumAge: 300_000 });
   };
   // Vanaf een statische pagina: ?open=<id> opent die winkel of markt, ?plek=…&lat=…&lon=… zet de kaart op een plaats.
@@ -216,29 +233,56 @@ export default function App() {
   useEffect(() => {
     const q = deep.current, id = q.get('open'), plek = q.get('plek'), lat = Number(q.get('lat')), lon = Number(q.get('lon'));
     if (plek && Number.isFinite(lat) && Number.isFinite(lon) && lat) { q.delete('plek'); pickSpot({ label: plek, sub: '', lat, lon }); }
-    if (id && byId.has(id)) { q.delete('open'); setWelcomed(true); go(id); }
-    if (!q.has('open') && !q.has('plek') && /[?&](open|plek)=/.test(location.search)) history.replaceState(null, '', location.pathname + (q.toString() ? `?${q}` : ''));
+    if (id && byId.has(id)) { q.delete('open'); go(id); }
+    const sd = q.get('dag'), ss = q.get('s');
+    if (sd && ss && byId.size) { setShared({ day: sd >= today ? sd : today, start: Math.max(0, Math.min(1439, Number(q.get('v')) || 600)), stops: ss.split(',').slice(0, 8) }); ['dag', 'v', 's'].forEach(k => q.delete(k)); setView('gedeeld'); setSnap('full'); }
+    if (!q.has('open') && !q.has('plek') && /[?&](open|plek|dag|s)=/.test(location.search)) history.replaceState(null, '', location.pathname + (q.toString() ? `?${q}` : ''));
   }, [byId]);
   // Al eerder toestemming gegeven? Dan zonder vragen opnieuw ophalen.
   useEffect(() => { navigator.permissions?.query({ name: 'geolocation' }).then(s => s.state === 'granted' && locate(true)).catch(() => {}); }, []);
-  const pickSpot = (s: Spot) => { setSpot(s); setMe(null); setWelcomed(true); setFState(o => ({ ...o, q: '' })); setFocus({ lat: s.lat, lon: s.lon, key: Date.now() }); scrollTop(); };
-  const pickPlace = () => { setWelcomed(true); setSnap('full'); requestAnimationFrame(() => sheet.current?.querySelector<HTMLInputElement>('input[type=search]')?.focus()); };
-  const openDag = () => { setDir('fwd'); setPrev(view); setView('dag'); setSnap('full'); scrollTop(); };
-  const openPlan = () => { setDir('fwd'); setPrev(view); setView('plan'); setSnap(desktop ? 'half' : 'half'); scrollTop(); };
-  useEffect(() => { if (view === 'plan') setFit({ pts: [origin, ...plan.stops.map(id => byId.get(id)).filter(Boolean) as Item[]], key: Date.now() }); }, [view, plan.stops.join(), plan.day]);
+  const here = me ? { ...me, label: 'je locatie', me: true } : { ...origin, label: originLabel ?? 'Amersfoort' };
+  const [shared, setShared] = useState<{ day: string; start: number; stops: string[] } | null>(null);
+  const pickSpot = (s: Spot) => { setSpot(s); setMe(null); setRecent([s, ...recent.filter(r => r.label !== s.label)].slice(0, 3)); setFState(o => ({ ...o, q: '' })); setFocus({ lat: s.lat, lon: s.lon, key: Date.now() }); scrollTop(); };
+  const openWaar = () => { setDir('fwd'); setPrev(view); setView('waar'); setSnap('full'); scrollTop(); };
+  // Mijn dag, het dagvoorstel en onderweg: op een breed scherm als derde kolom naast lijst en kaart, anders als scherm.
+  const openPlanish = (v: (typeof PLANISH)[number]) => { if (wide) return setAside(v); setDir('fwd'); if (!PLANISH.includes(view as never)) setPrev(view); setView(v); setSnap(v === 'plan' ? 'half' : 'full'); scrollTop(); };
+  const openDag = () => openPlanish('dag'), openPlan = () => openPlanish('plan');
+  const planOn = view === 'plan' || view === 'onderweg' || (wide && !!aside);
+  useEffect(() => { if (planOn) setFit({ pts: [pFrom, ...plan.stops.map(id => byId.get(id)).filter(Boolean) as Item[]], key: Date.now() }); }, [planOn, plan.stops.join(), plan.day]);
+  // Van breed naar smal (raam kleiner): de derde kolom wordt weer een scherm.
+  useEffect(() => { if (!wide && aside) { setView(aside); setAside(null); } else if (wide && PLANISH.includes(view as never)) { setAside(view as Aside); setView('list'); } }, [wide]);
+  const st = useCallback((it: Item) => statusFor(it, now, day, nowMode ? undefined : min), [now, day, min, nowMode]);
 
-  const c: Ctx = { now, f, online, dataFrom, install, origin, originLabel, locDenied, welcome: !welcomed && !spot && !me, spot: !!spot, pickSpot, pickPlace, me, favs, bij, planStops: plan.stops, day, setDay: (d: string) => setDay(d === today ? null : d), setF, open, toggleStop, toggleFav, locate, back, openPlan, openMe, openDag, user: sess?.email ?? null };
+  const c: Ctx = { now, f, online, dataFrom, install, origin, originLabel, locDenied, locating, spot: !!spot, pickSpot, recent: spot ? [spot, ...recent.filter(r => r.label !== spot.label)].slice(0, 3) : recent, me, favs, bij, planStops: plan.stops, planDay: plan.day,
+    day, min, live: nowMode, setWhen: w => setWhen(w), st, setF, open, toggleStop, toggleFav, here, locate, back, openPlan, openMe, openDag, openWaar, share: shareItem, user: sess?.email ?? null };
+  const planProps = { items, plan, setPlan };
+  const closeAside = () => setAside(null);
+  const asideCtx: Ctx = { ...c, back: () => aside === 'plan' ? closeAside() : setAside('plan'), openPlan: () => setAside('plan'), openDag: () => setAside('dag') };
+  // Mijn dag rekent vanaf het eigen vertrekpunt van het plan; "je locatie" blijft live meebewegen.
+  const pFrom = plan.from && !plan.from.me ? plan.from : here;
+  const planScreen = (v: (typeof PLANISH)[number], cx0: Ctx) => { const cx: Ctx = { ...cx0, origin: pFrom, originLabel: pFrom.label, me: plan.from?.me ? me : null }; return v === 'dag' ? <DagView c={cx} {...planProps} />
+    : v === 'onderweg' ? <OnderwegView c={cx} {...planProps} done={() => { setPlan({ done: [], skip: [] }); cx.openPlan(); }} />
+    : <PlanView c={cx} {...planProps} setPlan={p => { setPlan(p); if (p.stops && !p.day && p.stops.length === plan.stops.length) setOptimized(true); }} optimizeSeen={optimized} onderweg={() => wide ? setAside('onderweg') : openPlanish('onderweg')} share={sharePlan} />; };
+  const tab = PLANISH.includes(view as never) ? 'dag' : ['me', 'login', 'contrib'].includes(view) ? 'jij' : 'kaart';
+  const goTab = (t: string) => { if (t === 'kaart') { setDir('back'); setView('list'); setSel(null); scrollTop(); if (!desktop && snap === 'full') setSnap('half'); } else if (t === 'dag') { if (wide) setAside(aside ? null : 'plan'); else openPlanish('plan'); } else openMe(); };
+  const nav = <nav className="tabs" aria-label="Hoofdmenu">
+    {topNav && <a className="brand" href="/" aria-label="Snuffelkaart, naar het begin"><span className="brand-mark"><Ic n="tag" /></span>Snuffelkaart</a>}
+    {([['kaart', 'map', 'Kaart'], ['dag', 'bon', 'Mijn dag'], ['jij', 'user', 'Jij']] as const).map(([k, icon, label]) => {
+      const on = k === 'dag' && wide ? !!aside : tab === k;
+      return <button key={k} className="tab" aria-current={on ? 'page' : undefined} aria-pressed={k === 'dag' && wide ? on : undefined} onClick={() => goTab(k)}>
+        <span className="tab-ic">{k === 'jij' && sess ? <span className="me-av in">{(name ?? sess.email)[0].toUpperCase()}</span> : <Ic n={icon} />}{k === 'dag' && plan.stops.length > 0 && <i className="tab-n tnum">{plan.stops.length}</i>}</span>{label}</button>; })}
+  </nav>;
 
   // ---------- bottom sheet (mobiel) ----------
   const shell = useRef<HTMLDivElement>(null), sheet = useRef<HTMLElement>(null), scroller = useRef<HTMLDivElement>(null);
   const [tops, setTops] = useState({ full: 12, half: 400, collapsed: 600 }), [dragTop, setDragTop] = useState<number | null>(null);
   const scrollTop = () => requestAnimationFrame(() => scroller.current && (scroller.current.scrollTop = 0));
-  const barOn = plan.stops.length > 0 && view !== 'plan' && (welcomed || !!spot || !!me);
+  const barOn = false;
   useLayoutEffect(() => {
     const H = shell.current!.clientHeight, peek = sheet.current!.querySelector<HTMLElement>('[data-peek]');
     const ph = (peek ? peek.offsetTop + peek.offsetHeight : 180) + (barOn ? 78 : 0), half = Math.round(H * 0.5);
     setTops({ full: 12, half, collapsed: Math.max(half + 40, H - ph) });
-  }, [view, sel, f.open, day, barOn, places, desktop, welcomed, locDenied, me, spot]);
+  }, [view, sel, f.open, day, barOn, places, desktop, locDenied, me, spot]);
   // Toegankelijkheid: na een wissel van scherm (door de gebruiker) gaat de focus naar de titel, zodat een schermlezer het nieuwe scherm voorleest.
   useEffect(() => {
     if (!dir) return;
@@ -268,52 +312,53 @@ export default function App() {
   };
 
   const planItems = plan.stops.map(id => byId.get(id)).filter(Boolean) as Item[];
-  const sim = simulate(planItems, plan.day, plan.start, origin);
-  const mapItems = useMemo(() => (view === 'plan' ? items : all.map(x => x.it)), [view, items, all]);
+  const mapItems = useMemo(() => (planOn ? items : all.map(x => x.it)), [planOn, items, all]);
   const pinClass = useCallback((it: Item) => {
     if (it.t === 'm') return it.status === 'unconf' ? 'unconf' : it.status === 'cancel' ? 'cancel' : '';
     if (!it.h) return '';
-    const open = day === today ? placeNow(it, now).open : openOn(it, day);
-    return open ? 'open-now' : f.open ? 'closed' : '';
-  }, [now, f.open, day]);
+    const g = groupOf(it, day, min);
+    return g === 'open' ? 'open-now' : f.open && g !== 'later' ? 'closed' : '';
+  }, [day, min, f.open]);
   const selItem = sel ? byId.get(sel) : null;
 
   return (
-    <div className="shell" ref={shell} style={{ ['--side' as string]: `${view === 'me' ? Math.max(side, Math.min(720, innerWidth - 320)) : Math.max(300, Math.min(side, 680))}px` }}>
-      <MapView home={spot ?? undefined} onBounds={setBounds} items={mapItems} sel={view === 'detail' ? sel : null} planIds={view === 'plan' ? plan.stops : []} me={me} bottomPad={bottomPad}
-        focus={focus} fit={fit} route={view === 'plan' && planItems.length ? [origin, ...planItems] : []} pinClass={pinClass} onSelect={open} onLocate={() => locate()} />
+    <>
+    <div className={`shell${aside ? ' has-aside' : ''}`} ref={shell} style={{ ['--side' as string]: `${view === 'me' && topNav ? Math.max(side, Math.min(720, innerWidth - 320 - (aside ? 380 : 0))) : Math.max(300, Math.min(side, 680))}px` }}>
+      <MapView home={spot ?? undefined} onBounds={setBounds} items={mapItems} sel={view === 'detail' ? sel : null} planIds={planOn ? plan.stops : []} me={me} bottomPad={bottomPad}
+        focus={focus} fit={fit} route={planOn && planItems.length ? [pFrom, ...planItems] : []} pinClass={pinClass} onSelect={open} onLocate={() => locate()} />
       <main className={`sheet${dragTop == null ? ' snapping' : ''}`} ref={sheet} style={desktop ? undefined : { transform: `translateY(${top - 12}px)` }}
         onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp}>
         <button className="handle" aria-label="Paneel groter of kleiner" onClick={e => { if (e.detail === 0) setSnap(snap === 'collapsed' ? 'half' : snap === 'half' ? 'full' : 'collapsed'); }} />
+        {topNav && nav}
         <div className="sheet-scroll" ref={scroller} style={{ ['--hid' as string]: desktop ? '0px' : `${top - 12}px`, ['--barpad' as string]: barOn ? '74px' : '0px' }}>
           <div className={`view${dir === 'fwd' ? ' enter' : dir === 'back' ? ' enter-back' : ''}`} key={view + (sel ?? '')}>
             {err ? <div className="empty"><h3>De gegevens laden niet</h3><p>Controleer je verbinding en probeer het opnieuw.</p><div className="btns"><button className="btn sm primary" onClick={() => location.reload()}>Opnieuw laden</button></div></div>
               : !places ? <div aria-busy="true" aria-label="Laden" style={{ paddingTop: 16 }}>{Array.from({ length: 6 }, (_, i) => <div key={i} className="skrow"><div className="sk" style={{ width: 40, height: 40, borderRadius: 11 }} /><div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}><div className="sk" style={{ height: 13, width: '70%' }} /><div className="sk" style={{ height: 11, width: '45%' }} /></div><div className="sk" style={{ width: 32, height: 32, borderRadius: '50%' }} /></div>)}</div>
-              : view === 'detail' && selItem ? <DetailView it={selItem} c={c} backLabel={prev === 'plan' ? `Mijn ${DAYS_LONG[dayStart(plan.day).getDay()]}` : prev === 'me' ? 'Jij' : 'Lijst'} />
+              : view === 'detail' && selItem ? <DetailView it={selItem} c={c} backLabel={PLANISH.includes(prev as never) ? `Mijn ${DAYS_LONG[dayStart(plan.day).getDay()]}` : prev === 'me' ? 'Jij' : prev === 'gedeeld' ? 'Gedeeld rondje' : 'Kaart'} />
               : view === 'me' ? <MeView c={c} items={items} showFavs={showFavs} login={() => { setDir('fwd'); setView('login'); setSnap('full'); scrollTop(); }} logout={logout} download={download} remove={removeAccount} />
-              : view === 'login' ? <LoginView c={c} send={email => sendLink(email, location.origin + '/')} done={s => { sessionStorage.setItem('snuffel-samenvoegen', '1'); setSess(s); setDir('back'); setView('me'); scrollTop(); }} />
+              : view === 'login' ? <LoginView c={c} send={email => sendLink(email, location.origin + '/')} done={s => { sessionStorage.setItem('snuffel-samenvoegen', '1'); setSess(s); setDir('back'); if (!resume()) setView('me'); scrollTop(); }} />
               : (view === 'review' || view === 'photo' || view === 'suggest') && selItem?.t === 'k' ? (view === 'review' ? <ReviewView p={selItem} b={bij} back={back} /> : view === 'photo' ? <PhotoView p={selItem} b={bij} back={back} /> : <SuggestView p={selItem} b={bij} back={back} />)
               : view === 'contrib' ? <ContribView b={bij} items={items} back={back} open={id => { setPrev('contrib'); go(id); }} />
-              : view === 'dag' ? <DagView c={c} items={items} plan={plan} setPlan={setPlan} />
-              : view === 'plan' ? <PlanView c={c} items={items} plan={plan} setPlan={p => { setPlan(p); if (p.stops && !p.day && p.stops.length === plan.stops.length) setOptimized(true); }} optimizeSeen={optimized} />
+              : view === 'waar' ? <WaarView c={c} count={counts.open + counts.later} />
+              : view === 'gedeeld' && shared ? <GedeeldView c={c} items={items} shared={shared} plan={plan} take={() => { setPlan({ ...shared, done: [], skip: [] }); setShared(null); openPlan(); }} />
+              : PLANISH.includes(view as never) ? planScreen(view as (typeof PLANISH)[number], c)
               : <ListView c={c} inView={inView ? { nearest: () => setFit({ pts: [origin, ...all.slice(0, 5).map(x => x.it)], key: Date.now() }) } : null} list={list} total={list.length} limit={limit} more={() => setLimit(limit + 40)} counts={counts} nPlaces={places.length} />}
           </div>
         </div>
       </main>
-      {desktop && view !== 'me' && <div className={`resizer${resizing ? ' on' : ''}`} role="separator" aria-orientation="vertical" aria-label="Breedte van de lijst" tabIndex={0}
+      {topNav && view !== 'me' && <div className={`resizer${resizing ? ' on' : ''}`} role="separator" aria-orientation="vertical" aria-label="Breedte van de lijst" tabIndex={0}
         aria-valuemin={300} aria-valuemax={680} aria-valuenow={side} title="Sleep om de lijst breder of smaller te maken; dubbelklik voor de standaardbreedte"
         onPointerDown={e => { try { e.currentTarget.setPointerCapture(e.pointerId); } catch { /* zonder capture werkt slepen ook */ } dragging.current = true; setResizing(true); }}
         onPointerMove={e => { if (dragging.current) setSide(e.clientX); }}
         onPointerUp={() => { dragging.current = false; setResizing(false); }} onPointerCancel={() => { dragging.current = false; setResizing(false); }}
         onDoubleClick={() => setSide(400)}
         onKeyDown={e => { const d = e.key === 'ArrowLeft' ? -24 : e.key === 'ArrowRight' ? 24 : 0; if (d) { e.preventDefault(); setSide(side + d); } }} />}
-      <aside aria-label="Mijn dagplan"><button className={`planbar${barOn ? '' : ' off'}`} onClick={openPlan} aria-label={`Open mijn dagplan: ${plan.stops.length} stops`}>
-        <span className="pb-n tnum" key={plan.stops.length}>{plan.stops.length}</span>
-        <span className="pb-t"><b>Mijn {DAYS_LONG[dayStart(plan.day).getDay()]}</b><span>{sim.bad ? <><i className="pb-warn" style={{ background: 'var(--bad)' }} />{sim.bad} klopt niet · </> : sim.warn ? <><i className="pb-warn" />{sim.warn} aandachtspunt{sim.warn > 1 ? 'en' : ''} · </> : null}{plan.stops.length} stop{plan.stops.length > 1 ? 's' : ''} · klaar ±{hm(sim.end)}</span></span>
-        <Ic n="chev" />
-      </button></aside>
+      {wide && aside && <aside className="dagpanel" aria-label="Mijn dag"><div className="dp-bar"><button className="ibtn" onClick={closeAside} aria-label="Sluit Mijn dag"><Ic n="x" /></button></div>
+        <div className="sheet-scroll"><div className="view" key={aside}>{planScreen(aside, asideCtx)}</div></div></aside>}
       {testClock && <a className="testclock" href={location.pathname} title="Terug naar de echte tijd"><Ic n="clock" />Testtijd: {dShort(isoDay(now))} {hm(now.getHours() * 60 + now.getMinutes())} · <u>naar nu</u></a>}
       <div className={`toast${toast ? ' on' : ''}`} role="status" aria-live="polite">{toast && <><Ic n="info" /><span>{toast}</span></>}</div>
     </div>
+    {!topNav && <div className="tabbar">{nav}</div>}
+    </>
   );
 }

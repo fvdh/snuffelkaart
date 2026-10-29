@@ -43,6 +43,19 @@ export function placeNow(p: Place, now: Date): Status {
   return { cls: 'closed', txt: 'Dicht' };
 }
 
+/** Status op een gekozen moment later ("za 31 om 10:00"): open als je er bent, gaat later open, of dicht. */
+export function placeAt(p: Place, iso: string, min: number): Status {
+  const iv = intervals(p, iso);
+  if (!iv) return UNKNOWN;
+  const d = cap(DAYS[dayStart(iso).getDay()]);
+  if (!iv.length) return { cls: 'closed', txt: `${d} dicht` };
+  const cur = iv.find(([a, b]) => min >= a && min < b);
+  if (cur) return { cls: 'open', txt: `Open · tot ${hm(cur[1] % 1440)}`, open: true };
+  const later = iv.find(([a]) => a > min);
+  if (later) return { cls: 'later', txt: `${d} open vanaf ${hm(later[0])}` };
+  return { cls: 'closed', txt: `Om ${hm(min)} al dicht (${d} ${rng(iv)})` };
+}
+
 const rng = (iv: [number, number][]) => iv.map(([a, b]) => `${hShort(a)}–${hShort(b)}`).join(', ');
 /** Samenvatting voor één dag: "Za 10–16" of "Za dicht". */
 export function placeDay(p: Place, iso: string): Status {

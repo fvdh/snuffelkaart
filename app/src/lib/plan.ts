@@ -3,7 +3,8 @@ import { intervals, openOn } from './hours';
 
 export interface Issue { lv: 'bad' | 'warn'; txt: string }
 export interface Stop { id: string; arrive: number; drive: number; km: number; issue: Issue | null; note: string; wait: number }
-export interface Sim { stops: Stop[]; end: number; km: number; bad: number; warn: number }
+/** end: weg bij de laatste stop; home: terug bij het vertrekpunt. */
+export interface Sim { stops: Stop[]; end: number; home: number; km: number; bad: number; warn: number }
 
 export const STAY = { k: 40, m: 60 }; // minuten per stop (aanname A1)
 const ROAD = 1.3; // hemelsbreed → over de weg (aanname A2)
@@ -43,7 +44,8 @@ export function simulate(order: Item[], iso: string, startMin: number, from: Lat
     out.push({ id: it.id, arrive, drive, km: d, issue, note, wait });
     t = leave; prev = it;
   }
-  return { stops: out, end: t, km: total, bad: out.filter(s => s.issue?.lv === 'bad').length, warn: out.filter(s => s.issue?.lv === 'warn').length };
+  const back = out.length ? km(prev, from) * ROAD : 0;
+  return { stops: out, end: t, home: out.length ? t + Math.round(back * 1.5 + 3) : t, km: total, bad: out.filter(s => s.issue?.lv === 'bad').length, warn: out.filter(s => s.issue?.lv === 'warn').length };
 }
 
 function perms<T>(a: T[]): T[][] {

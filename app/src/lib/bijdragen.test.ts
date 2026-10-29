@@ -15,7 +15,7 @@ test('formulier vooraf ingevuld met de bekende tijden; onbekend = voorstel', () 
   const h = Array.from({ length: 21 }, (_, i) => ([2, 3].includes(i % 7) ? [[600, 1020]] : [])) as [number, number][][]; // alleen vr en za (28 okt = wo)
   const days = prefill({ h } as Place, '2026-10-28');
   expect(days.map(x => (x.open ? `${x.from}-${x.to}` : 'dicht'))).toEqual(['dicht', 'dicht', 'dicht', 'dicht', '10:00-17:00', '10:00-17:00', 'dicht']);
-  expect(prefill({ h: null } as Place, '2026-10-28')[6].open).toBe(false);
+  expect(prefill({ h: null } as Place, '2026-10-28').some(d => d.open)).toBe(false); // onbekend: niets vooraf aan
 });
 
 test('tijden van bezoekers gaan voor; reviews afgerond op halve ster', () => {

@@ -66,10 +66,10 @@ supabase/migrations/  schema; supabase/tests/rls.sql (npm run test:rls)
 
 ## Wat de app kan (bezoeker)
 - Kaart + lijst (bottom sheet op mobiel, versleepbare zijbalk op desktop; op desktop volgt de lijst de kaart).
-- **Eén dagkeuze "Wanneer ga je?"** (vandaag t/m 13 dagen vooruit) stuurt lijst, statussen, pins, tellers en dagplan. Filter "Open vandaag / Open op za" staat standaard **uit** (Freek).
-- Zoeken op naam, plaats of postcode (PDOK); filters soort, gratis, overdekt.
+- **De snuffellus** (29 okt, zie DECISIONS): tabbalk Kaart / Mijn dag / Jij; bovenaan de pil "Rond Zwolle · Nu" voor plek en moment (nu, of een dag + tijd binnen twee weken); de lijst op afstand, in secties (nu open, gaat nog open, tijden onbekend…). Het dagplan heeft een eigen dag, tijd en vertrekpunt. Desktop ≥ 1200 px: lijst, kaart en Mijn dag naast elkaar; iPad staand: zwevend paneel.
+- Zoeken op naam; plaats of postcode (PDOK) via "Waar en wanneer", met recente plekken; filters open, soort, gratis, overdekt.
 - Detail winkel/markt met tijden per dag, bron + controledatum, meldknop "Klopt er iets niet?" (zonder account).
-- **Dagplan als kassabon**: stops, aankomsttijden, waarschuwingen, slimste volgorde, route naar Google/Apple Maps, voorstel later te vertrekken.
+- **Dagplan als kassabon**: vertrekblok, stops verplaatsen, dichte stop vervangen, terug rond, slimste volgorde, route naar Google/Apple, delen als link, en een onderweg-stand (volgende stop, hier ben ik, overslaan).
 - **"Maak een dag voor me"**: tot 4 snuffelwinkels binnen 20 km die die dag zeker open zijn, geclusterd, "Ander voorstel" bladert. Startpunt: je locatie, anders gekozen plaats, anders Amersfoort. Geen sloop, opkoop of winkels die aan hun naam iets anders zijn.
 - **Jij = Snuffelpas**: stempelkaart voor bijdragen, schermnaam kiezen/wijzigen, bewaarde plekken, mini-bon van het dagplan, gegevens downloaden, account verwijderen.
 - Inloggen met een code van 8 cijfers per mail; favorieten synchroniseren.

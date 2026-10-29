@@ -31,14 +31,15 @@ export function toOh(days: Day[]): string {
   return out.join('; ');
 }
 
-/** Formulier vooraf invullen met wat we nu weten (eerste blok per dag; een feestdag slaan we over). Onbekend: 10–17, dicht op zondag. */
+/** Formulier vooraf invullen met wat we nu weten (eerste blok per dag; een feestdag slaan we over). Onbekend: alle dagen uit, zodat
+ *  niemand met één tik een gok bevestigt (UX-review 29 okt); wie een dag aanzet, begint bij 10–17. */
 export function prefill(p: Place, today: string): Day[] {
   return Array.from({ length: 7 }, (_, wd) => {
     const back = (new Date(`${today}T12:00`).getDay() + 6) % 7;
     let iso = addDays(today, wd - back); if (iso < today) iso = addDays(iso, 7);
     if (isHoliday(iso)) iso = addDays(iso, 7);
     const iv = p.h ? intervals(p, iso) : null;
-    if (!iv) return { open: wd < 6, from: '10:00', to: '17:00' };
+    if (!iv) return { open: false, from: '10:00', to: '17:00' };
     if (!iv.length) return { open: false, from: '10:00', to: '17:00' };
     const t = (m: number) => `${String(Math.floor(m / 60) % 24).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
     return { open: true, from: t(iv[0][0]), to: t(iv[iv.length - 1][1]) };

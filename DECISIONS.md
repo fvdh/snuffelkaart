@@ -274,3 +274,16 @@ Op ≥ 980 px toont de lijst alleen wat op de kaart in beeld is ("N plekken in b
 - Paginabezoeken en verwijzers tellen, zonder cookies en zonder persoonsgegevens. Alleen op de app en de tekst-/plaatspagina's, niet in /beheer. Privacypagina aangepast.
 - Token (openbaar) als `CF_BEACON` in `app/.env` en als GitHub-variabele (niet secret). Zonder token geen script.
 - Nog niet: eigen telling van dagplannen en dagvoorstellen. Pas als paginabezoeken niet genoeg zeggen.
+
+## De snuffellus: ombouw naar het ontwerp (29 okt 2026, Freek)
+Ontwerp `ontwerp/lus/` (canvas "Snuffelkaart: de snuffellus"), na de UX-synthese van vier reviews (`ontwerp/ux-synthese.html`). Freek: "ga aan de slag met het ombouwen naar dit design". Daarmee vervallen twee eerdere keuzes:
+- **Tabbalk**: Kaart, Mijn dag, Jij. Telefoon en iPad staand onderin; desktop bovenin het paneel. Vervangt de planbalk en de Jij-knop. (DESIGN.md had "geen tabbalk".)
+- **Het dagplan houdt zijn eigen dag, vertrektijd en vertrekpunt** (vervangt "Eén dagkeuze"). De eerste stop neemt het moment en de plek over die je bekijkt; daarna staat het plan los. "Je locatie" als vertrekpunt beweegt mee.
+- **Moment**: de pil "Rond Zwolle · Nu" stuurt lijst, kaart en detail. Nu, of een dag + vertrektijd (7:00–21:00) binnen twee weken. Niet bewaard: de app opent op nu. Status per regel op dat moment ("Open · tot 17:00", "Za open vanaf 13:00").
+- **Lijst puur op afstand, daarna in secties** (nu open, gaat nog open, tijden onbekend, markten op andere dagen, dicht, afgelast) over de dichtstbijzijnde 40. Een winkel zonder tijden op 400 m stond eerst achter alle winkels met tijden in heel NL. "Open"-filter zit nu onder Filters.
+- **Waar en wanneer** als eigen scherm: plaats of postcode (Enter kiest de eerste), mijn locatie, 3 recente plekken (`snuffel-recent`). Het zoekveld van de lijst zoekt alleen nog op naam. Welkomstpaneel weg; de banner "We tonen nu Amersfoort" blijft.
+- **Winkel**: Route voorop (Apple Kaarten op iOS, anders Google), vanaf de gekozen plek; bewaren en delen rechtsboven. Status en weektijden volgen het moment.
+- **Mijn dag**: vertrekblok, stops omhoog/omlaag, een dichte stop vervangen door de dichtstbijzijnde die dan open is, terug rond (terugreis), Start mijn dag → onderweg (volgende stop, navigeren per stop, hier ben ik, overslaan, daarna "klopten de tijden?" naar het tijdenformulier). Desktop ≥ 1200 px: derde kolom.
+- **Delen** zonder backend: een winkel via zijn eigen pagina (`/winkel/…`), een markt via `/?open=`, een rondje als `/?dag=&v=&s=` (zonder vertrekpunt: privacy). De ontvanger ziet de status van nu en kan het overnemen.
+- **Bugs uit de synthese**: losse "0" in de plankop, "vanaf Amersfoort" vast in de tekst, vertrek alleen 8–13 uur, na inloggen naar Jij (nu terug naar het formulier, ook na een inloglink), 10–17 vooringevuld bij onbekende tijden (nu alles uit), route uit het detail negeerde de gekozen plek, slimste volgorde bij elke render.
+- **Nog niet**: "Klopt" zonder account (vraagt een rpc met rem; Freek beslist), alleen doorgeven wat anders is, inloggen pas bij versturen, zoeken op adres, Thuis als vast vertrekpunt, deel-afbeelding (og:image).

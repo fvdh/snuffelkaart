@@ -5,7 +5,6 @@ body{background:var(--m-land)}
 .shell .map{position:absolute;inset:0}
 .shell .sheet{top:calc(env(safe-area-inset-top,0px) + 12px)}
 .shell .map-ctrl,.shell .map-attr{top:calc(env(safe-area-inset-top,0px) + 12px)}
-.shell .planbar{bottom:calc(env(safe-area-inset-bottom,0px) + 16px)}
 .shell .toast{top:calc(env(safe-area-inset-top,0px) + 12px)}
 
 /* markers: MapLibre zet de positie (transform) op .mk; de pin zelf staat statisch daarbinnen */
@@ -45,7 +44,6 @@ a.btn.primary{color:var(--on-ink)}
   .shell .brand{display:flex}
   .shell .dv-head,.shell .pv-head{padding-top:8px}
   .shell .map{left:var(--side,400px)}
-  .shell .planbar{left:calc(var(--side,400px) + 16px);right:auto;width:340px}
   .shell .toast{left:calc(var(--side,400px) + 16px);right:auto;width:360px}
   [data-drag]{cursor:default}
 }
@@ -67,3 +65,36 @@ a.btn.primary{color:var(--on-ink)}
 
 .resizer{display:none}
 @media (min-width: 980px){.resizer{display:grid}}
+
+/* Tabbalk onderin (telefoon en iPad staand): kaart en paneel staan erboven. */
+.tabbar{position:fixed;left:0;right:0;bottom:0;z-index:30;background:var(--surface);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (max-width: 979px){.shell{bottom:calc(60px + env(safe-area-inset-bottom,0px))}}
+@media (min-width: 700px) and (max-width: 979px){
+  .tabbar .tabs{justify-content:center;gap:40px}.tabbar .tab{flex:none;width:96px}
+  /* iPad staand: zwevend paneel links, de kaart blijft eromheen zichtbaar */
+  .shell .sheet{left:16px;right:auto;width:410px;top:16px;bottom:16px;transform:none!important;border-radius:20px;box-shadow:var(--shadow-lg)}
+  .shell .handle{display:none}
+  .shell .sheet-scroll{padding-bottom:24px}
+  .shell .lv-head{padding-top:16px}
+  .shell .dv-head,.shell .pv-head{padding-top:12px}
+  .shell .toast{left:442px;right:16px}
+  [data-drag]{cursor:default}
+}
+/* Desktop: menu bovenin het paneel */
+@media (min-width: 980px){
+  .sheet > .tabs{gap:4px;padding:14px 16px 2px;align-items:center}
+  .sheet > .tabs .brand{margin:0 auto 0 0}
+  .sheet > .tabs .tab{flex:none;flex-direction:row;min-height:38px;padding:0 12px 0 4px;border-radius:19px;gap:4px;font-size:.875rem}
+  .sheet > .tabs .tab-ic{width:30px;height:30px}
+  .sheet > .tabs .tab[aria-current="page"],.sheet > .tabs .tab[aria-pressed="true"]{background:var(--kring-soft);color:var(--fg)}
+  .sheet > .tabs .tab[aria-current="page"] .tab-ic{background:none}
+  .sheet > .tabs .tab-n{top:-4px;right:-2px}
+  .shell .lv-head{padding-top:10px}
+  .shell .me-top{display:none}
+}
+/* Breed: Mijn dag als derde kolom naast lijst en kaart */
+.dagpanel{position:absolute;top:0;right:0;bottom:0;width:380px;background:var(--surface);border-left:1px solid var(--line);z-index:12;display:flex;flex-direction:column}
+.dagpanel .dp-bar{display:flex;justify-content:flex-end;padding:12px 12px 0}
+.dagpanel .dp-bar .ibtn{width:38px;height:38px}
+.dagpanel .pv-head{padding-top:0}
+.shell.has-aside .map{right:380px}
