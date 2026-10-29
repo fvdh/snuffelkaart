@@ -81,9 +81,10 @@ export function marketStatus(m: Market, now: Date): Status {
 
 const LONG = ['zondag', 'maandag', 'dinsdag', 'woensdag', 'donderdag', 'vrijdag', 'zaterdag'];
 /** Week ma t/m zo rond `from` voor het detail. null = onbekend. */
-export function week(p: Place, from: string): { iso: string; label: string; txt: string }[] | null {
+export function week(p: Place, from: string, rolling = false): { iso: string; label: string; txt: string }[] | null {
   if (!p.h) return null;
-  const back = (dayStart(from).getDay() + 6) % 7; // terug naar maandag
+  // rolling: zeven dagen vanaf `from` (geen voorbije dagen met "–"); anders ma t/m zo
+  const back = rolling ? 0 : (dayStart(from).getDay() + 6) % 7;
   return Array.from({ length: 7 }, (_, i) => {
     const iso = addDays(from, i - back), iv = intervals(p, iso);
     const txt = !iv ? '–' : iv.length ? iv.map(([a, b]) => `${hm(a)} – ${hm(b % 1440)}`).join(', ') : isHoliday(iso) ? 'Dicht (feestdag)' : 'Dicht';

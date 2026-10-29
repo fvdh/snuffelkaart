@@ -7,7 +7,7 @@ export interface Filters { type: 'all' | 'k' | 'm'; open: boolean; gratis: boole
 
 /** Waar een plek in de lijst valt op het gekozen moment (dag + minuut). Markten op een andere dag: 'other'. */
 export type Group = 'open' | 'later' | 'unknown' | 'other' | 'closed' | 'cancel';
-export const GROUPS: Group[] = ['open', 'later', 'unknown', 'other', 'closed', 'cancel'];
+export const GROUPS: Group[] = ['open', 'later', 'other', 'unknown', 'closed', 'cancel'];
 export function groupOf(it: Item, day: string, min: number): Group {
   if (it.t === 'k') {
     const iv = intervals(it, day);
@@ -45,7 +45,7 @@ export function visible(items: Item[], f: Filters, now: Date, origin: LatLon, da
     .sort((a, b) => a.d - b.d);
 }
 
-/** Rijen in secties (open, gaat nog open, tijden onbekend, markten op andere dagen, dicht, afgelast), binnen een sectie op afstand. */
+/** Rijen in secties (open, gaat nog open, markten op andere dagen, tijden onbekend, dicht, afgelast), binnen een sectie op afstand. */
 export function groupRows<T extends { it: Item }>(rows: T[], day: string, min: number): { g: Group; rows: T[] }[] {
   const by = new Map<Group, T[]>();
   for (const r of rows) { const g = groupOf(r.it, day, min); by.set(g, [...(by.get(g) ?? []), r]); }

@@ -43,16 +43,27 @@ export function DayPick({ day, now, set, label = 'Wanneer ga je?' }: { day: stri
   </div>);
 }
 
+/** Status kort voor in een regel: de sectiekop zegt al "nu open", dus hier alleen wat je moet weten ("tot 17:30", "opent 11:00").
+ *  Onbekend: niets, ook dat zegt de kop al (UX 29 okt: elke regel herhaalde de kop). */
+export function shortStatus(st: Status): string | null {
+  if (st.cls === 'unknown') return null;
+  if (st.cls === 'open') { const m = /(?:sluit|tot) (\d+:\d\d)/.exec(st.txt); return m ? `tot ${m[1]}` : 'open'; }
+  if (st.cls === 'later') { const m = /(\d+:\d\d)/.exec(st.txt); return m ? `opent ${m[1]}` : st.txt; }
+  return st.txt;
+}
+
 export function Row({ it, d, c }: { it: Item; d: number; c: Ctx }) {
-  const st = c.st(it), inPlan = c.planStops.includes(it.id), cancel = it.t === 'm' && it.status === 'cancel';
+  const st = c.st(it), inPlan = c.planStops.includes(it.id), cancel = it.t === 'm' && it.status === 'cancel', short = shortStatus(st);
+  // Tweede regel: status · soort · plaats (alleen als die anders is dan waar je zoekt).
+  const parts = [it.t === 'm' ? it.kind.toLowerCase() : kindLabel(it).toLowerCase(), it.place && it.place !== c.originLabel ? it.place : null].filter(Boolean) as string[];
   return (
     <li className="rowli" data-key={it.id}>
       <button className="row" onClick={e => c.open(it.id, e.currentTarget.querySelector<HTMLElement>('.r-name'))} aria-label={`${it.name}, ${st.txt}, ${fkm(d)} kilometer`}>
         <Tile it={it} />
         <span className="r-main">
           <span className={`r-name${cancel ? ' strike' : ''}`}>{it.name}</span>
-          <St s={st} />
-          <span className="r-meta">{it.t === 'm' ? <><Conf it={it} />{!cancel && <span>·</span>}<span>{it.place}</span></> : <>{it.place || 'Plaats onbekend'}{it.kind !== 'kringloop' && <> · {kindLabel(it).toLowerCase()}</>}</>}</span>
+          <span className="r-meta">{short && <span className={`st-i ${st.cls}`}>{short}</span>}{it.t === 'm' && <Conf it={it} />}
+            {parts.map((p, i) => <span key={i}>{(i > 0 || short || it.t === 'm') && <span aria-hidden="true">· </span>}{p}</span>)}</span>
         </span>
         <span className="r-km">{fkm(d)} km</span>
       </button>
@@ -105,19 +116,21 @@ function ContextPill({ c }: { c: Ctx }) {
 }
 
 export function ListView({ c, inView, list, total, limit, more, counts, nPlaces }: { c: Ctx; inView: { nearest: () => void } | null; list: { it: Item; d: number }[]; total: number; limit: number; more: () => void; counts: { open: number; later: number; unknown: number }; nPlaces: number }) {
-  const { f, day } = c, shown = list.slice(0, limit), secs = groupRows(shown, day, c.min), flip = useFlip(shown), [cats, setCats] = useState(false);
+  const { f, day } = c, shown = list.slice(0, limit), secs = groupRows(shown, day, c.min), flip = useFlip(shown), [cats, setCats] = useState(false), [finding, setFinding] = useState(false), [all, setAll] = useState<Group[]>([]);
+  // Tijden onbekend en dicht: de dichtstbijzijnde drie, de rest achter een knop. Bij zoeken alles.
+  const FOLD: Group[] = ['unknown', 'closed'], fold = (g: Group) => FOLD.includes(g) && !all.includes(g) && !f.q;
   const isToday = day === isoDay(c.now), openLbl = c.live ? 'Alleen wat nu open is' : `Alleen open om ${hm(c.min)}`;
   const P = (b: boolean) => ({ 'aria-pressed': b });
   const extra = f.hide.length + (f.gratis ? 1 : 0) + (f.overdekt ? 1 : 0) + (f.open ? 1 : 0);
   return (<>
     <div className="lv-head" data-drag>
       <ContextPill c={c} />
-      <p className="counts"><b>{counts.open} {c.live ? 'nu open' : `open om ${hm(c.min)}`}</b>{counts.later > 0 && <> · {counts.later} {c.live ? 'gaan nog open' : 'later open'}</>}{counts.unknown > 0 && <> · {counts.unknown} tijden onbekend</>}</p>
     </div>
     {/* Alleen zoeken en filters blijven staan bij scrollen: op de stoep wil je regels zien, geen bediening (UX-review 28 okt). */}
     <div className="lv-tools" data-peek data-drag>
-      <label className="search"><Ic n="search" /><span className="sr">Zoeken</span><input type="search" placeholder="Zoek een winkel of markt op naam" value={f.q} onChange={e => c.setF({ q: e.target.value })} autoComplete="off" /></label>
+      {(finding || f.q) && <label className="search"><Ic n="search" /><span className="sr">Zoeken</span><input type="search" autoFocus placeholder="Zoek een winkel of markt op naam" value={f.q} onChange={e => c.setF({ q: e.target.value })} onBlur={() => !f.q && setFinding(false)} autoComplete="off" /></label>}
       <div className="chips" role="group" aria-label="Filters">
+        {!finding && !f.q && <button className="chip ic-chip" onClick={() => setFinding(true)} aria-label="Zoek op naam"><Ic n="search" /></button>}
         {f.only && <button className="chip" aria-pressed onClick={() => c.setF({ only: null })} aria-label="Toon weer alles, niet alleen bewaard"><Ic n="heart" />Bewaard · {f.only.length}<Ic n="x" /></button>}
         <button className="chip" {...P(f.type === 'k')} onClick={() => c.setF({ type: f.type === 'k' ? 'all' : 'k' })}><i className="tk" />Winkels</button>
         <button className="chip" {...P(f.type === 'm')} onClick={() => c.setF({ type: f.type === 'm' ? 'all' : 'm' })}><i className="tm" />Markten</button>
@@ -141,12 +154,13 @@ export function ListView({ c, inView, list, total, limit, more, counts, nPlaces 
     <div className="rows-wrap" ref={flip as unknown as React.Ref<HTMLDivElement>}>
       {list.length ? secs.map(s => <section key={s.g} aria-labelledby={`sec-${s.g}`}>
         <h3 className="sec" id={`sec-${s.g}`}><span>{SEC[s.g](c.live, day, c.min)}</span><span className="tnum">{s.rows.length}</span></h3>
-        <ul className="rows">{s.rows.map(x => <Row key={x.it.id} it={x.it} d={x.d} c={c} />)}</ul></section>)
+        <ul className="rows">{(fold(s.g) ? s.rows.slice(0, 3) : s.rows).map(x => <Row key={x.it.id} it={x.it} d={x.d} c={c} />)}</ul>
+        {fold(s.g) && s.rows.length > 3 && <button className="fold" onClick={() => setAll([...all, s.g])}>Nog {s.rows.length - 3} {s.g === 'unknown' ? 'zonder bekende tijden' : 'die dan dicht zijn'}<Ic n="chevd" /></button>}</section>)
         : inView ? <div className="empty"><h3>Niets op dit stuk van de kaart</h3><p>{!f.open && !f.hide.length && !f.gratis && !f.overdekt ? 'Verschuif de kaart of zoom uit.' : 'Verschuif de kaart, zoom uit, of zet een filter uit.'}</p>
           <div className="btns"><button className="btn sm primary" onClick={inView.nearest}>Toon de dichtstbijzijnde</button>{f.open && <button className="btn sm" onClick={() => c.setF({ open: false })}>Toon ook wat dicht is</button>}</div></div>
         : <div className="empty"><h3>{f.q ? `Niets gevonden voor “${f.q}”` : 'Geen resultaten met deze filters'}</h3><p>{f.q ? 'Zoek op de naam van een winkel of markt. Een plaats kies je bovenaan.' : 'Zet een filter uit.'}</p>
           <div className="btns">{f.q && <button className="btn sm" onClick={() => c.setF({ q: '' })}>Wis zoekopdracht</button>}{f.q && <button className="btn sm" onClick={c.openWaar}>Kies een plaats</button>}<button className="btn sm primary" onClick={() => c.setF({ open: false, gratis: false, overdekt: false, hide: [], only: null, q: '' })}>Toon alles</button></div></div>}
-      {total > limit && <button className="more" onClick={more}>Toon meer ({total - limit})</button>}
+      {total > limit && <button className="more" onClick={more}>Toon meer, iets verder weg</button>}
       <p className="src" style={{ marginTop: 18 }}><Ic n="info" /><span>{nPlaces} winkels uit © OpenStreetMap-bijdragers en © Overture Maps Foundation, heel Nederland. De winkelgegevens zijn vrij te gebruiken onder de <a href="https://opendatacommons.org/licenses/odbl/1-0/" target="_blank" rel="noopener">ODbL</a> (<a href="/data/places.json">download</a>). Markten uit de eigen agenda van organisatoren; bij elke markt staat welke. <a href="/plaatsen/">Alle plaatsen</a> · <a href="/hoe-we-controleren">Hoe we controleren</a> · <a href="/privacy">Privacy</a> · <a href="/voorwaarden">Voorwaarden</a> · <a href="/colofon">Colofon</a></span></p>
     </div>
   </>);
@@ -203,7 +217,7 @@ export function DetailView({ it, c, backLabel }: { it: Item; c: Ctx; backLabel: 
 }
 
 function PlaceDetail({ p, c, top, d, actions }: { p: Place; c: Ctx; top: ReactElement; d: number; actions: ReactElement }) {
-  const now = c.st(p), w = week(p, c.day), osm = osmUrl(p.id), today = c.day;
+  const now = c.st(p), w = week(p, c.day, true), osm = osmUrl(p.id), today = c.day;
   const stale = p.checked && monthsAgo(p.checked, c.now) > 4;
   return (<article>
     <header className="dv-head" data-peek data-drag>{top}
@@ -218,11 +232,11 @@ function PlaceDetail({ p, c, top, d, actions }: { p: Place; c: Ctx; top: ReactEl
       <dl className="hours">{w.map(x => <div key={x.iso} style={{ display: 'contents' }}><dt className={x.iso === today ? 'today' : ''}>{x.label}</dt><dd className={`${x.iso === today ? 'today' : ''}${x.txt.startsWith('Dicht') ? ' shut' : ''}`}>{x.txt}</dd></div>)}</dl>
       <p className={`src${stale ? ' stale' : ''}`}><Ic n={stale ? 'alert' : 'clock'} /><span>{p.checked ? (stale ? `Laatst gecontroleerd op ${p.checked}, dat is al even geleden. Bel even voordat je gaat.` : `${p.hs === 'web' ? 'Gelezen op' : p.hs === 'bezoeker' ? 'Gezien op' : 'Laatst gecontroleerd op'} ${p.checked}`) : 'Controledatum onbekend'} · {p.hs === 'bezoeker' ? `doorgegeven door ${p.hb}, gecontroleerd door ons` : p.hs === 'web' ? <>van <a href={p.hu} target="_blank" rel="noopener">de website van de winkel</a></> : `bron: ${p.src === 'osm' ? 'OpenStreetMap' : 'Overture Maps'}`}<br />Rond feestdagen kunnen tijden afwijken.</span></p></section>
       : <section className="dv-sec"><h3>Openingstijden</h3><div className="unknown-box"><p><b>We weten de openingstijden nog niet.</b> {p.src === 'osm' ? 'Deze winkel staat op OpenStreetMap, maar zonder tijden.' : 'Deze winkel komt uit Overture Maps en is nog niet door ons gecontroleerd. Misschien bestaat hij niet meer.'} Bel even of kijk op de website voordat je gaat.</p>
-        <div className="btns">{p.phone && <a className="btn sm" href={`tel:${p.phone.replace(/\s/g, '')}`}><Ic n="phone" />{p.phone}</a>}{!p.phone && p.website && <a className="btn sm" href={webUrl(p.website)} target="_blank" rel="noopener"><Ic n="globe" />Website</a>}<button className="btn sm primary" onClick={() => c.bij.go('suggest', p.id)}><Ic n="edit" />Ik weet de tijden</button></div></div>
+        <div className="btns">{p.phone && <a className="btn sm" href={`tel:${p.phone.split(';')[0].replace(/\s/g, '')}`}><Ic n="phone" />{p.phone.split(';')[0].trim()}</a>}{!p.phone && p.website && <a className="btn sm" href={webUrl(p.website)} target="_blank" rel="noopener"><Ic n="globe" />Website</a>}<button className="btn sm primary" onClick={() => c.bij.go('suggest', p.id)}><Ic n="edit" />Ik weet de tijden</button></div></div>
         <p className="src"><Ic n="info" /><span>In “Nu open” tonen we deze winkel niet, omdat we dat niet kunnen beloven.</span></p></section>}
     <section className="dv-sec">
       {p.addr && <div className="inforow"><Ic n="pin" /><span>{p.addr}</span></div>}
-      {p.phone && <div className="inforow"><Ic n="phone" /><span className="tnum">{p.phone}</span></div>}
+      {p.phone && <div className="inforow"><Ic n="phone" /><span className="tnum phones">{p.phone.split(/\s*;\s*/).map(t => <a key={t} href={`tel:${t.replace(/\s/g, '')}`}>{t}</a>)}</span></div>}
       {p.website && <div className="inforow"><Ic n="globe" /><a href={webUrl(p.website)} target="_blank" rel="noopener">{p.website.replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '')}</a></div>}
     </section>
     <ReviewsSection p={p} b={c.bij} />
@@ -302,7 +316,10 @@ const TIMES = Array.from({ length: 29 }, (_, i) => 420 + i * 30); // 7:00 t/m 21
 
 /** Het vertrekblok: dag, tijd en vanaf waar. Hoort bij het plan zelf, los van wat je in de lijst bekijkt (DECISIONS 29 okt). */
 function Vertrek({ c, plan, setPlan }: { c: Ctx; plan: Plan; setPlan: (p: Partial<Plan>) => void }) {
-  const today = isoDay(c.now), start = effStart(plan, c.now);
+  const today = isoDay(c.now), start = effStart(plan, c.now), ask = !plan.from && c.here.fallback, [open, setOpen] = useState(false);
+  const dayTxt = plan.day === today ? 'Vandaag' : plan.day === addDays(today, 1) ? 'Morgen' : dShort(plan.day);
+  if (!open && !ask) return <button className="vertrek vk-kort" onClick={() => setOpen(true)} aria-label="Dag, vertrektijd en vertrekpunt wijzigen">
+    <Ic n="clock" /><span><b>{dayTxt} · vertrek {plan.day === today && start === nowStart(c.now) ? `nu (${hm(start)})` : hm(start)}</b><small>vanaf {c.originLabel ?? 'je locatie'} · en terug</small></span><span className="vk-w">Wijzig</span></button>;
   return (<div className="vertrek">
     <DayPick day={plan.day} now={c.now} set={d => setPlan({ day: d, start: d === today ? plan.start : plan.start < 0 ? 600 : plan.start })} label="Welke dag?" />
     <div className="pv-opts"><label>Vertrek<select value={plan.day === today && plan.start < nowStart(c.now) ? -1 : plan.start} onChange={e => setPlan({ start: +e.target.value })}>
@@ -311,12 +328,14 @@ function Vertrek({ c, plan, setPlan }: { c: Ctx; plan: Plan; setPlan: (p: Partia
       {!plan.from && c.here.fallback ? <span className="vk-waar"><b>Waar vertrek je?</b><button className="link" onClick={() => c.locate()}>{c.locating ? 'Locatie zoeken…' : 'Mijn locatie'}</button><button className="link" onClick={c.openWaar}>Kies een plaats</button></span>
         : <><span><Ic n={plan.from?.me ? 'loc' : 'home'} />vanaf {c.originLabel ?? 'je locatie'} · en terug</span>
           {!c.here.fallback && c.here.label !== c.originLabel && <button className="link" onClick={() => setPlan({ from: c.here })}>Vertrek {c.here.me ? 'vanaf je locatie' : `vanuit ${c.here.label}`}</button>}</>}</div>
+    {open && <button className="btn sm" style={{ alignSelf: 'flex-start' }} onClick={() => setOpen(false)}><Ic n="check" />Klaar</button>}
   </div>);
 }
 
 export function PlanView({ c, items, plan, setPlan, optimizeSeen, onderweg, share }: { c: Ctx; items: Item[]; plan: Plan; setPlan: (p: Partial<Plan>) => void; optimizeSeen: boolean; onderweg: () => void; share: () => void }) {
   const byId = new Map(items.map(i => [i.id, i])), stops = plan.stops.map(id => byId.get(id)).filter(Boolean) as Item[], start = effStart(plan, c.now);
   const sim = simulate(stops, plan.day, start, c.origin), dayName = DAYS_LONG[dayStart(plan.day).getDay()];
+  const [more, setMore] = useState(false);
   const best = useMemo(() => stops.length < 2 ? stops : bestOrder(stops, plan.day, start, c.origin), [plan.stops.join(), plan.day, start, c.origin.lat, c.origin.lon]);
   const isBest = best.map(x => x.id).join() === stops.map(x => x.id).join();
   const stt = sim.bad ? { c: 'bad', i: 'alert', t: `${sim.bad === 1 ? '1 stop klopt' : `${sim.bad} stops kloppen`} niet op ${dayName}.`, x: optimizeSeen ? 'Vervang de stop of haal hem weg.' : 'Probeer Slimste volgorde, of vervang de stop.' }
@@ -357,14 +376,18 @@ export function PlanView({ c, items, plan, setPlan, optimizeSeen, onderweg, shar
       <div className="rc-bar" aria-hidden="true" /><p className="rc-foot">Fijne {dayName}!</p>
     </div></div>
     <div className="plan-actions">
-      <button className="btn primary" onClick={onderweg}><Ic n="play" />{plan.done?.length || plan.skip?.length ? 'Verder met mijn dag' : 'Start mijn dag'}</button>
-      <div className="row2"><button className="btn" disabled={isBest} onClick={() => setPlan({ stops: best.map(x => x.id) })}><Ic n={isBest ? 'check' : 'wand'} />{isBest ? 'Slimste volgorde' : 'Slimste volgorde'}</button>
-        <button className="btn" onClick={c.openDag}><Ic n="wand" />Ander voorstel</button></div>
-      <div className="row2"><a className="btn" href={routeUrl('google', c.me ?? c.origin, stops)} target="_blank" rel="noopener"><Ic n="ext" />Google Maps</a><a className="btn" href={routeUrl('apple', c.me ?? c.origin, stops)} target="_blank" rel="noopener"><Ic n="ext" />Apple Kaarten</a></div>
+      <div className="row2 start"><button className="btn primary" onClick={onderweg}><Ic n="play" />{plan.done?.length || plan.skip?.length ? 'Verder met mijn dag' : 'Start mijn dag'}</button>
+        <button className="btn" aria-expanded={more} onClick={() => setMore(!more)}>Meer<Ic n={more ? 'chevu' : 'chevd'} /></button></div>
+      {!isBest && !more && <button className="btn" onClick={() => setPlan({ stops: best.map(x => x.id) })}><Ic n="wand" />Slimste volgorde</button>}
+      {more && <div className="more-acts">
+        <button className="btn" disabled={isBest} onClick={() => setPlan({ stops: best.map(x => x.id) })}><Ic n={isBest ? 'check' : 'wand'} />{isBest ? 'Dit is al de slimste volgorde' : 'Slimste volgorde'}</button>
+        <button className="btn" onClick={c.openDag}><Ic n="wand" />Ander voorstel</button>
+        <a className="btn" href={routeUrl(IOS ? 'apple' : 'google', c.me ?? c.origin, stops)} target="_blank" rel="noopener"><Ic n="ext" />Hele route in {IOS ? 'Apple Kaarten' : 'Google Maps'}</a>
+        <a className="btn" href={routeUrl(IOS ? 'google' : 'apple', c.me ?? c.origin, stops)} target="_blank" rel="noopener"><Ic n="ext" />In {IOS ? 'Google Maps' : 'Apple Kaarten'}</a></div>}
     </div>
     {c.install && stops.length > 0 && <div className="install"><span className="brand-mark"><Ic n="tag" /></span><div><b>Zet Snuffelkaart op je beginscherm</b><p>Dan open je dit bonnetje ook zonder bereik, bijvoorbeeld in een sporthal.</p>
       <div className="btns"><button className="btn sm primary" onClick={c.install.add}>Toevoegen</button><button className="btn sm ghost" onClick={c.install.no}>Niet nu</button></div></div></div>}
-    {sugg.length > 0 && stops.length < 8 && <div className="sugg"><h3>Past ook in je {dayName}</h3><p className="sub">Open of bevestigd, vlak bij je route</p><ul className="rows">{sugg.map(x => <Row key={x.it.id} it={x.it} d={km(c.origin, x.it)} c={c} />)}</ul></div>}
+    {sugg.length > 0 && stops.length < 8 && <details className="sugg"><summary><h3>Past ook in je {dayName}</h3><span className="sub">{sugg.length} open of bevestigd, vlak bij je route</span><Ic n="chevd" /></summary><ul className="rows">{sugg.map(x => <Row key={x.it.id} it={x.it} d={km(c.origin, x.it)} c={c} />)}</ul></details>}
   </>);
 }
 

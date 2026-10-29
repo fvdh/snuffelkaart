@@ -290,3 +290,11 @@ Ontwerp `ontwerp/lus/` (canvas "Snuffelkaart: de snuffellus"), na de UX-synthese
 
 ## Gekozen plaats alleen voor dit bezoek (29 okt 2026, Freek)
 - Freek: de app moet niet bij elke start weer "Rond Zwolle" tonen. Een gekozen plaats geldt nu alleen tijdens het bezoek (sessionStorage); hij staat wel bij Recent. Bij openen: je locatie als je eerder toestemming gaf, anders "Waar wil je snuffelen?" in de pil (kaart en afstanden vanaf Amersfoort, met de banner). Vervangt "Gekozen plaats wordt bewaard" (27 okt).
+
+## Rustiger lijst en Mijn dag (29 okt 2026, Freek: "voelt soms onoverzichtelijk")
+- Regel in twee regels: naam, dan "tot 17:30 · kringloop". De sectiekop zegt al "nu open", dus geen groene "Open · sluit …" meer per regel; kleur alleen voor wat afwijkt (sluit bijna, opent later). Plaats alleen als die anders is dan waar je zoekt.
+- Tellerregel onder de pil weg: hij telde binnen 25 km, de secties de dichtstbijzijnde 40, en dat sprak elkaar tegen.
+- "Tijden onbekend" en "dicht": de dichtstbijzijnde drie, de rest achter "Nog N…". Markten op andere dagen staan vóór onbekend.
+- Zoeken achter een vergrootglas in de filterrij; klapt open bij tikken.
+- Mijn dag: vertrekblok als één regel met Wijzig; onder de bon alleen "Start mijn dag" en "Meer" (slimste volgorde, ander voorstel, kaart-apps). "Past ook" ingeklapt.
+- Winkeldetail: weektijden vanaf de gekozen dag (geen voorbije dagen met "–"); meerdere telefoonnummers apart.

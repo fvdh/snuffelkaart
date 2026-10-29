@@ -4,7 +4,7 @@ import { weekendOf, DEFAULT_CENTER, catOf } from './model';
 import { placeNow, placeDay, placeAt, isHoliday, week, setWindow, intervals } from './hours';
 import { simulate, bestOrder, routeUrl, dayProposals } from './plan';
 import { matches, visible, groupOf, groupRows } from './filter';
-import { effStart } from '../components/Views';
+import { effStart, shortStatus } from '../components/Views';
 import { sampleMarkets } from './markets';
 import { parsePdok } from './pdok';
 // dezelfde code als de import gebruikt
@@ -115,6 +115,13 @@ describe('filters', () => {
     const markets = sampleMarkets(TUE);
     expect(groupOf(markets.find(x => x.status === 'cancel')!, '2026-10-31', 600)).toBe('cancel');
     expect(groupOf({ ...markets[0], status: 'org', date: '2026-11-07' }, '2026-10-31', 600)).toBe('other');
+  });
+  it('korte status in een regel: geen herhaling van de sectiekop', () => {
+    expect(shortStatus(placeNow(P('Tu-Sa 10:00-17:00'), TUE))).toBe('tot 17:00');
+    expect(shortStatus(placeNow(P('Tu 10:00-14:30'), TUE))).toBe('Sluit over 10 min');
+    expect(shortStatus(placeAt(P('Sa 13:00-17:00'), '2026-10-31', 600))).toBe('opent 13:00');
+    expect(shortStatus(placeNow(P(null), TUE))).toBeNull();
+    expect(week(P('Mo-Su 10:00-17:00'), '2026-10-29', true)![0].iso).toBe('2026-10-29'); // vanaf de gekozen dag, geen voorbije dagen
   });
   it('weekend van een dag', () => {
     expect(weekendOf(TUE)).toEqual(['2026-10-31', '2026-11-01']);

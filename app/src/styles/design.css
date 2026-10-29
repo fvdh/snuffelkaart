@@ -711,3 +711,28 @@ h3.sec .tnum{letter-spacing:0}
 .tab .me-av{width:24px;height:24px;font-size:.75rem}
 .tab-n{position:absolute;top:-3px;right:8px;min-width:18px;height:18px;border-radius:9px;background:var(--markt);color:var(--on-markt);font-style:normal;font-size:.6875rem;font-weight:750;line-height:18px;padding:0 4px;text-align:center}
 .vk-waar{display:flex;flex-wrap:wrap;gap:4px 12px;align-items:center}.vk-waar b{color:var(--fg);font-weight:650}
+/* Rustiger lijst en Mijn dag (29 okt) */
+.r-meta .st-i{font-weight:600;color:var(--fg-2)}
+.r-meta .st-i.warn,.r-meta .st-i.later{color:var(--warn-ink)}
+.r-meta .st-i.closed{color:var(--fg-3);font-weight:500}
+.r-meta .st-i.cancel{color:var(--bad-ink)}
+.r-meta .st-i.mkt{color:var(--fg)}
+.r-meta .conf{flex:none}
+.row{padding-top:10px;padding-bottom:10px}
+.ic-chip{width:34px;padding:0;justify-content:center}
+.fold{display:flex;align-items:center;gap:6px;border:0;background:none;padding:10px 0 4px;font-weight:600;font-size:.875rem;color:var(--fg-2)}
+.fold svg{width:16px;height:16px}
+.vk-kort{flex-direction:row;align-items:center;gap:10px;width:100%;text-align:left;color:var(--fg);font:inherit;cursor:pointer;padding:10px 14px}
+.vk-kort svg{width:18px;height:18px;flex:none}
+.vk-kort > span:not(.vk-w){flex:1;display:flex;flex-direction:column;min-width:0}
+.vk-kort b{font-weight:650}
+.vk-kort small{font-size:.8125rem;color:var(--fg-2)}
+.vk-w{font-weight:650;font-size:.875rem;color:var(--markt-ink)}
+.plan-actions .row2.start{grid-template-columns:minmax(0,1fr) auto}
+.more-acts{display:grid;gap:8px}
+details.sugg summary{list-style:none;cursor:pointer;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:0 8px;align-items:center}
+details.sugg summary::-webkit-details-marker{display:none}
+details.sugg summary h3,details.sugg summary .sub{grid-column:1;margin:0}
+details.sugg summary svg{grid-column:2;grid-row:1/3;width:18px;height:18px;color:var(--fg-2)}
+details.sugg[open] summary svg{transform:rotate(180deg)}
+.phones{display:flex;flex-direction:column}
