@@ -1,0 +1,6 @@
+---
+// Cloudflare Web Analytics (Freek, 29 okt 2026): zonder cookies, geen persoonsgegevens. Token is openbaar (staat in de pagina).
+// Zonder CF_BEACON in .env of de build-omgeving: niets.
+const token = import.meta.env.CF_BEACON;
+---
+{token && <script is:inline defer src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon={JSON.stringify({ token })}></script>}

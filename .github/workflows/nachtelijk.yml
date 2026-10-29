@@ -79,6 +79,7 @@ jobs:
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }} # publishable key voor /beheer; niet geheim
+          CF_BEACON: ${{ vars.CF_BEACON }} # Cloudflare Web Analytics; niet geheim
       - name: Uitrollen naar Cloudflare
         if: steps.w.outputs.doe
         run: npx --yes wrangler@4 deploy

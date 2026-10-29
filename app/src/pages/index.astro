@@ -4,6 +4,7 @@ import '../styles/app.css';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import App from '../components/App.tsx';
 import Sprite from '../components/Sprite.astro';
+import Meten from '../components/Meten.astro';
 ---
 <html lang="nl">
   <head>
@@ -19,6 +20,7 @@ import Sprite from '../components/Sprite.astro';
       // Offline (public/sw.js), alleen in de gebouwde site: in dev zit de service worker Vite in de weg.
       if (import.meta.env.PROD && 'serviceWorker' in navigator) addEventListener('load', () => navigator.serviceWorker.register('/sw.js'));
     </script>
+    <Meten />
     <title>Snuffelkaart</title>
     <meta name="description" content="Kringlopen en rommelmarkten op één kaart. Zie wat er nu open is en plan je zaterdag." />
   </head>

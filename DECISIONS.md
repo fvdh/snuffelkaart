@@ -266,3 +266,11 @@ Op ≥ 980 px toont de lijst alleen wat op de kaart in beeld is ("N plekken in b
 - "Ander voorstel" bladert door verschillende voorstellen (startpunt 1 t/m 12, dubbele weg), met teller.
 - Het huidige dagplan blijft staan tot je bevestigt; bij een bestaand plan vragen we eerst of het vervangen mag.
 - Alleen snuffelwinkels: kringloop, vintage, antiek, vaste vlooienmarkt en overige tweedehands (boedelhuizen, brocante). Geen sloop en restpartijen, geen opkoop/pandjeshuis, en geen winkels die aan hun naam te zien iets anders zijn (auto, fiets, onderdelen, etalagepoppen…). Soorten die je in de filters uitzet, blijven ook uit het voorstel.
+
+## Gemeenteblad: inzagedatum ná de datum (29 okt 2026)
+- "Vanaf 28 oktober 2026 ligt een afschrift … ter inzage" werd als marktdag gelezen (Braderie Schiedam, label "waarschijnlijk goed"). Nu valt een datum ook af als in dezelfde zin daarna "ter inzage", "afschrift" of "bezwaar" staat. Test vastgelegd.
+
+## Meten: Cloudflare Web Analytics (29 okt 2026, Freek)
+- Paginabezoeken en verwijzers tellen, zonder cookies en zonder persoonsgegevens. Alleen op de app en de tekst-/plaatspagina's, niet in /beheer. Privacypagina aangepast.
+- Token (openbaar) als `CF_BEACON` in `app/.env` en als GitHub-variabele (niet secret). Zonder token geen script.
+- Nog niet: eigen telling van dagplannen en dagvoorstellen. Pas als paginabezoeken niet genoeg zeggen.
