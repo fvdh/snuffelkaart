@@ -292,7 +292,7 @@ function MarketDetail({ m, c, top, d, actions }: { m: Market; c: Ctx; top: React
 }
 
 /** from: vertrekpunt van dit plan (de plek waar je keek toen je de eerste stop koos), los van wat je daarna in de lijst bekijkt. */
-export type From = LatLon & { label: string; me?: boolean };
+export type From = LatLon & { label: string; me?: boolean; fallback?: boolean };
 export type Plan = { day: string; start: number; stops: string[]; done?: string[]; skip?: string[]; from?: From };
 /** Vertrektijd; -1 = "nu" (vandaag: nu, afgerond op 5 min; een andere dag: 10:00). */
 export const nowStart = (now: Date) => Math.ceil(minutesOf(now) / 5) * 5;
@@ -308,8 +308,9 @@ function Vertrek({ c, plan, setPlan }: { c: Ctx; plan: Plan; setPlan: (p: Partia
     <div className="pv-opts"><label>Vertrek<select value={plan.day === today && plan.start < nowStart(c.now) ? -1 : plan.start} onChange={e => setPlan({ start: +e.target.value })}>
       {plan.day === today && <option value={-1}>nu ({hm(nowStart(c.now))})</option>}
       {[...new Set([...TIMES, ...(plan.start >= 0 ? [plan.start] : [])])].filter(m => plan.day !== today || m >= nowStart(c.now)).sort((a, b) => a - b).map(m => <option key={m} value={m}>{hm(m)}</option>)}</select></label>
-      <span><Ic n={plan.from?.me ? 'loc' : 'home'} />vanaf {c.originLabel ?? 'je locatie'} · en terug</span>
-      {c.here.label !== c.originLabel && <button className="link" onClick={() => setPlan({ from: c.here })}>Vertrek {c.here.me ? 'vanaf je locatie' : `vanuit ${c.here.label}`}</button>}</div>
+      {!plan.from && c.here.fallback ? <span className="vk-waar"><b>Waar vertrek je?</b><button className="link" onClick={() => c.locate()}>{c.locating ? 'Locatie zoeken…' : 'Mijn locatie'}</button><button className="link" onClick={c.openWaar}>Kies een plaats</button></span>
+        : <><span><Ic n={plan.from?.me ? 'loc' : 'home'} />vanaf {c.originLabel ?? 'je locatie'} · en terug</span>
+          {!c.here.fallback && c.here.label !== c.originLabel && <button className="link" onClick={() => setPlan({ from: c.here })}>Vertrek {c.here.me ? 'vanaf je locatie' : `vanuit ${c.here.label}`}</button>}</>}</div>
   </div>);
 }
 

@@ -7,7 +7,7 @@ import { visible, matches, groupOf, type Filters } from '../lib/filter';
 import { siteIndex } from '../lib/seo';
 import type { Spot } from '../lib/pdok';
 import MapView, { type Bounds } from './MapView';
-import { ListView, DetailView, PlanView, MeView, LoginView, DagView, WaarView, OnderwegView, GedeeldView, statusFor, effStart, type Ctx, type Plan } from './Views';
+import { ListView, DetailView, PlanView, MeView, LoginView, DagView, WaarView, OnderwegView, GedeeldView, statusFor, effStart, type Ctx, type Plan, type From } from './Views';
 import { ReviewView, PhotoView, SuggestView, ContribView, type Bij, type BijView } from './Bijdragen';
 import { applyExtra, NO_EXTRA, type Extra, type Contribution, type Kind } from '../lib/bijdragen';
 import { readSession, returnError, api, sendLink, userId, logout as authLogout, mergeFavs, LoggedOut, SB, KEY, type Session } from '../lib/auth';
@@ -100,7 +100,9 @@ export default function App() {
   const plan: Plan = planRaw.day >= today && planRaw.day <= addDays(today, 13) ? planRaw : { ...planRaw, day: today, start: -1, done: [], skip: [] };
   // Altijd vanaf de laatste stand rekenen: snelle tikken achter elkaar mogen elkaar niet overschrijven.
   const planRef = useRef(plan); planRef.current = plan;
-  const setPlan = (p: Partial<Plan>) => { const n = { ...planRef.current, ...p }; planRef.current = n; setPlanRaw(n); if (p.stops) setOptimized(false); };
+  const hereRef = useRef<From>({ ...DEFAULT_CENTER, label: 'Amersfoort', fallback: true });
+  // Een plan dat stops krijgt (+, voorstel of gedeeld rondje) onthoudt waar je toen was; nooit het noodpunt Amersfoort.
+  const setPlan = (p: Partial<Plan>) => { const n = { ...planRef.current, ...p }; if (p.stops?.length && !planRef.current.stops.length && !p.from && !hereRef.current.fallback) n.from = hereRef.current; planRef.current = n; setPlanRaw(n); if (p.stops) setOptimized(false); };
   const [optimized, setOptimized] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   // Breedte van de lijst op desktop/iPad: versleepbaar, onthouden per apparaat. Kaart houdt minstens 320 px.
@@ -136,7 +138,7 @@ export default function App() {
   const back = () => {
     setDir('back'); scrollTop();
     if (FORMS.includes(view)) return setView('detail'); // terug naar de winkel; prev blijft staan
-    setView(view === 'detail' ? prev : view === 'login' || view === 'contrib' ? 'me' : view === 'onderweg' || view === 'dag' ? 'plan' : 'list'); if (view === 'detail') setSel(null); setPrev('list');
+    setView(view === 'detail' || view === 'waar' ? (prev === 'waar' ? 'list' : prev) : view === 'login' || view === 'contrib' ? 'me' : view === 'onderweg' || view === 'dag' ? 'plan' : 'list'); if (view === 'detail') setSel(null); setPrev('list');
   };
   // ---------- account (M3) ----------
   // Na inloggen: favorieten van dit apparaat gaan mee (samenvoegen). Bij een latere start wint je account: zo komt een favoriet
@@ -220,7 +222,7 @@ export default function App() {
     if (plan.stops.length >= 8) return setToast('Maximaal 8 stops per dag. Haal er eerst een weg.');
     const next: Partial<Plan> = { stops: [...plan.stops, id] };
     // Eerste stop: het plan neemt het moment over dat je bekijkt (of de dag van de markt).
-    if (!plan.stops.length) { next.from = here; next.day = it.t === 'm' ? it.date : day; next.start = next.day === today && nowMode ? -1 : when && next.day === when.day ? when.start : 600; next.done = []; next.skip = []; }
+    if (!plan.stops.length) { next.day = it.t === 'm' ? it.date : day; next.start = next.day === today && nowMode ? -1 : when && next.day === when.day ? when.start : 600; next.done = []; next.skip = []; }
     if (it.t === 'm' && it.date !== (next.day ?? plan.day)) setToast(`Let op: deze markt is op ${DAYS_LONG[dayStart(it.date).getDay()]}.`);
     else if (it.t === 'm' && !plan.stops.length && it.date !== day) setToast(`Je dag staat nu op ${DAYS_LONG[dayStart(it.date).getDay()]}, de dag van deze markt.`);
     else if (it.t === 'm' && it.status === 'unconf') setToast('Toegevoegd. Deze datum is nog niet bevestigd.');
@@ -248,7 +250,8 @@ export default function App() {
   }, [byId]);
   // Al eerder toestemming gegeven? Dan zonder vragen opnieuw ophalen.
   useEffect(() => { navigator.permissions?.query({ name: 'geolocation' }).then(s => s.state === 'granted' && locate(true)).catch(() => {}); }, []);
-  const here = me ? { ...me, label: 'je locatie', me: true } : { ...origin, label: originLabel ?? 'Amersfoort' };
+  const here: From = me ? { ...me, label: 'je locatie', me: true } : spot ? { lat: spot.lat, lon: spot.lon, label: spot.label } : { ...DEFAULT_CENTER, label: 'Amersfoort', fallback: true };
+  hereRef.current = here;
   const [shared, setShared] = useState<{ day: string; start: number; stops: string[] } | null>(null);
   const pickSpot = (s: Spot) => { setSpot(s); setMe(null); setRecent([s, ...recent.filter(r => r.label !== s.label)].slice(0, 3)); setFState(o => ({ ...o, q: '' })); setFocus({ lat: s.lat, lon: s.lon, key: Date.now() }); scrollTop(); };
   const openWaar = () => { setDir('fwd'); setPrev(view); setView('waar'); setSnap('full'); scrollTop(); };
@@ -267,7 +270,8 @@ export default function App() {
   const closeAside = () => setAside(null);
   const asideCtx: Ctx = { ...c, back: () => aside === 'plan' ? closeAside() : setAside('plan'), openPlan: () => setAside('plan'), openDag: () => setAside('dag') };
   // Mijn dag rekent vanaf het eigen vertrekpunt van het plan; "je locatie" blijft live meebewegen.
-  const pFrom = plan.from && !plan.from.me ? plan.from : here;
+  // "Je locatie" beweegt mee zodra die bekend is; tot dan de plek waar je toen was.
+  const pFrom: From = plan.from ? (plan.from.me && me ? here : plan.from) : here;
   const planScreen = (v: (typeof PLANISH)[number], cx0: Ctx) => { const cx: Ctx = { ...cx0, origin: pFrom, originLabel: pFrom.label, me: plan.from?.me ? me : null }; return v === 'dag' ? <DagView c={cx} {...planProps} />
     : v === 'onderweg' ? <OnderwegView c={cx} {...planProps} done={() => { setPlan({ done: [], skip: [] }); cx.openPlan(); }} />
     : <PlanView c={cx} {...planProps} setPlan={p => { setPlan(p); if (p.stops && !p.day && p.stops.length === plan.stops.length) setOptimized(true); }} optimizeSeen={optimized} onderweg={() => wide ? setAside('onderweg') : openPlanish('onderweg')} share={sharePlan} />; };

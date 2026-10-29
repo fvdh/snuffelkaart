@@ -710,3 +710,4 @@ h3.sec .tnum{letter-spacing:0}
 .tab[aria-current="page"] .tab-ic{background:var(--kring-soft)}
 .tab .me-av{width:24px;height:24px;font-size:.75rem}
 .tab-n{position:absolute;top:-3px;right:8px;min-width:18px;height:18px;border-radius:9px;background:var(--markt);color:var(--on-markt);font-style:normal;font-size:.6875rem;font-weight:750;line-height:18px;padding:0 4px;text-align:center}
+.vk-waar{display:flex;flex-wrap:wrap;gap:4px 12px;align-items:center}.vk-waar b{color:var(--fg);font-weight:650}
