@@ -1,0 +1,475 @@
+<title>Snuffelkaart UX-synthese</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;560;650;740;800&family=DM+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: één leeskolom met vaste inhoudsbalk; kern → controle → product → per kernwaarde → bugs → volgorde → keuzes. Huisstijl van de app (DESIGN.md): Figtree, DM Mono, kassa-inkt, bonpapier. */
+:root{
+  --pagina:oklch(0.972 0.004 85);--opp:oklch(0.995 0.002 85);--opp2:oklch(0.955 0.005 85);--bon:oklch(0.978 0.012 88);
+  --lijn:oklch(0.89 0.006 85);--lijn2:oklch(0.80 0.008 85);
+  --tekst:oklch(0.24 0.012 260);--tekst2:oklch(0.43 0.012 260);--tekst3:oklch(0.53 0.010 260);
+  --kassa:oklch(0.47 0.15 262);--kassa-soft:oklch(0.93 0.035 262);--on-kassa:oklch(0.985 0.005 262);
+  --goud:oklch(0.78 0.15 70);--goud-soft:oklch(0.95 0.05 80);--goud-ink:oklch(0.50 0.12 60);
+  --groen:oklch(0.47 0.13 150);--groen-soft:oklch(0.94 0.045 150);
+  --rood:oklch(0.50 0.18 27);--rood-soft:oklch(0.96 0.025 25);
+  --letop:oklch(0.50 0.12 65);--letop-soft:oklch(0.96 0.045 85);
+  --pruim:oklch(0.48 0.11 330);--pruim-soft:oklch(0.94 0.03 330);
+  --sans:Figtree,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"DM Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --pagina:oklch(0.19 0.012 262);--opp:oklch(0.23 0.012 262);--opp2:oklch(0.27 0.012 262);--bon:oklch(0.26 0.013 85);
+  --lijn:oklch(0.33 0.012 262);--lijn2:oklch(0.42 0.012 262);
+  --tekst:oklch(0.95 0.005 85);--tekst2:oklch(0.80 0.008 85);--tekst3:oklch(0.68 0.008 85);
+  --kassa:oklch(0.74 0.12 262);--kassa-soft:oklch(0.31 0.06 262);--on-kassa:oklch(0.18 0.02 262);
+  --goud:oklch(0.80 0.14 70);--goud-soft:oklch(0.31 0.05 70);--goud-ink:oklch(0.82 0.12 75);
+  --groen:oklch(0.77 0.13 150);--groen-soft:oklch(0.29 0.05 150);
+  --rood:oklch(0.75 0.14 27);--rood-soft:oklch(0.31 0.06 27);
+  --letop:oklch(0.82 0.12 75);--letop-soft:oklch(0.31 0.05 75);
+  --pruim:oklch(0.78 0.10 330);--pruim-soft:oklch(0.30 0.05 330);color-scheme:dark}}
+:root[data-theme="dark"]{
+  --pagina:oklch(0.19 0.012 262);--opp:oklch(0.23 0.012 262);--opp2:oklch(0.27 0.012 262);--bon:oklch(0.26 0.013 85);
+  --lijn:oklch(0.33 0.012 262);--lijn2:oklch(0.42 0.012 262);
+  --tekst:oklch(0.95 0.005 85);--tekst2:oklch(0.80 0.008 85);--tekst3:oklch(0.68 0.008 85);
+  --kassa:oklch(0.74 0.12 262);--kassa-soft:oklch(0.31 0.06 262);--on-kassa:oklch(0.18 0.02 262);
+  --goud:oklch(0.80 0.14 70);--goud-soft:oklch(0.31 0.05 70);--goud-ink:oklch(0.82 0.12 75);
+  --groen:oklch(0.77 0.13 150);--groen-soft:oklch(0.29 0.05 150);
+  --rood:oklch(0.75 0.14 27);--rood-soft:oklch(0.31 0.06 27);
+  --letop:oklch(0.82 0.12 75);--letop-soft:oklch(0.31 0.05 75);
+  --pruim:oklch(0.78 0.10 330);--pruim-soft:oklch(0.30 0.05 330);color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background:var(--pagina);color:var(--tekst);font:400 1rem/1.55 var(--sans);padding-inline:16px;padding-block:0 72px}
+.wrap{max-width:900px;margin:0 auto}
+h1,h2,h3{text-wrap:balance;margin:0}
+h1{font-size:clamp(1.9rem,5vw,2.7rem);font-weight:800;letter-spacing:-.025em;line-height:1.07}
+h2{font-size:1.5rem;font-weight:740;letter-spacing:-.015em;line-height:1.15}
+h3{font-size:1.04rem;font-weight:650;line-height:1.3}
+p{margin:0;max-width:68ch}
+a{color:var(--kassa)}
+:focus-visible{outline:2px solid var(--kassa);outline-offset:2px;border-radius:4px}
+code{font:400 .84em var(--mono);background:var(--opp2);color:var(--tekst2);padding:1px 5px;border-radius:5px;overflow-wrap:anywhere}
+.label{font:700 .72rem/1 var(--sans);letter-spacing:.08em;text-transform:uppercase;color:var(--tekst3)}
+.meta{font-size:.875rem;color:var(--tekst2)}
+.lead{font-size:1.125rem;color:var(--tekst2);max-width:62ch}
+
+header{display:grid;gap:16px;padding-block:44px 30px}
+.bron{display:flex;flex-wrap:wrap;gap:8px}
+.bron a{font:500 .8rem var(--mono);text-decoration:none;padding:5px 10px;border-radius:999px;border:1px solid var(--lijn2);background:var(--opp);color:var(--tekst2)}
+.bron a:hover{border-color:var(--kassa);color:var(--kassa)}
+
+nav.toc{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--pagina);border-bottom:1px solid var(--lijn);border-top:1px solid var(--lijn);margin-inline:-16px;padding:10px 16px;overflow-x:auto;scrollbar-width:none}
+nav.toc .wrap{display:flex;gap:4px}
+nav.toc a{flex:none;font:560 .875rem var(--sans);color:var(--tekst2);text-decoration:none;padding:6px 11px;border-radius:999px;display:inline-flex;align-items:center;gap:7px}
+nav.toc a:hover{background:var(--opp2);color:var(--tekst)}
+.dot{width:9px;height:9px;border-radius:3px;display:inline-block;flex:none}
+.d1{background:var(--kassa)}.d2{background:var(--goud-ink)}.d3{background:var(--groen)}.d4{background:var(--pruim)}
+
+section{display:grid;gap:20px;padding-block:44px;border-bottom:1px solid var(--lijn);scroll-margin-top:60px}
+.kop{display:grid;gap:8px}
+
+.diag-bon{background:var(--bon);font:400 .9rem/1.6 var(--mono);padding:20px 20px 26px;max-width:540px;border-radius:4px 4px 0 0;
+  -webkit-mask:conic-gradient(from -45deg at bottom,#0000,#000 1deg 89deg,#0000 90deg) 50%/12px 100%;mask:conic-gradient(from -45deg at bottom,#0000,#000 1deg 89deg,#0000 90deg) 50%/12px 100%}
+.diag-bon .r{display:flex;justify-content:space-between;gap:16px;font-variant-numeric:tabular-nums}
+.diag-bon hr{border:0;border-top:1px dashed var(--lijn2);margin:9px 0}
+.diag-bon b{font-weight:500}
+
+.kern{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(min(100%,270px),1fr))}
+.kern article{background:var(--opp);border:1px solid var(--lijn);border-radius:12px;padding:18px;display:grid;gap:9px;align-content:start}
+.kern .nr{font:500 .85rem var(--mono);color:var(--kassa)}
+.wie{display:flex;gap:5px}
+.kern p{color:var(--tekst2);font-size:.95rem}
+.kern p.zet{color:var(--tekst);font-weight:560}
+
+.check{display:grid;gap:10px}
+.ck{display:grid;grid-template-columns:auto minmax(0,1fr);gap:12px;align-items:start;padding:14px 16px;background:var(--opp);border:1px solid var(--lijn);border-radius:12px}
+.ck p{color:var(--tekst2);font-size:.94rem}
+.ck b{color:var(--tekst);font-weight:650}
+.stempel{font:700 .68rem/1 var(--sans);letter-spacing:.06em;text-transform:uppercase;padding:5px 7px;border-radius:5px;white-space:nowrap}
+.s-ok{background:var(--groen-soft);color:var(--groen)}
+.s-let{background:var(--letop-soft);color:var(--letop)}
+
+.lus{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.stap{background:var(--opp);border:1px solid var(--k);border-radius:12px;padding:9px 13px;display:grid;gap:1px}
+.stap b{font-weight:650}.stap span{font-size:.8rem;color:var(--tekst3)}
+.pijl{color:var(--tekst3);font-family:var(--mono)}
+.k1{--k:var(--kassa);--ks:var(--kassa-soft)}.k2{--k:var(--goud-ink);--ks:var(--goud-soft)}.k3{--k:var(--groen);--ks:var(--groen-soft)}.k4{--k:var(--pruim);--ks:var(--pruim-soft)}
+.plekken{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(min(100%,200px),1fr))}
+.plek{border-top:3px solid var(--k);background:var(--opp);border-radius:0 0 12px 12px;padding:14px 16px;display:grid;gap:6px;align-content:start}
+.plek ul{margin:0;padding-left:1.05em;font-size:.9rem;color:var(--tekst2);display:grid;gap:3px}
+.plek .label{color:var(--k)}
+
+.schermen{display:flex;gap:16px;overflow-x:auto;padding-bottom:8px;scroll-snap-type:x mandatory}
+.schermen figure{flex:none;width:min(300px,84vw);margin:0;display:grid;gap:8px;align-content:start;scroll-snap-align:start}
+pre.scherm{margin:0;background:var(--bon);border:1px solid var(--lijn2);border-radius:18px;padding:14px 12px;font:400 .74rem/1.45 var(--mono);color:var(--tekst);white-space:pre;overflow-x:auto}
+figcaption{font-size:.85rem;color:var(--tekst2)}
+figcaption b{color:var(--tekst);font-weight:650;display:block}
+
+.kw{display:inline-flex;align-items:center;gap:8px;font:700 .75rem var(--sans);letter-spacing:.07em;text-transform:uppercase;color:var(--k)}
+.kw .dot{background:var(--k)}
+.verdict{font-size:1.12rem;font-weight:560;line-height:1.45;max-width:62ch;padding:12px 16px;background:var(--ks);border-radius:10px}
+.pijn{margin:0;padding:0;list-style:none;border:1px solid var(--lijn);border-radius:12px;background:var(--opp);overflow:hidden}
+.pijn li{display:grid;grid-template-columns:64px minmax(0,1fr);gap:12px;padding:12px 16px;border-top:1px solid var(--lijn)}
+.pijn li:first-child{border-top:0}
+.ernst{font:700 .68rem/1 var(--sans);letter-spacing:.06em;text-transform:uppercase;padding:5px 0;border-radius:5px;text-align:center;align-self:start}
+.e-h{background:var(--rood-soft);color:var(--rood)}.e-m{background:var(--letop-soft);color:var(--letop)}.e-l{background:var(--opp2);color:var(--tekst2)}
+.pijn b{font-weight:650}
+.pijn p{color:var(--tekst2);font-size:.93rem;margin-top:2px}
+.twee{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:12px}
+.twee > div{background:var(--opp);border:1px solid var(--lijn);border-radius:12px;padding:14px 16px;min-width:0}
+.twee ul{margin:8px 0 0;padding-left:1.1em;font-size:.92rem;color:var(--tekst2);display:grid;gap:4px}
+
+.tbl{overflow-x:auto;border:1px solid var(--lijn);border-radius:12px;background:var(--opp)}
+table{border-collapse:collapse;width:100%;min-width:640px;font-size:.92rem}
+th,td{text-align:left;padding:11px 14px;border-top:1px solid var(--lijn);vertical-align:top}
+th{border-top:0;font:700 .72rem var(--sans);letter-spacing:.06em;text-transform:uppercase;color:var(--tekst3)}
+td p{color:var(--tekst2);font-size:.88rem;margin-top:2px}
+
+.fases{display:grid;gap:12px}
+.fase{display:grid;grid-template-columns:150px minmax(0,1fr);gap:16px;background:var(--opp);border:1px solid var(--lijn);border-radius:12px;padding:16px}
+@media (max-width:620px){.fase{grid-template-columns:1fr;gap:10px}}
+.fase .when{display:grid;gap:4px;align-content:start}
+.fase .when b{font-size:1.05rem;font-weight:740}
+.fase ul{margin:0;padding:0;list-style:none;display:grid;gap:7px}
+.fase li{display:grid;grid-template-columns:auto minmax(0,1fr);gap:10px;align-items:baseline}
+.fase input{accent-color:var(--kassa);width:16px;height:16px;translate:0 2px}
+.fase label{cursor:pointer}
+.ref{color:var(--tekst3);font:400 .8rem var(--mono)}
+.let{background:var(--letop-soft);border-radius:12px;padding:14px 16px;display:grid;gap:6px}
+.let p{font-size:.95rem}
+
+.keuzes{display:grid;gap:10px;counter-reset:k}
+.keuze{display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 14px;padding:15px 17px;background:var(--goud-soft);border:1px solid var(--goud);border-radius:12px}
+.keuze::before{counter-increment:k;content:counter(k);grid-row:span 3;font:500 1.15rem var(--mono);color:var(--goud-ink)}
+.keuze p{color:var(--tekst2);font-size:.93rem}
+.keuze p b{color:var(--tekst);font-weight:650}
+.botst{font:600 .78rem var(--sans);color:var(--rood)}
+
+footer{padding-top:28px;display:grid;gap:6px}
+footer p{font-size:.82rem;color:var(--tekst3)}
+@media (max-width:520px){.pijn li{grid-template-columns:1fr;gap:6px}.ernst{justify-self:start;padding-inline:8px}}
+@media (prefers-reduced-motion:no-preference){html{scroll-behavior:smooth}}
+</style>
+
+<div class="wrap">
+<header>
+  <span class="label">Snuffelkaart · UX-synthese · 29 oktober 2026</span>
+  <h1>Vier reviews, één product</h1>
+  <p class="lead">Vier reviews keken elk vanuit dezelfde vier kernwaarden naar de app: vinden, plannen, aanvullen en delen. Dit document voegt ze samen, haalt dubbelingen weg en controleert de belangrijkste beweringen in de code. Waar de reviews elkaar tegenspreken, staat welke klopt.</p>
+  <div class="bron" aria-label="Bronnen">
+    <a href="https://claude.ai/artifact/WJpcksNkF8ZrpZRq9B2VEM">UX-ronde</a>
+    <a href="https://claude.ai/artifact/1niTtB3W5EYh7YLXCd8t5U">Productvoorstel</a>
+    <a href="https://claude.ai/artifact/3mRRmEkuUpybFdpuM78SSz">UX-herziening</a>
+    <a href="https://claude.ai/artifact/QRq3eNeAni3JCAuqjJvbun">UX-review</a>
+  </div>
+</header>
+</div>
+
+<nav class="toc" aria-label="Inhoud"><div class="wrap">
+  <a href="#kern">Kern</a><a href="#controle">Gecontroleerd</a><a href="#product">Het product</a>
+  <a href="#vinden"><i class="dot d1"></i>Vinden</a><a href="#plannen"><i class="dot d2"></i>Plannen</a><a href="#aanvullen"><i class="dot d3"></i>Aanvullen</a><a href="#delen"><i class="dot d4"></i>Delen</a>
+  <a href="#bugs">Bugs</a><a href="#volgorde">Volgorde</a><a href="#keuzes">Jouw keuzes</a>
+</div></nav>
+
+<div class="wrap">
+
+<section id="kern">
+  <div class="kop"><span class="label">De kern</span><h2>De onderdelen werken, het geheel nog niet</h2>
+  <p>Alle vier de reviews komen uit bij dezelfde oorzaak: de app weet niet <em>waar</em> en <em>wanneer</em> je gaat, onthoudt niet <em>waar je was</em>, en heeft geen adressen. Daardoor spreken lijst, detail en plan elkaar soms tegen, en kan delen nergens naar wijzen.</p></div>
+  <div class="diag-bon" role="table" aria-label="Samenvatting in cijfers">
+    <div class="r"><b>SNUFFELKAART · UX-CHECK</b><span>29-10</span></div>
+    <hr>
+    <div class="r"><span>Plekken zonder tijden</span><span>2595 / 3701</span></div>
+    <div class="r"><span>Kringlopen zonder tijden</span><span>518 / 970</span></div>
+    <div class="r"><span>Zo'n winkel op 0,4 km staat op</span><span>rij ±1300</span></div>
+    <hr>
+    <div class="r"><span>Laatste vertrektijd dagplan</span><span>13:00</span></div>
+    <div class="r"><span>Tijden doorgeven als nieuwe gast</span><span>20–30 tikken</span></div>
+    <div class="r"><span>Een winkel of plan delen</span><span>kan niet</span></div>
+    <hr>
+    <div class="r"><b>Bevestigde bugs, klein werk</b><b>7</b></div>
+  </div>
+  <div class="kern">
+    <article><span class="nr">A</span><div class="wie"><i class="dot d1"></i><i class="dot d2"></i><i class="dot d4"></i></div><h3>Waar en wanneer zijn geen vaste keuze</h3>
+      <p>Het zoekveld zoekt tegelijk plaats en winkelnaam. GPS wint van een gekozen plaats. De vertrektijd staat vast op 9:30 en het plan zegt altijd "vanaf Amersfoort".</p>
+      <p class="zet">Eén contextpil "Rond Zwolle · Nu" die lijst, voorstel, plan en deellink stuurt.</p></article>
+    <article><span class="nr">B</span><div class="wie"><i class="dot d1"></i><i class="dot d2"></i><i class="dot d3"></i></div><h3>Onbekende tijden zijn de echte bottleneck</h3>
+      <p>Winkels zonder tijden staan achter álle winkels met tijden, ook als ze om de hoek liggen. Het dagvoorstel kiest alleen uit bekende tijden en is daardoor vaak leeg.</p>
+      <p class="zet">Onzeker is niet onbelangrijk: toon ze op afstand, en vraag juist daar "Klopt dit nog?".</p></article>
+    <article><span class="nr">C</span><div class="wie"><i class="dot d2"></i><i class="dot d3"></i><i class="dot d4"></i></div><h3>De app vergeet waar je was</h3>
+      <p>Na inloggen beland je op Jij in plaats van bij de winkel. De adresbalk verandert nooit, de terugknop sluit de app en het plan staat alleen op dit apparaat.</p>
+      <p class="zet">Staat in de URL (plek, dag, scherm, winkel) en na elke omweg terug naar waar je was.</p></article>
+    <article><span class="nr">D</span><div class="wie"><i class="dot d2"></i><i class="dot d3"></i><i class="dot d4"></i></div><h3>Het bonnetje is het product</h3>
+      <p>Het sterkste idee in de app blijft op je telefoon. Er is geen deelknop, geen onderweg-stand en geen moment om na een bezoek iets te bevestigen.</p>
+      <p class="zet">Maak de bon het object: maken, delen, rijden en na afloop aanvullen.</p></article>
+  </div>
+</section>
+
+<section id="controle">
+  <div class="kop"><span class="label">Feitencheck</span><h2>Nagelopen in de code</h2>
+  <p>De reviews lazen de code, maar draaiden de app niet. Ik heb de beweringen waar de volgorde van afhangt gecontroleerd op <code>main</code> (na <code>2bbbf9f</code>).</p></div>
+  <div class="check">
+    <div class="ck"><span class="stempel s-ok">Klopt</span><p><b>Winkels zonder tijden achteraan in heel Nederland.</b> <code>visible()</code> sorteert eerst op <code>rank</code> (onbekend = 1) en pas dan op afstand (<code>filter.ts:28-30</code>). Eén review zei dat de lijst alleen op afstand sorteert; dat klopt niet.</p></div>
+    <div class="ck"><span class="stempel s-ok">Klopt</span><p><b>"Vanaf Amersfoort" staat hard in het plan</b> (<code>Views.tsx:282, 289</code>), terwijl de berekening de gekozen plaats gebruikt.</p></div>
+    <div class="ck"><span class="stempel s-ok">Klopt</span><p><b>Een losse "0" in de plankop.</b> <code>later</code> is 0 als je niet hoeft te wachten, en <code>{later &amp;&amp; …}</code> toont dan een 0 (<code>Views.tsx:273, 283</code>).</p></div>
+    <div class="ck"><span class="stempel s-ok">Klopt</span><p><b>Vertrek 8:00–13:00, standaard 9:30</b> (<code>App.tsx:83</code>, <code>Views.tsx:281</code>). Na inloggen naar Jij (<code>App.tsx:294</code>). 10–17 vooringevuld bij onbekende tijden (<code>bijdragen.ts:41</code>). <code>bestOrder</code> bij elke render zonder <code>useMemo</code> (<code>Views.tsx:269</code>). Route vanuit het detail gebruikt alleen je GPS (<code>Views.tsx:165</code>).</p></div>
+    <div class="ck"><span class="stempel s-let">Let op</span><p><b>"Het plan neemt de dag van de lijst over"</b> is geen bug maar jouw besluit van 28 oktober ("Eén dagkeuze"). Drie reviews willen het terugdraaien. Zie keuze 2.</p></div>
+    <div class="ck"><span class="stempel s-let">Let op</span><p><b>Cijfers verschillen per review</b> omdat ze iets anders tellen: 70% van alle plekken heeft geen tijden; van de kringlopen is het 53%. Beide kloppen.</p></div>
+  </div>
+</section>
+
+<section id="product">
+  <div class="kop"><span class="label">Samengevoegd</span><h2>Eén lus, drie of vier vaste plekken</h2>
+  <p>De kernwaarden zijn stappen in dezelfde rondgang. Elke stap levert iets aan de volgende, en wie een gedeelde link opent, begint weer bij Vind, al op de juiste plek en dag.</p></div>
+  <div class="lus" role="list" aria-label="De snuffellus">
+    <div class="stap k1" role="listitem"><b>Vind</b><span>hier of rond Zwolle</span></div><span class="pijl" aria-hidden="true">→</span>
+    <div class="stap k2" role="listitem"><b>Plan</b><span>nu of za 10:00</span></div><span class="pijl" aria-hidden="true">→</span>
+    <div class="stap k2" role="listitem"><b>Ga</b><span>volgende stop</span></div><span class="pijl" aria-hidden="true">→</span>
+    <div class="stap k3" role="listitem"><b>Bevestig</b><span>"klopt" of foto van het bord</span></div><span class="pijl" aria-hidden="true">→</span>
+    <div class="stap k4" role="listitem"><b>Deel</b><span>winkel of hele dag</span></div>
+  </div>
+  <div class="plekken">
+    <div class="plek k1"><span class="label">Kaart · thuis</span><h3>Wat is hier open?</h3><ul><li>Contextpil waar + wanneer</li><li>Secties: Nu open, Later vandaag, Tijden onbekend</li><li>"Zoek in dit gebied"</li></ul></div>
+    <div class="plek k2"><span class="label">Mijn dag</span><h3>Waar ga ik heen?</h3><ul><li>Voorstel en plan als één bon</li><li>Vertrek nu of later, met eindtijd</li><li>Onderweg-stand</li></ul></div>
+    <div class="plek k4"><span class="label">Bewaard</span><h3>Wat wil ik onthouden?</h3><ul><li>Lijstjes, deelbaar</li><li>Alleen in de 4-tabsvariant; anders onder Jij</li></ul></div>
+    <div class="plek k3"><span class="label">Jij</span><h3>Wat heb ik bijgedragen?</h3><ul><li>Snuffelpas met wat het oplevert</li><li>Status van bijdragen</li><li>Account</li></ul></div>
+  </div>
+  <p class="meta">Delen krijgt geen eigen plek: het is een knop op elke winkel, markt en bon. Of het drie of vier tabs worden, is keuze 1.</p>
+
+  <h3>De kernflows, scherm voor scherm</h3>
+  <div class="schermen">
+<figure><pre class="scherm">┌──────────────────────────────┐
+│ [◎ Rond Zwolle ▾] [Nu ▾] (F) │
+│ [ Zoek een winkel         ]  │
+│ (Winkels)(Markten) Filters   │
+├──────────────────────────────┤
+│ NU OPEN · 6                  │
+│ ● Larry's Vintage   0,7 km + │
+│   open tot 17:00             │
+│ LATER VANDAAG · 2            │
+│ ◐ Oxfam Zwolle  opent 13:00  │
+│ TIJDEN ONBEKEND · 9          │
+│ ┄ Kringloop Oost    2,1 km   │
+│   Weet jij de tijden? ›      │
+│     ( Zoek in dit gebied )   │
+└──────────────────────────────┘</pre><figcaption><b>1 · Openen en vinden</b>Geen blokkerend welkom. Waar en wanneer in één kop; de lijst ingedeeld op wat je ermee kunt.</figcaption></figure>
+<figure><pre class="scherm">┌──────────────────────────────┐
+│ ‹ Terug                      │
+│ Waar wil je snuffelen?       │
+│ [ Zwo________________ ]      │
+│ ◎ Mijn locatie             › │
+│ ⌖ Zwolle · gemeente        › │
+│ RECENT                       │
+│ ◷ Nunspeet                 › │
+│ ◷ Utrecht                  › │
+│ WANNEER                      │
+│ [Nu][Vandaag][Morgen][za 31] │
+│ Vertrek      ‹ 10:00 ›       │
+└──────────────────────────────┘</pre><figcaption><b>2 · Waar en wanneer</b>Bestaat al als <code>Plaats.dc.html</code>. Recente plaatsen werken offline; wat je kiest blijft staan.</figcaption></figure>
+<figure><pre class="scherm">┌──────────────────────────────┐
+│ ‹ Lijst                    ⤴ │
+│ Kringloop De Hoop            │
+│ ● Open · sluit 17:00 · 0,1km │
+│ [   Route ▸   ] [+ Dag] [♡]  │
+│ ┌ Sta je er nu? ───────────┐ │
+│ │ Wij denken: za 10–17     │ │
+│ │ Laatst gezien 3 mnd terug│ │
+│ │ [ Klopt ] [ Klopt niet ] │ │
+│ │ [ Foto van het bord ]    │ │
+│ └──────────────────────────┘ │
+│ Openingstijden …             │
+└──────────────────────────────┘</pre><figcaption><b>3 · Een winkel</b>Status op de gekozen dag, Route als hoofdknop, delen rechtsboven. "Klopt" in één tik.</figcaption></figure>
+<figure><pre class="scherm">┌──────────────────────────────┐
+│ ‹ Terug         Mijn zaterdag│
+│ ◷ Za 31 okt · 10:00       ✎  │
+│ ⌂ vanaf Thuis, Amersfoort ✎  │
+│ ┌ bon ─────────────────────┐ │
+│ │ 1 10:12 Het Goed  tot 17 │ │
+│ │ 2 ──:── Kringloop Oost   │ │
+│ │   ⚠ za dicht [Vervang]   │ │
+│ │ 3 10:58 Dorcas    tot 17 │ │
+│ │ Thuis rond         13:01 │ │
+│ └──────────────────────────┘ │
+│ [ ▶ Start mijn dag ] [⤴ Deel]│
+└──────────────────────────────┘</pre><figcaption><b>4 · Het rondje</b>Vertrekblok hoort bij het plan, met echte plaatsnaam en terugreis. Een dichte stop telt niet mee en krijgt een vervanger.</figcaption></figure>
+<figure><pre class="scherm">┌──────────────────────────────┐
+│ Onderweg            2 van 3  │
+│ ┌ VOLGENDE ────────────────┐ │
+│ │ Dorcas Kringloop         │ │
+│ │ ± 6 min · open tot 17:00 │ │
+│ │ [ Navigeer ] [Overslaan] │ │
+│ └──────────────────────────┘ │
+│ ✓ 1 Het Goed · geweest       │
+│ Je was bij Het Goed          │
+│ Klopte za 10:00–17:00?       │
+│ [ ✓ Klopt ]  [ Anders… ]     │
+│ 20 min uitgelopen? Herreken  │
+└──────────────────────────────┘</pre><figcaption><b>5 · Op de dag zelf</b>Navigeren per stop. Na elk bezoek één vraag: zo vul je aan zonder moeite.</figcaption></figure>
+<figure><pre class="scherm">┌──────────────────────────────┐
+│ Freek stuurde je dit rondje  │
+│ za 31 okt · vertrek 10:00    │
+│ ┌ bon ─────────────────────┐ │
+│ │ 1 10:12 Het Goed  ● open │ │
+│ │ 2 10:58 Dorcas    ● open │ │
+│ │ 3 11:47 Markt  ✕ afgelast│ │
+│ └──────────────────────────┘ │
+│ 1 stop gaat niet door sinds  │
+│ Freek dit stuurde.           │
+│ [ Neem over als mijn dag ]   │
+│ Geen account nodig.          │
+└──────────────────────────────┘</pre><figcaption><b>6 · De ontvanger</b>Het rondje zit in de link, zonder database. De ontvanger ziet de actuele status.</figcaption></figure>
+  </div>
+</section>
+
+<section id="vinden" class="k1">
+  <div class="kop"><span class="kw"><i class="dot"></i>Kernwaarde 1 · Vinden</span><h2>Eerst resultaat, dan verfijnen</h2>
+  <p class="verdict">Maak van waar en wanneer één plek bovenaan, sorteer op wat je ermee kunt, en laat het detail dezelfde dag tonen met Route als eerste knop.</p></div>
+  <ul class="pijn">
+    <li><span class="ernst e-h">Hoog</span><div><b>Winkels zonder tijden staan achter alle winkels met tijden</b><p>Een kringloop op 400 m kan op rij ±1300 staan; de eerste pagina reikt tot 12–22 km.</p></div></li>
+    <li><span class="ernst e-h">Hoog</span><div><b>Eén veld voor plaats én winkelnaam</b><p>Typ "Zwolle" en de lijst filtert op die naam. PDOK geeft maximaal 3 plaatsen, geen adres of station; Enter doet niets. Recent en Mijn locatie uit het ontwerp zijn niet gebouwd.</p></div></li>
+    <li><span class="ernst e-h">Hoog</span><div><b>GPS overschrijft stil een gekozen plaats</b><p>En omgekeerd: een plek van vorige week wint soms van "hier". Snel wisselen tussen hier en Zwolle kan niet.</p></div></li>
+    <li><span class="ernst e-h">Hoog</span><div><b>Het eerste scherm geeft geen resultaat</b><p>Welkomstpaneel, Amersfoort op de achtergrond, en na "Mijn locatie" tot 8 s stilte zonder melding.</p></div></li>
+    <li><span class="ernst e-m">Midden</span><div><b>Op mobiel volgt de lijst de kaart niet</b><p>Sleep naar Deventer en de lijst blijft rond Amersfoort. Er is geen "Zoek in dit gebied".</p></div></li>
+    <li><span class="ernst e-m">Midden</span><div><b>De kop neemt de sheet in</b><p>Merk, titel, tellers, dagkeuze en "Maak een dag" staan boven de lijst; in de halve stand blijven 1 à 2 rijen over.</p></div></li>
+    <li><span class="ernst e-m">Midden</span><div><b>Het detail toont de status van nu, de lijst die van de gekozen dag</b><p>En "Open vandaag" is geen "Nu open": het telt ook wat later pas opengaat.</p></div></li>
+    <li><span class="ernst e-l">Laag</span><div><b>Route is een naamloos icoon dat alleen Google Maps opent</b><p>Apple Maps zit alleen in het dagplan. Op het platteland zegt de app niet dat de dichtstbijzijnde op 23 km ligt.</p></div></li>
+  </ul>
+  <div class="twee">
+    <div><span class="label">Quick wins</span><ul><li>Op afstand sorteren, onbekend gestippeld ertussen</li><li>Kop "Snuffelen rond X" als knop naar de plaatskiezer</li><li>Enter kiest de eerste plaats; 3 recente plaatsen</li><li>"Locatie zoeken…" met uitweg na 8 s</li><li>Status op de gekozen dag in het detail</li><li>Route als hoofdknop, met label, Apple Maps op iOS</li></ul></div>
+    <div><span class="label">Groter</span><ul><li>Plek als vast object met plek-chip en plaatskiezer</li><li>Lijst in secties</li><li>"Zoek in dit gebied" op mobiel; straal met melding</li><li>Later: "Langs mijn route" (lijn met buffer, geen routing)</li></ul></div>
+  </div>
+</section>
+
+<section id="plannen" class="k2">
+  <div class="kop"><span class="kw"><i class="dot"></i>Kernwaarde 2 · Plannen</span><h2>Van een dag naar een moment</h2>
+  <p class="verdict">Maak van een dag een moment (nu of later, met eindtijd en vertrekpunt) en laat elke rij zeggen of de winkel open is als jij aankomt. Laat het plan doorlopen tot je op de stoep staat.</p></div>
+  <ul class="pijn">
+    <li><span class="ernst e-h">Hoog</span><div><b>"Nu" bestaat niet</b><p>Vertrek staat op 9:30, kiezen kan tot 13:00. Wie om 14:00 plant, krijgt aankomsttijden die al voorbij zijn, en "Maak een dag" kan winkels voorstellen die al dicht zijn.</p></div></li>
+    <li><span class="ernst e-h">Hoog</span><div><b>Vertrekpunt is waar je telefoon is, en heet "Amersfoort"</b><p>Er is geen "Thuis", geen terugreis ("klaar rond" is niet "thuis rond") en de route-link gebruikt je huidige plek.</p></div></li>
+    <li><span class="ernst e-h">Hoog</span><div><b>Een dichte stop is doodlopend</b><p>Je kunt hem alleen weghalen; hij telt mee in de tijdlijn en gaat mee naar Maps. Of je op tijd bent, zie je pas na toevoegen, in een toast.</p></div></li>
+    <li><span class="ernst e-h">Hoog</span><div><b>Het plan staat alleen op dit apparaat</b><p>Thuis plannen op de laptop, onderweg op de telefoon: alleen favorieten gaan mee.</p></div></li>
+    <li><span class="ernst e-m">Midden</span><div><b>Het voorstel is ondoorzichtig, vaak leeg en niet te sturen</b><p>Altijd 4 stops binnen 20 km, alleen bekende tijden, verborgen vertrektijd, geen stop ruilen.</p></div></li>
+    <li><span class="ernst e-m">Midden</span><div><b>Volgorde niet zelf te veranderen, niets ongedaan te maken</b><p>"Slimste volgorde" overschrijft zonder preview; het kruisje wist meteen. Verblijf vast 40/60 min, reistijd altijd met de auto.</p></div></li>
+    <li><span class="ernst e-m">Midden</span><div><b>Geen onderweg-stand</b><p>Geen volgende stop, niet afvinken, navigeren alleen voor de hele route. Feestdagbanner staat alleen in de lijst.</p></div></li>
+  </ul>
+  <div class="twee">
+    <div><span class="label">Quick wins</span><ul><li>"Amersfoort" → <code>c.originLabel</code></li><li>Vertrek vandaag standaard op nu (afgerond op 5 min), keuze tot 21:00</li><li>Tijdkeuze ook in het dagvoorstel</li><li>Dichte stops uit tijdlijn en Maps-link</li><li>Ongedaan maken na weghalen</li><li>Omhoog/omlaag per stop; "Rij naar deze stop"</li><li><code>useMemo</code> om <code>bestOrder</code></li></ul></div>
+    <div><span class="label">Groter</span><ul><li>Vertrekblok in het plan: <code>{day, start, from, stops}</code></li><li>Vervangvoorstel per dichte stop</li><li>Plan in je account</li><li>Onderweg-stand met Hier geweest en Herreken</li><li>Verblijfsduur en fiets als keuze</li></ul></div>
+  </div>
+</section>
+
+<section id="aanvullen" class="k3">
+  <div class="kop"><span class="kw"><i class="dot"></i>Kernwaarde 3 · Aanvullen</span><h2>Eén tik, op het moment dat je het weet</h2>
+  <p class="verdict">Stel één ja/nee-vraag als iemand in de winkel staat, zonder eerst in te loggen. Bewaar het antwoord, vraag pas bij versturen om een account, en laat zien wat het de volgende snuffelaar oplevert.</p></div>
+  <ul class="pijn">
+    <li><span class="ernst e-h">Hoog</span><div><b>De goedkoopste bijdrage bestaat niet</b><p>Geen "Klopt nog" of "Bestaat nog": om te bevestigen stuur je de hele week opnieuw in. De controledatum kan zo nooit ververst worden, terwijl 2652 winkels uit Overture komen.</p></div></li>
+    <li><span class="ernst e-h">Hoog</span><div><b>Inloggen vóór de eerste tik, en daarna ben je je actie kwijt</b><p>E-mail, code van 8 cijfers, schermnaam; dan land je op Jij. De toast belooft "Daarna kun je meteen verder". Mail komt nog van <code>@runebinder.app</code>.</p></div></li>
+    <li><span class="ernst e-h">Hoog</span><div><b>Het tijdenformulier is een weekschema</b><p>7 dagen, 14 tijdvelden. Bij onbekende tijden staat 10–17 al ingevuld, dus een snelle tik bevestigt een gok. Een lunchpauze verdwijnt.</p></div></li>
+    <li><span class="ernst e-h">Hoog</span><div><b>De app weet waar de gaten zitten, maar vraagt er niet om</b><p>De enige uitnodiging is een grijs vak onderaan het detail. In de lijst is niets te zien.</p></div></li>
+    <li><span class="ernst e-m">Midden</span><div><b>Geen terugkoppeling</b><p>"Meestal binnen een dag" terwijl het in ±15 min live staat; je hoort niet dat het is goedgekeurd.</p></div></li>
+    <li><span class="ernst e-m">Midden</span><div><b>De Snuffelpas beloont niet wat het meest helpt</b><p>Een foto telt even zwaar als openingstijden. Soort corrigeren of een winkel toevoegen kan niet (824 "overige tweedehands").</p></div></li>
+    <li><span class="ernst e-m">Midden</span><div><b>Drie ingangen met elk andere regels</b><p>Klopt er iets niet, Tijden aanpassen en OpenStreetMap staan alle drie in de voet.</p></div></li>
+    <li><span class="ernst e-l">Laag</span><div><b>Elke bijdrage gaat langs één mens</b><p>Ook die van iemand met 20 goedgekeurde bijdragen.</p></div></li>
+  </ul>
+  <div class="twee">
+    <div><span class="label">Quick wins</span><ul><li>Na inloggen terug naar het formulier (<code>view</code> + <code>sel</code> in sessionStorage)</li><li>Geen 10–17 vooringevuld</li><li>Realistische tekst over de keuring</li><li>"Gezien 12 okt" en bron in het detail, kaart "Kloppen deze tijden?"</li><li>Eenmalige melding als een bijdrage is beoordeeld</li><li>"12 winkels hier zonder tijden. Help je er één?"</li></ul></div>
+    <div><span class="label">Groter</span><ul><li>"Klopt"-rpc zonder account, met rem per apparaat</li><li>Alleen doorgeven wat anders is (±6 tikken)</li><li>Concept bewaren, inloggen bij "Stuur", voorgestelde schermnaam</li><li>"Sta je er nu?" binnen ±100 m of bij een stop uit je plan</li><li>Winkel toevoegen; soort corrigeren via melding</li><li>Automatisch goedkeuren als het gelijk is aan wat bekend is</li></ul></div>
+  </div>
+</section>
+
+<section id="delen" class="k4">
+  <div class="kop"><span class="kw"><i class="dot"></i>Kernwaarde 4 · Delen en geheel</span><h2>Eén tik voor wie deelt, een bruikbare pagina voor wie ontvangt</h2>
+  <p class="verdict">Geef de app adressen. Dan krijgt elke winkel, dag en lijst een link, en komt de ontvanger meteen in de app terecht met de juiste plek en dag.</p></div>
+  <ul class="pijn">
+    <li><span class="ernst e-h">Hoog</span><div><b>Delen bestaat niet</b><p>Geen deelknop, geen <code>navigator.share</code>, geen kopieerlink; het icoon <code>i-share</code> bestaat wel. DESIGN.md belooft een deelbare bon.</p></div></li>
+    <li><span class="ernst e-h">Hoog</span><div><b>Geen URL-staat</b><p>Alles is React-state; <code>?open=</code> wordt meteen weggehaald. Terug sluit de app, verversen verliest je plek.</p></div></li>
+    <li><span class="ernst e-h">Hoog</span><div><b>Lege linkvoorbeelden</b><p><code>index.astro</code> heeft geen OG-tags, er is nergens een <code>og:image</code>. In WhatsApp een kaal blok.</p></div></li>
+    <li><span class="ernst e-m">Midden</span><div><b>Twee detailpagina's per winkel</b><p>De statische pagina heeft geen live status, route of dagplan; de app-pagina heeft geen adres. <code>?open=</code> gebruikt een id dat kan veranderen.</p></div></li>
+    <li><span class="ernst e-m">Midden</span><div><b>De ontvanger landt zonder context</b><p>Afstanden vanaf Amersfoort, status van vandaag, niet wie deelde of waarom.</p></div></li>
+    <li><span class="ernst e-m">Midden</span><div><b>Plan en Bewaard dubbel en verstopt; Jij is een verzamelbak</b><p>Hartje en + vullen elk een eigen lijst; de bon staat op drie plekken. 6–10 schermen zonder tabbalk.</p></div></li>
+  </ul>
+  <div class="twee">
+    <div><span class="label">Quick wins</span><ul><li>Deelknop in het detail met de statische URL (<code>navigator.share</code>, anders kopiëren)</li><li><code>og:site_name</code>, <code>twitter:card</code> en een vaste <code>og:image</code></li><li><code>history.replaceState</code> bij het openen van een winkel</li><li>Live "Open nu" en Route op <code>/winkel/[slug]</code></li><li>Plan als tekst delen: "1. 09:45 Het Goed … klaar rond 13:10"</li></ul></div>
+    <div><span class="label">Groter</span><ul><li>Routing met <code>pushState</code>; alles bouwt hierop</li><li>Plan-URL <code>/dag/?s=…&amp;d=…&amp;v=…</code> met "Neem over"</li><li>Statische en app-pagina samenvoegen</li><li>OG-afbeelding per winkel en plan (samen met SEO-plan 0.6)</li><li>Later: gedeelde lijstjes, samen plannen</li></ul></div>
+  </div>
+</section>
+
+<section id="bugs">
+  <div class="kop"><span class="label">Klein werk, nu op te pakken</span><h2>Zeven bevestigde bugs</h2><p>Allemaal nagelopen in de code (zie Feitencheck).</p></div>
+  <div class="tbl"><table>
+    <thead><tr><th>Wat gaat mis</th><th>Waar</th><th>Oplossing</th></tr></thead>
+    <tbody>
+      <tr><td><b>Losse "0" in de plankop</b><p>Als je niet hoeft te wachten</p></td><td><code>Views.tsx:283</code></td><td><code>later &gt; 0 &amp;&amp;</code></td></tr>
+      <tr><td><b>"Vanaf Amersfoort" hard in de code</b><p>Tekst klopt niet, tijden wel</p></td><td><code>Views.tsx:282, 289</code></td><td><code>c.originLabel</code></td></tr>
+      <tr><td><b>Onbekende tijden achteraan in heel NL</b><p>Winkel op 400 m op rij ±1300</p></td><td><code>filter.ts:28-30</code></td><td>Alleen afgelast achteraan</td></tr>
+      <tr><td><b>Vertrek 8:00–13:00, standaard 9:30</b><p>'s Middags of koopavond plannen kan niet</p></td><td><code>App.tsx:83</code>, <code>Views.tsx:281</code></td><td>Vandaag: nu; keuze 7–21</td></tr>
+      <tr><td><b>Na inloggen naar Jij</b><p>Wie tijden wilde doorgeven, is zijn plek kwijt</p></td><td><code>App.tsx:294</code></td><td>Vorige view en sel terugzetten</td></tr>
+      <tr><td><b>10–17 vooringevuld bij onbekende tijden</b><p>Snel "Stuur" bevestigt een gok</p></td><td><code>bijdragen.ts:41</code></td><td>Leeg beginnen</td></tr>
+      <tr><td><b>Route uit het detail negeert de gekozen plek; <code>bestOrder</code> elke render</b><p>Bij 8 stops 40.320 volgordes per render</p></td><td><code>Views.tsx:165, 269</code></td><td><code>c.origin</code>; <code>useMemo</code></td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section id="volgorde">
+  <div class="kop"><span class="label">Volgorde</span><h2>Van repareren naar de lus</h2><p>Afvinken wordt alleen in deze browser onthouden.</p></div>
+  <div class="let"><span class="label">Afstemming met de launch-prioriteit</span><p>De eerdere review van de handoff zei: eerst de klok, de Gemeenteblad-datumfout en een testronde, dan pas nieuwe UX. Fase 0 hieronder past daarbinnen (bugs, geen nieuwe flows). Fase 1 en verder pas na de testronde, zodat die laat zien welke van deze voorstellen echt nodig zijn.</p></div>
+  <div class="fases" id="fases">
+    <div class="fase"><div class="when"><span class="label">Fase 0</span><b>Deze week</b><span class="meta">Bugs en goedkoopste winst</span></div><ul>
+      <li><input type="checkbox" id="f0a"><label for="f0a">De zeven bugs hierboven</label></li>
+      <li><input type="checkbox" id="f0b"><label for="f0b">"Locatie zoeken…" met uitweg; Enter kiest de eerste plaats; 3 recente plaatsen</label></li>
+      <li><input type="checkbox" id="f0c"><label for="f0c">Route als hoofdknop met label, Apple Maps op iOS</label></li>
+      <li><input type="checkbox" id="f0d"><label for="f0d">Deelknop met de statische URL; <code>og:site_name</code>, <code>twitter:card</code>, vaste <code>og:image</code></label></li>
+      <li><input type="checkbox" id="f0e"><label for="f0e">Status op de gekozen dag in het detail</label></li>
+    </ul></div>
+    <div class="fase"><div class="when"><span class="label">Fase 1</span><b>Fundament</b><span class="meta">±1 week, na de testronde</span></div><ul>
+      <li><input type="checkbox" id="f1a"><label for="f1a">Staat in de URL met <code>pushState</code>: terug, verversen en deeplinks werken <span class="ref">slug i.p.v. id</span></label></li>
+      <li><input type="checkbox" id="f1b"><label for="f1b">Plek + moment als één staat (contextpil), vertrekpunt los van snuffelgebied</label></li>
+      <li><input type="checkbox" id="f1c"><label for="f1c">Plaatskiezer volgens <code>Plaats.dc.html</code>; zoekveld alleen nog op naam</label></li>
+      <li><input type="checkbox" id="f1d"><label for="f1d">Lijst in secties; welkom niet meer blokkerend; compactere kop</label></li>
+    </ul></div>
+    <div class="fase"><div class="when"><span class="label">Fase 2</span><b>Plannen en aanvullen</b><span class="meta">±2–3 weken</span></div><ul>
+      <li><input type="checkbox" id="f2a"><label for="f2a">Tabs (Kaart, Mijn dag, Jij, evt. Bewaard); planbalk gaat op in Mijn dag</label></li>
+      <li><input type="checkbox" id="f2b"><label for="f2b">Voorstel en plan één bon; vertrekblok; stops vervangen en verplaatsen</label></li>
+      <li><input type="checkbox" id="f2c"><label for="f2c">"Klopt dit nog?" zonder account; alleen doorgeven wat anders is; inloggen bij "Stuur"</label></li>
+      <li><input type="checkbox" id="f2d"><label for="f2d">Eén ingang voor correcties; terugkoppeling bij goedkeuring</label></li>
+    </ul></div>
+    <div class="fase"><div class="when"><span class="label">Fase 3</span><b>De lus sluiten</b><span class="meta">±3–4 weken</span></div><ul>
+      <li><input type="checkbox" id="f3a"><label for="f3a">Onderweg-stand: volgende stop, Hier geweest, Herreken, vraag na elk bezoek</label></li>
+      <li><input type="checkbox" id="f3b"><label for="f3b">Deelbaar plan via URL met "Neem over"; ontvangerscherm met actuele status</label></li>
+      <li><input type="checkbox" id="f3c"><label for="f3c">Statische en app-winkelpagina samenvoegen; OG-afbeelding per winkel en plan</label></li>
+      <li><input type="checkbox" id="f3d"><label for="f3d">Automatisch goedkeuren bij overeenstemming</label></li>
+    </ul></div>
+    <div class="fase"><div class="when"><span class="label">Later</span><b>Als het gebruikt wordt</b><span class="meta">Pas met echte gebruikers</span></div><ul>
+      <li><input type="checkbox" id="fla"><label for="fla">"Langs mijn route"; winkel toevoegen in de app; gedeelde lijstjes in Supabase; samen plannen</label></li>
+    </ul></div>
+  </div>
+</section>
+
+<section id="keuzes">
+  <div class="kop"><span class="label">Aan jou</span><h2>Acht keuzes voordat er gebouwd wordt</h2><p>Samengevoegd uit de vier reviews. Bij elke keuze het voorstel dat de reviews delen.</p></div>
+  <div class="keuzes">
+    <div class="keuze"><h3>Tabbalk: drie of vier vaste plekken?</h3><p>DESIGN.md koos bewust voor geen tabbalk; alle reviews willen erop terugkomen. <b>Voorstel:</b> Kaart, Mijn dag, Jij. Bewaard als vierde tab alleen als lijstjes delen er komt.</p><span class="botst">Botst met DESIGN.md</span></div>
+    <div class="keuze"><h3>Mag het dagplan zijn eigen dag houden?</h3><p>Nu is de plandag de gekozen dag (jouw besluit van 28 okt). Kijk je donderdag rond, dan wordt je zaterdagplan stil donderdag. <b>Voorstel:</b> het plan houdt dag, tijd en vertrekpunt; de lijst krijgt een chip "Bekijk je zaterdag".</p><span class="botst">Botst met "Eén dagkeuze"</span></div>
+    <div class="keuze"><h3>Standaard "Nu" of "Vandaag"?</h3><p><b>Voorstel:</b> de app opent op nu; een andere dag of tijd blijft staan tot je de plaats wijzigt.</p></div>
+    <div class="keuze"><h3>Mag het welkomstscherm weg?</h3><p><b>Voorstel:</b> ja. Begin op de kaart met "Waar snuffel je?" en een zichtbare knop "Mijn locatie".</p></div>
+    <div class="keuze"><h3>Winkels zonder tijden in het dagvoorstel?</h3><p><b>Voorstel:</b> alleen als je erom vraagt. Is het voorstel te dun: "Hier weten we van 2 winkels de tijden. Ook winkels zonder bekende tijden meenemen (bel eerst)?"</p></div>
+    <div class="keuze"><h3>Mag "Klopt" zonder account?</h3><p><b>Voorstel:</b> ja, als apart signaal ("2× bevestigd") met een rem per apparaat. De controledatum ververst pas na keuring of als het overeenkomt met de website.</p></div>
+    <div class="keuze"><h3>Automatisch goedkeuren?</h3><p><b>Voorstel:</b> alleen als een bijdrage gelijk is aan wat al bekend is (bevestiging, of gelijk aan de website). Vertrouwde bijdragers (3 goed, 0 fout) pas later; dat raakt "eerlijk over wat zeker is".</p></div>
+    <div class="keuze"><h3>Een gedeeld rondje: URL of database, en met vertrekpunt?</h3><p><b>Voorstel:</b> eerst alles in de URL, zonder backend. Vertrekpunt meesturen met een vinkje, standaard uit, en dan alleen de plaats, niet je adres.</p></div>
+  </div>
+</section>
+
+<footer>
+  <p>Samengevoegd uit vier reviews van 29 oktober 2026 (bronnen bovenaan). Die lazen de code en de ontwerpen op <span style="font-family:var(--mono)">main @ 2bbbf9f</span> en draaiden de app niet; aantallen tikken en paneelhoogtes zijn afgeleid, niet gemeten. De feitencheck en de bugs zijn nagelopen in de code. Cijfers over tijden komen uit <span style="font-family:var(--mono)">places.json</span>: 3701 plekken, 1106 met tijden.</p>
+</footer>
+</div>
+
+<script>
+(function(){
+  var KEY='snuffel-ux-synthese', done={};
+  try{done=JSON.parse(localStorage.getItem(KEY)||'{}')}catch(e){}
+  document.querySelectorAll('#fases input[type=checkbox]').forEach(function(cb){
+    cb.checked=!!done[cb.id];
+    cb.addEventListener('change',function(){done[cb.id]=cb.checked;try{localStorage.setItem(KEY,JSON.stringify(done))}catch(e){}});
+  });
+})();
+</script>

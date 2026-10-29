@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<title>Onderweg</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&amp;family=DM+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.ic{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.li{display:grid;grid-template-columns:28px minmax(0,1fr) auto;gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid oklch(0.89 0.006 85);font-size:15px}
+.num{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;font:500 13px 'DM Mono',monospace}
+.tab{display:flex;flex-direction:column;align-items:center;gap:3px;font:600 12px Figtree,sans-serif;color:oklch(0.43 0.012 260);text-decoration:none;padding-top:9px}
+</style>
+</helmet>
+<div style="width:390px;height:844px;position:relative;overflow:hidden;background:oklch(0.958 0.006 95);font-family:Figtree,sans-serif;color:oklch(0.24 0.012 260)">
+  <main style="position:absolute;left:0;right:0;top:0;bottom:72px;background:oklch(0.995 0.002 85);padding:18px 16px 0;display:flex;flex-direction:column;gap:12px;overflow:hidden">
+    <div style="display:grid;gap:8px">
+      <div style="display:flex;justify-content:space-between;align-items:baseline"><h2 style="margin:0;font-size:22px;font-weight:740;letter-spacing:-.01em">Onderweg</h2><span style="font-size:14px;color:oklch(0.43 0.012 260)">stop 3 van 4 · thuis rond 13:20</span></div>
+      <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px" aria-hidden="true"><span style="height:5px;border-radius:3px;background:oklch(0.47 0.13 150)"></span><span style="height:5px;border-radius:3px;background:oklch(0.80 0.008 85)"></span><span style="height:5px;border-radius:3px;background:oklch(0.47 0.15 262)"></span><span style="height:5px;border-radius:3px;background:oklch(0.89 0.006 85)"></span></div>
+    </div>
+    <section aria-labelledby="volgende" style="border-radius:16px;background:oklch(0.93 0.035 262);padding:16px;display:grid;gap:10px">
+      <span style="font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:oklch(0.40 0.13 262)">Volgende · ±8 min · 3,4 km</span>
+      <h3 id="volgende" style="margin:0;font-size:24px;font-weight:740;letter-spacing:-.015em">Larry's Vintage Studio</h3>
+      <p style="margin:0;font-size:15px;display:flex;align-items:center;gap:7px"><span style="width:8px;height:8px;border-radius:50%;background:oklch(0.62 0.16 150)"></span>Aankomst ±11:15 · open tot 17:00</p>
+      <a href="#" style="height:50px;border-radius:12px;background:oklch(0.25 0.015 262);color:oklch(0.985 0.003 85);font:650 16px Figtree,sans-serif;display:flex;align-items:center;justify-content:center;gap:8px;text-decoration:none"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11l18-8-8 18-2-8z"/></svg>Navigeer erheen</a>
+      <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px">
+        <button style="height:44px;border-radius:12px;border:1px solid oklch(0.47 0.15 262);background:oklch(0.995 0.002 85);color:inherit;font:650 15px Figtree,sans-serif">Hier ben ik</button>
+        <button style="height:44px;border-radius:12px;border:1px solid oklch(0.80 0.008 85);background:oklch(0.995 0.002 85);color:inherit;font:600 15px Figtree,sans-serif">Overslaan</button>
+      </div>
+    </section>
+    <div role="status" style="display:flex;align-items:center;justify-content:space-between;gap:10px;border-radius:12px;background:oklch(0.96 0.045 85);padding:10px 12px;font-size:14px"><span><b style="font-weight:650">20 min uitgelopen.</b> De markt sluit 16:00, dat past nog.</span><button style="height:34px;border-radius:9px;border:1px solid oklch(0.50 0.12 65);background:none;color:oklch(0.40 0.11 65);font:650 13px Figtree,sans-serif;padding:0 10px;flex:none">Herreken</button></div>
+    <section aria-labelledby="vraag" style="border-radius:14px;background:oklch(0.94 0.045 150);padding:14px;display:grid;gap:10px">
+      <h3 id="vraag" style="margin:0;font-size:16px;font-weight:700">Je was bij Kringloop De Hoop</h3>
+      <p style="margin:0;font-size:15px">Klopte het bord: <b>za 10:00–17:00</b>?</p>
+      <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px">
+        <button style="height:44px;border-radius:12px;border:0;background:oklch(0.47 0.13 150);color:oklch(0.985 0.005 150);font:650 15px Figtree,sans-serif">Klopt</button>
+        <a href="Aanvullen.dc.html" style="height:44px;border-radius:12px;border:1px solid oklch(0.47 0.13 150);background:oklch(0.995 0.002 85);color:oklch(0.30 0.08 150);font:650 15px Figtree,sans-serif;display:grid;place-items:center;text-decoration:none">Anders</a>
+      </div>
+    </section>
+    <div>
+      <div class="li"><span class="num" style="background:oklch(0.94 0.045 150);color:oklch(0.40 0.11 150)">1</span><span style="color:oklch(0.43 0.012 260)">Kringloop De Hoop</span><span style="font-size:13px;color:oklch(0.47 0.13 150);font-weight:600">geweest</span></div>
+      <div class="li"><span class="num" style="background:oklch(0.955 0.005 85);color:oklch(0.53 0.010 260)">2</span><span style="color:oklch(0.53 0.010 260);text-decoration:line-through">Kringloop Oost</span><span style="font-size:13px;color:oklch(0.53 0.010 260)">overgeslagen</span></div>
+      <div class="li" style="border-bottom:0"><span class="num" style="border:1.5px solid oklch(0.80 0.008 85)">4</span><span>Vlooienmarkt IJsselhallen</span><span style="font:500 13px 'DM Mono',monospace;color:oklch(0.43 0.012 260)">±12:05</span></div>
+    </div>
+  </main>
+  <nav aria-label="Hoofdmenu" style="position:absolute;left:0;right:0;bottom:0;height:72px;background:oklch(0.995 0.002 85);border-top:1px solid oklch(0.89 0.006 85);display:grid;grid-template-columns:repeat(3,minmax(0,1fr))">
+    <a class="tab" href="Main.dc.html"><span style="width:56px;height:30px;display:grid;place-items:center"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4L3 6v14l6-2 6 2 6-2V4l-6 2-6-2zM9 4v14M15 6v14"/></svg></span>Kaart</a>
+    <a class="tab" href="MijnDag.dc.html" aria-current="page" style="color:oklch(0.25 0.015 262)"><span style="width:56px;height:30px;border-radius:15px;background:oklch(0.95 0.05 80);display:grid;place-items:center"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2zM9 8h6M9 12h6"/></svg></span>Mijn dag</a>
+    <a class="tab" href="#"><span style="width:56px;height:30px;display:grid;place-items:center"><span style="width:24px;height:24px;border-radius:50%;background:oklch(0.93 0.035 262);color:oklch(0.47 0.15 262);display:grid;place-items:center;font:700 12px Figtree,sans-serif">F</span></span>Jij</a>
+  </nav>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

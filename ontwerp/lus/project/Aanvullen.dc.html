@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<title>Wat is er anders?</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.ic{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.d{flex:1;height:40px;border-radius:10px;border:1px solid oklch(0.80 0.008 85);background:oklch(0.995 0.002 85);font:600 14px Figtree,sans-serif;color:oklch(0.24 0.012 260);padding:0}
+.d[aria-pressed="true"]{background:oklch(0.25 0.015 262);border-color:oklch(0.25 0.015 262);color:oklch(0.985 0.003 85)}
+.rad{display:flex;align-items:center;gap:10px;min-height:48px;border-bottom:1px solid oklch(0.89 0.006 85);font-size:16px}
+.rad input{width:20px;height:20px;accent-color:oklch(0.25 0.015 262);margin:0}
+.tm{width:76px;height:40px;border-radius:10px;border:1px solid oklch(0.80 0.008 85);background:oklch(0.995 0.002 85);font:600 16px Figtree,sans-serif;color:oklch(0.24 0.012 260);text-align:center;font-variant-numeric:tabular-nums}
+.lbl{font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:oklch(0.43 0.012 260);margin:0}
+</style>
+</helmet>
+<div style="width:390px;height:844px;position:relative;overflow:hidden;background:oklch(0.958 0.006 95);font-family:Figtree,sans-serif;color:oklch(0.24 0.012 260)">
+  <main style="position:absolute;left:0;right:0;top:12px;bottom:0;background:oklch(0.995 0.002 85);border-radius:22px 22px 0 0;padding:0 16px;display:flex;flex-direction:column;gap:12px">
+    <div style="height:22px;display:grid;place-items:center;margin-bottom:-12px"><div style="width:38px;height:5px;border-radius:3px;background:oklch(0.80 0.008 85)"></div></div>
+    <a href="Winkel.dc.html" style="font:600 15px Figtree,sans-serif;color:oklch(0.43 0.012 260);text-decoration:none;display:flex;align-items:center;gap:4px;padding:6px 0"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>Kringloop De Hoop</a>
+    <h2 style="margin:0;font-size:24px;font-weight:740;letter-spacing:-.015em">Wat is er anders?</h2>
+    <p style="margin:0;font-size:15px;color:oklch(0.43 0.012 260)">Bij ons staat nu: di–za 10:00–17:00. Tik alleen aan wat afwijkt.</p>
+    <p class="lbl">Welke dag</p>
+    <div style="display:flex;gap:4px"><button class="d">ma</button><button class="d">di</button><button class="d">wo</button><button class="d">do</button><button class="d">vr</button><button class="d" aria-pressed="true">za</button><button class="d">zo</button></div>
+    <p class="lbl" style="margin-top:4px">Dan is de winkel</p>
+    <div>
+      <label class="rad"><input type="radio" name="w" checked><span style="flex:1">open van</span><input class="tm" value="09:30" aria-label="Open vanaf"><span>tot</span><input class="tm" value="16:00" aria-label="Open tot"></label>
+      <label class="rad"><input type="radio" name="w"><span>dicht</span></label>
+      <label class="rad"><input type="radio" name="w"><span>bestaat niet meer</span></label>
+    </div>
+    <label style="display:flex;align-items:center;gap:10px;font-size:15px;min-height:44px"><input type="checkbox" style="width:20px;height:20px;accent-color:oklch(0.25 0.015 262);margin:0">Alleen vandaag zo (bijvoorbeeld vakantie)</label>
+  </main>
+
+  <div aria-hidden="true" style="position:absolute;inset:0;background:oklch(0.2 0.02 260 / .32)"></div>
+  <section aria-labelledby="bijna" style="position:absolute;left:0;right:0;bottom:0;background:oklch(0.995 0.002 85);border-radius:22px 22px 0 0;padding:18px 16px 28px;display:grid;gap:12px;box-shadow:0 -12px 32px oklch(0.2 0.02 260 / .18)">
+    <div style="display:flex;align-items:center;gap:10px"><span style="width:32px;height:32px;border-radius:50%;background:oklch(0.94 0.045 150);color:oklch(0.47 0.13 150);display:grid;place-items:center"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg></span><h3 id="bijna" style="margin:0;font-size:20px;font-weight:740">Bijna klaar</h3></div>
+    <p style="margin:0;font-size:15px;line-height:1.45;color:oklch(0.43 0.012 260)">Je antwoord is bewaard. Met je e-mail kunnen we het tonen en kun jij het volgen. Na de code gaat het meteen door en sta je weer bij de winkel.</p>
+    <label style="display:grid;gap:4px;font-size:14px;font-weight:600">E-mail<input type="email" placeholder="naam@voorbeeld.nl" style="height:48px;border-radius:12px;border:1px solid oklch(0.80 0.008 85);padding:0 12px;font:400 16px Figtree,sans-serif;color:oklch(0.24 0.012 260)"></label>
+    <p style="margin:0;font-size:14px;color:oklch(0.43 0.012 260)">Je schermnaam wordt <b style="color:oklch(0.24 0.012 260)">Snuffelaar 4821</b> · <a href="#" style="color:oklch(0.47 0.15 262);font-weight:600">kies zelf</a></p>
+    <button style="height:50px;border-radius:14px;border:0;background:oklch(0.25 0.015 262);color:oklch(0.985 0.003 85);font:650 16px Figtree,sans-serif">Stuur me een code</button>
+  </section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>
