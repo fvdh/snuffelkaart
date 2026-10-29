@@ -16,9 +16,11 @@ const iso = (y, m, d) => `${y}-${String(m).padStart(2, '0')}-${String(d).padStar
 /** Alle datums met jaar in de tekst ("25 oktober 2026", "10-1-2027", "Zo. 17-01-2027"), uniek en gesorteerd. */
 // Termijnen, geen marktdag: "bezwaar … tot en met 26 november", "ter inzage tot", "uiterlijk", besluit- en verzenddatum.
 // En een datum direct na "voor"/"vóór" ("Dat doet u voor 29 oktober"): een markt is "op" een datum, niet ervoor.
+// Ook als het woord erna komt, in dezelfde zin: "Vanaf 28 oktober 2026 ligt een afschrift … ter inzage" (Schiedam).
 const NOT_EVENT = /(bezwaar|beroep|inzage|uiterlijk|zienswijze|besluitdatum|datum besluit|verzenddatum|ontvangen|bekendgemaakt)[^.•/]{0,60}$|\bv[oó]{2}r\s*$/i;
+const NOT_EVENT_AFTER = /^[^.•]{0,120}\b(ter inzage|afschrift|bezwaar)/i;
 export function dates(text) {
-  const out = new Set(), keep = m => !NOT_EVENT.test(text.slice(Math.max(0, m.index - 90), m.index));
+  const out = new Set(), keep = m => !NOT_EVENT.test(text.slice(Math.max(0, m.index - 90), m.index)) && !NOT_EVENT_AFTER.test(text.slice(m.index + m[0].length));
   for (const m of text.matchAll(/\b(\d{1,2})\s+(jan|feb|mrt|maart|apr|mei|jun|jul|aug|sep|okt|nov|dec)[a-z]*\.?\s+(20\d\d)\b/gi)) if (keep(m)) out.add(iso(m[3], month(m[2]), m[1]));
   for (const m of text.matchAll(/\b(\d{1,2})-(\d{1,2})-(20\d\d)\b/g)) if (+m[2] >= 1 && +m[2] <= 12 && keep(m)) out.add(iso(m[3], m[2], m[1]));
   return [...out].filter(d => !isNaN(new Date(d))).sort();

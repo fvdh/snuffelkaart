@@ -37,3 +37,9 @@ it('een termijn na "voor" is geen marktdag (Best: bezwaar … Dat doet u voor 29
   expect(dates('houden vlooienmarkt op 22-11-2026 en 14-2-2027. Bezwaar maken. Dat doet u voor 29 oktober 2026 via de site')).toEqual(['2026-11-22', '2027-02-14']);
   expect(dates('Rommelmarkt op 7 november 2026 van 9.00 tot 15.00 uur')).toEqual(['2026-11-07']);
 });
+
+it('een inzagedatum met "ter inzage" erna is geen marktdag (Schiedam)', () => {
+  const tekst = 'evenement Society Bazaar te Schiedam op 17 oktober 2026 van 14.00 uur tot 22.00 uur en 18 oktober 2026 van 12.00 uur tot 21.00 uur. Braderie voor families. Vanaf 28 oktober 2026 ligt een afschrift van de verleende vergunning, gedurende zes weken gerekend vanaf de datum van het besluit, ter inzage bij het Stadskantoor.';
+  expect(dates(tekst)).toEqual(['2026-10-17', '2026-10-18']);
+  expect(editions({ id: 'gmb-x', rubriek: 'Overig', title: 'Braderie Schiedam', tekst, punt: '51.92 4.38', woonplaats: 'Schiedam' }, '2026-10-20').map(e => e.date)).toEqual([]);
+});
