@@ -295,7 +295,9 @@ function MarketDetail({ m, c, top, d, actions }: { m: Market; c: Ctx; top: React
 export type From = LatLon & { label: string; me?: boolean };
 export type Plan = { day: string; start: number; stops: string[]; done?: string[]; skip?: string[]; from?: From };
 /** Vertrektijd; -1 = "nu" (vandaag: nu, afgerond op 5 min; een andere dag: 10:00). */
-export const effStart = (p: { day: string; start: number }, now: Date) => p.start >= 0 ? p.start : p.day === isoDay(now) ? Math.ceil(minutesOf(now) / 5) * 5 : 600;
+export const nowStart = (now: Date) => Math.ceil(minutesOf(now) / 5) * 5;
+/** Vandaag ligt het vertrek nooit in het verleden: een gekozen tijd die al voorbij is, wordt "nu". */
+export const effStart = (p: { day: string; start: number }, now: Date) => p.day !== isoDay(now) ? (p.start >= 0 ? p.start : 600) : Math.max(p.start, nowStart(now));
 const TIMES = Array.from({ length: 29 }, (_, i) => 420 + i * 30); // 7:00 t/m 21:00
 
 /** Het vertrekblok: dag, tijd en vanaf waar. Hoort bij het plan zelf, los van wat je in de lijst bekijkt (DECISIONS 29 okt). */
@@ -303,9 +305,9 @@ function Vertrek({ c, plan, setPlan }: { c: Ctx; plan: Plan; setPlan: (p: Partia
   const today = isoDay(c.now), start = effStart(plan, c.now);
   return (<div className="vertrek">
     <DayPick day={plan.day} now={c.now} set={d => setPlan({ day: d, start: d === today ? plan.start : plan.start < 0 ? 600 : plan.start })} label="Welke dag?" />
-    <div className="pv-opts"><label>Vertrek<select value={plan.start} onChange={e => setPlan({ start: +e.target.value })}>
-      {plan.day === today && <option value={-1}>nu ({hm(start)})</option>}
-      {[...new Set([...TIMES, ...(plan.start >= 0 ? [plan.start] : [])])].sort((a, b) => a - b).map(m => <option key={m} value={m}>{hm(m)}</option>)}</select></label>
+    <div className="pv-opts"><label>Vertrek<select value={plan.day === today && plan.start < nowStart(c.now) ? -1 : plan.start} onChange={e => setPlan({ start: +e.target.value })}>
+      {plan.day === today && <option value={-1}>nu ({hm(nowStart(c.now))})</option>}
+      {[...new Set([...TIMES, ...(plan.start >= 0 ? [plan.start] : [])])].filter(m => plan.day !== today || m >= nowStart(c.now)).sort((a, b) => a - b).map(m => <option key={m} value={m}>{hm(m)}</option>)}</select></label>
       <span><Ic n={plan.from?.me ? 'loc' : 'home'} />vanaf {c.originLabel ?? 'je locatie'} · en terug</span>
       {c.here.label !== c.originLabel && <button className="link" onClick={() => setPlan({ from: c.here })}>Vertrek {c.here.me ? 'vanaf je locatie' : `vanuit ${c.here.label}`}</button>}</div>
   </div>);

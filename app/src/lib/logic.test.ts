@@ -4,6 +4,7 @@ import { weekendOf, DEFAULT_CENTER, catOf } from './model';
 import { placeNow, placeDay, placeAt, isHoliday, week, setWindow, intervals } from './hours';
 import { simulate, bestOrder, routeUrl, dayProposals } from './plan';
 import { matches, visible, groupOf, groupRows } from './filter';
+import { effStart } from '../components/Views';
 import { sampleMarkets } from './markets';
 import { parsePdok } from './pdok';
 // dezelfde code als de import gebruikt
@@ -145,6 +146,13 @@ describe('dagplan', () => {
     const s = simulate([P('Sa 09:00-17:00', { id: 'a', lat: DEFAULT_CENTER.lat + 0.1, lon: DEFAULT_CENTER.lon })], '2026-10-31', 570, DEFAULT_CENTER);
     expect(s.home).toBeGreaterThan(s.end);
     expect(simulate([], '2026-10-31', 570, DEFAULT_CENTER).home).toBe(570);
+  });
+  it('vertrek: nu is de klok, vandaag nooit in het verleden', () => {
+    expect(effStart({ day: '2026-10-27', start: -1 }, TUE)).toBe(14 * 60 + 20);
+    expect(effStart({ day: '2026-10-27', start: 480 }, TUE)).toBe(14 * 60 + 20); // 8:00 is al voorbij
+    expect(effStart({ day: '2026-10-27', start: 960 }, TUE)).toBe(960);
+    expect(effStart({ day: '2026-10-31', start: -1 }, TUE)).toBe(600);
+    expect(effStart({ day: '2026-10-31', start: 480 }, TUE)).toBe(480);
   });
   it('route-links bevatten alle stops', () => {
     const shop = P('Tu-Sa 10:00-16:00', { id: 'shop' });

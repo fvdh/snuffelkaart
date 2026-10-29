@@ -96,7 +96,8 @@ export default function App() {
   const day = when?.day ?? today, min = when ? when.start : minutesOf(now), nowMode = !when;
   // Het dagplan heeft een eigen dag en vertrektijd (-1 = nu), los van wat je in de lijst bekijkt (Freek, 29 okt: ontwerp "de snuffellus").
   const [planRaw, setPlanRaw] = useLocal<Plan>('snuffel-plan', { day: today, start: -1, stops: [] });
-  const plan: Plan = { ...planRaw, day: planRaw.day >= today && planRaw.day <= addDays(today, 13) ? planRaw.day : today };
+  // Een plan van een voorbije dag schuift naar vandaag en begint weer op "nu".
+  const plan: Plan = planRaw.day >= today && planRaw.day <= addDays(today, 13) ? planRaw : { ...planRaw, day: today, start: -1, done: [], skip: [] };
   // Altijd vanaf de laatste stand rekenen: snelle tikken achter elkaar mogen elkaar niet overschrijven.
   const planRef = useRef(plan); planRef.current = plan;
   const setPlan = (p: Partial<Plan>) => { const n = { ...planRef.current, ...p }; planRef.current = n; setPlanRaw(n); if (p.stops) setOptimized(false); };
