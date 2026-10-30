@@ -8,6 +8,7 @@ import { near, weekHours, weekIntervals, hoursSpec, hoursSummary } from '../../l
 import { CAT } from '../../components/ui';
 import { ix, places, markets, from, holidays, extra, SITE } from '../../lib/sitedata';
 import { avg } from '../../lib/bijdragen';
+import { DAY_CATS } from '../../lib/plan';
 
 export function getStaticPaths() {
   return [...ix.shops].map(([slug, p]) => ({ params: { slug }, props: { p } }));
@@ -17,7 +18,7 @@ const cat = CAT[catOf(p)][0], week = weekHours(p.h, from, holidays), wk = weekIn
 const web = p.website ? (p.website.startsWith('http') ? p.website : `https://${p.website}`) : null;
 const osm = /^osm-([nwr])(\d+)$/.exec(p.id), osmUrl = osm ? `https://www.openstreetmap.org/${{ n: 'node', w: 'way', r: 'relation' }[osm[1] as 'n' | 'w' | 'r']}/${osm[2]}` : null;
 const mk = near(p, markets, from, 10, 4);
-const others = places.filter(o => o !== p && km(p, o) < 5).sort((a, b) => km(p, a) - km(p, b)).slice(0, 6);
+const others = places.filter(o => o !== p && km(p, o) < 5 && DAY_CATS.includes(catOf(o))) // geen sloop, opkoop of pandjeshuis bij "meer tweedehands".sort((a, b) => km(p, a) - km(p, b)).slice(0, 6);
 const reviews = extra.reviews[p.id] ?? [], photos = extra.photos[p.id] ?? [], rating = avg(reviews);
 const MONTHS = ['januari', 'februari', 'maart', 'april', 'mei', 'juni', 'juli', 'augustus', 'september', 'oktober', 'november', 'december'];
 const title = `${p.name}${p.place ? `, ${p.place}` : ''}`;
@@ -34,8 +35,10 @@ const ld = { '@context': 'https://schema.org', '@type': 'Store', name: p.name, u
   <p class="eyebrow" style="margin-top:12px"><span class={`tile k c-${catOf(p)}`} style="width:24px;height:24px"><svg class="i" aria-hidden="true" style="width:14px;height:14px"><use href={`#i-${CAT[catOf(p)][2]}`} /></svg></span>{cat}</p>
   <h1>{p.name}</h1>
   <p class="lede">{p.addr ?? p.place ?? ''}</p>
+  {/* Wie via Google komt, wil vooral weten: is hij nu open? Uitgerekend in de browser uit de tijden van de komende twee weken. */}
+  {p.h && <p class="tp-now" id="nu" data-from={from} data-h={JSON.stringify(p.h.slice(0, 14))} hidden></p>}
   {p.kind === 'tweedehands' && <p>Geen standaard kringloop: tweedehands, maar prijzen en aanbod kunnen anders zijn dan bij een kringloop.</p>}
-  <div class="tp-cta"><b>Zet hem in je dagplan</b><p>In de kaart zie je of hij nu open is, en plan je hem samen met andere winkels en markten.</p>
+  <div class="tp-cta"><b>Zet hem in je dagplan</b><p>Plan hem samen met andere kringlopen en markten. We rekenen uit wanneer je waar bent en of alles dan open is.</p>
     <a class="btn primary" href={`/?open=${encodeURIComponent(p.id)}`}>Open in de kaart</a></div>
 
   <section>
@@ -60,4 +63,20 @@ const ld = { '@context': 'https://schema.org', '@type': 'Store', name: p.name, u
   <section>
     <p style="font-size:.875rem;color:var(--fg-3)">{p.src === 'osm' ? <>Gegevens: © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap-bijdragers</a> (ODbL). Klopt er iets niet? <a href={osmUrl!}>Pas het aan op OpenStreetMap</a>.</> : <>Gegevens: © Overture Maps Foundation (CDLA Permissive 2.0). Nog niet door ons gecontroleerd.</>}</p>
   </section>
+  <script is:inline>
+    (() => {
+      const el = document.getElementById('nu'); if (!el) return;
+      const h = JSON.parse(el.dataset.h), [y, m, d] = el.dataset.from.split('-').map(Number), now = new Date();
+      const i0 = Math.round((new Date(now.getFullYear(), now.getMonth(), now.getDate()) - new Date(y, m - 1, d)) / 864e5), min = now.getHours() * 60 + now.getMinutes();
+      const hm = x => `${Math.floor(x / 60) % 24}:${String(x % 60).padStart(2, '0')}`, DAG = ['zondag', 'maandag', 'dinsdag', 'woensdag', 'donderdag', 'vrijdag', 'zaterdag'];
+      const iv = h[i0]; if (!iv) return;
+      const cur = iv.find(([a, b]) => min >= a && min < b), later = iv.find(([a]) => a > min);
+      let txt, cls = 'closed';
+      if (cur) { txt = `Nu open · sluit ${hm(cur[1])}`; cls = 'open'; }
+      else if (later) txt = `Nu dicht · opent vandaag om ${hm(later[0])}`;
+      else { for (let k = 1; k < 8 && h[i0 + k]; k++) if (h[i0 + k].length) { const w = new Date(now); w.setDate(w.getDate() + k); txt = `Nu dicht · opent ${k === 1 ? 'morgen' : DAG[w.getDay()]} om ${hm(h[i0 + k][0][0])}`; break; } }
+      if (!txt) return;
+      el.textContent = txt; el.className = `tp-now ${cls}`; el.hidden = false;
+    })();
+  </script>
 </Tekst>

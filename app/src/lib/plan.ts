@@ -80,7 +80,7 @@ export function dayProposals(items: Item[], iso: string, start: number, from: La
   for (const seed of cand.slice(0, 12)) {
     const pick = [...cand].sort((a, b) => km(seed, a) - km(seed, b)).slice(0, n);
     const order = bestOrder(pick, iso, start, from), sim = simulate(order, iso, start, from);
-    const ok = order.filter((_, i) => sim.stops[i].issue?.lv !== 'bad'); // wat die dag toch niet past (al dicht als je aankomt) valt af
+    const ok = order.filter((_, i) => sim.stops[i].issue?.lv !== 'bad' && sim.stops[i].wait <= 30); // wat die dag toch niet past (al dicht, of lang wachten tot hij opengaat) valt af
     const key = ok.map(x => x.id).sort().join();
     if (ok.length && !seen.has(key)) { seen.add(key); out.push(ok); }
   }

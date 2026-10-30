@@ -49,7 +49,9 @@ export function visible(items: Item[], f: Filters, now: Date, origin: LatLon, da
 export function groupRows<T extends { it: Item }>(rows: T[], day: string, min: number): { g: Group; rows: T[] }[] {
   const by = new Map<Group, T[]>();
   for (const r of rows) { const g = groupOf(r.it, day, min); by.set(g, [...(by.get(g) ?? []), r]); }
-  return GROUPS.filter(g => by.has(g)).map(g => ({ g, rows: by.get(g)! }));
+  // Markten op andere dagen: eerstvolgende eerst (bij gelijke datum de dichtste); de rest op afstand.
+  const date = (r: T) => (r.it.t === 'm' ? r.it.date : '');
+  return GROUPS.filter(g => by.has(g)).map(g => ({ g, rows: g === 'other' ? [...by.get(g)!].sort((a, b) => date(a).localeCompare(date(b))) : by.get(g)! }));
 }
 
 /** Markten op dezelfde plek op meer dagen: alleen de eerstvolgende op de kaart; n = hoeveel data er achter die pin zitten. */

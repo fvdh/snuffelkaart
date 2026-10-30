@@ -121,7 +121,8 @@ const BIG: [string, string][] = [['Amsterdam', 'amsterdam'], ['Rotterdam', 'rott
   ['Amersfoort', 'amersfoort'], ['Zwolle', 'zwolle'], ['Leeuwarden', 'leeuwarden'], ['Maastricht', 'maastricht'], ['Den Bosch', 'den-bosch']];
 
 export function ListView({ c, inView, list, total, limit, more, counts, nPlaces }: { c: Ctx; inView: { nearest: () => void } | null; list: { it: Item; d: number }[]; total: number; limit: number; more: () => void; counts: { open: number; later: number; unknown: number }; nPlaces: number }) {
-  const { f, day } = c, shown = list.slice(0, limit), secs = groupRows(shown, day, c.min), flip = useFlip(shown), [cats, setCats] = useState(false), [finding, setFinding] = useState(false), [all, setAll] = useState<Group[]>([]);
+  // De eerstvolgende markten in de buurt (tot 30 km, hooguit 4) staan er altijd bij, ook als er meer dan `limit` winkels dichterbij zijn: anders zie je in een stad nooit een markt.
+  const { f, day } = c, shown = [...list.slice(0, limit), ...list.slice(limit).filter(r => r.it.t === 'm' && r.d < 30).sort((a, b) => (a.it as Market).date.localeCompare((b.it as Market).date)).slice(0, 4)], secs = groupRows(shown, day, c.min), flip = useFlip(shown), [cats, setCats] = useState(false), [finding, setFinding] = useState(false), [all, setAll] = useState<Group[]>([]);
   // Tijden onbekend en dicht: de dichtstbijzijnde drie, de rest achter een knop. Bij zoeken alles.
   const FOLD: Group[] = ['unknown', 'closed'], fold = (g: Group) => FOLD.includes(g) && !all.includes(g) && !f.q;
   const isToday = day === isoDay(c.now), openLbl = c.live ? 'Alleen wat nu open is' : `Alleen open om ${hm(c.min)}`;
@@ -153,7 +154,7 @@ export function ListView({ c, inView, list, total, limit, more, counts, nPlaces 
       {!c.online && <Banner icon="wifi-off"><b>Je bent offline.</b> Je ziet de gegevens van {c.dataFrom ? dShort(isoDay(new Date(c.dataFrom))) : 'je laatste bezoek'}. Afgelastingen van daarna zie je pas weer met verbinding.</Banner>}
       {isHoliday(day) && <Banner kind="warn" icon="cal"><b>{isToday ? 'Het is een feestdag.' : `${cap(DAYS_LONG[dayStart(day).getDay()])} is een feestdag.`}</b> Kringlopen hebben dan vaak andere tijden. Bel even voordat je gaat.</Banner>}
       {c.locDenied && !c.me ? <Banner icon="pin"><b>Je locatie staat uit.</b> Geen probleem: <button className="link" onClick={c.openWaar}>kies een plaats</button>. Wil je hem toch aanzetten, dan kan dat in de instellingen van je browser.</Banner>
-        : !c.me && !c.spot && !c.locating && !f.q && <Banner icon="pin"><b>Waar wil je snuffelen?</b> We tonen nu Amersfoort. <button className="link" onClick={() => c.locate()}>Gebruik mijn locatie</button> of <button className="link" onClick={c.openWaar}>kies een plaats</button>.</Banner>}
+        : !c.me && !c.spot && !c.locating && !f.q && <Banner icon="pin"><b>We tonen nu Amersfoort.</b> <button className="link" onClick={() => c.locate()}>Gebruik mijn locatie</button> of <button className="link" onClick={c.openWaar}>kies een plaats</button>.</Banner>}
       {inView && list.length > 0 && <p className="lv-loc" aria-live="polite"><Ic n="search" />{list.length === 1 ? '1 plek' : `${list.length} plekken`} in beeld op de kaart</p>}
     </div>
     <div className="rows-wrap" ref={flip as unknown as React.Ref<HTMLDivElement>}>
@@ -197,7 +198,7 @@ export function WaarView({ c, count }: { c: Ctx; count: number }) {
         <button key={iso} className="day" aria-pressed={!c.live && c.day === iso} onClick={() => setDay(iso)} aria-label={dLong(iso) + (isHoliday(iso) ? ', feestdag' : '')}><span>{i === 0 ? 'vand.' : DAYS[d.getDay()]}</span><b className="tnum">{d.getDate()}</b><i className={`mk${isHoliday(iso) ? '' : ' none'}`} /></button>); })}
     </div>
     {!c.live && <div className="stepper"><span>Vertrek</span><button className="ibtn" onClick={() => step(-30)} aria-label="Een half uur eerder" disabled={c.min <= 420}><Ic n="minus" /></button><b className="tnum" aria-live="polite">{hm(c.min)}</b><button className="ibtn" onClick={() => step(30)} aria-label="Een half uur later" disabled={c.min >= 1260}><Ic n="plus" /></button></div>}
-    <button className="btn primary block" onClick={c.back}>Toon {count} {count === 1 ? 'plek' : 'plekken'} {c.live ? 'die nu open zijn' : `open om ${hm(c.min)}`}</button>
+    <button className="btn primary block" onClick={c.back}>{count ? (c.live ? 'Toon wat er nu open is' : `Toon wat open is om ${hm(c.min)}`) : 'Toon de kaart'}</button>
   </div>);
 }
 

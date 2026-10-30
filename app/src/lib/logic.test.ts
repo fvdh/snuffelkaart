@@ -243,3 +243,12 @@ describe('openingstijden voor Google', () => {
     expect(hoursSpec([{ wd: 3, iv: [[0, 1440]] }])[0].closes).toBe('23:59');
   });
 });
+
+describe('markten op andere dagen', () => {
+  it('eerstvolgende eerst, ook als een latere dichterbij is', () => {
+    const [a] = sampleMarkets(new Date(2026, 9, 26));
+    const r = (id: string, date: string, d: number) => ({ it: { ...a, id, date, status: 'chk' as const }, d });
+    const g = groupRows([r('ver-vroeg', '2026-11-08', 9), r('dicht-laat', '2026-12-20', 2)], '2026-10-30', 600);
+    expect(g.find(x => x.g === 'other')!.rows.map(x => x.it.id)).toEqual(['ver-vroeg', 'dicht-laat']);
+  });
+});
