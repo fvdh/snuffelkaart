@@ -1,7 +1,7 @@
 import { type Item, type LatLon, type Cat, catOf, km, isoDay, minutesOf, mEnd, spotKey } from './model';
 import { intervals } from './hours';
 
-/** open: alleen wat open is of nog opengaat op het gekozen moment. Staat standaard uit (Freek). Het moment (nu, of een dag + tijd)
+/** open: alleen wat open is op het gekozen moment. Staat standaard uit (Freek). Het moment (nu, of een dag + tijd)
  *  staat los van de filters. hide: winkelsoorten die uit staan. only: alleen deze id's ("Bewaard op de kaart"). */
 export interface Filters { type: 'all' | 'k' | 'm'; open: boolean; gratis: boolean; overdekt: boolean; q: string; hide: Cat[]; only?: string[] | null }
 
@@ -32,9 +32,8 @@ export function matches(it: Item, f: Filters, now: Date, day = isoDay(now), min 
   if (f.overdekt && it.t === 'm' && !it.indoor) return false;
   if (f.q) { const q = norm(f.q); if (!norm(`${it.name} ${it.place ?? ''}`).includes(q)) return false; }
   if (!f.open) return true;
-  // onbekende tijden: nooit bij "open", dat kunnen we niet beloven (A6)
-  const g = groupOf(it, day, min);
-  return g === 'open' || g === 'later';
+  // onbekende tijden: nooit bij "open", dat kunnen we niet beloven (A6). "Gaat nog open" hoort er ook niet bij (UX-test 30 okt).
+  return groupOf(it, day, min) === 'open';
 }
 
 /** Gefilterd en puur op afstand gesorteerd. De lijst deelt de dichtstbijzijnde daarna in secties in (groupRows), zodat een

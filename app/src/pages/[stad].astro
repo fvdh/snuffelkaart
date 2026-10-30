@@ -4,7 +4,8 @@ import Tekst from '../layouts/Tekst.astro';
 import ItemRow from '../components/ItemRow.astro';
 import type { City } from '../lib/seo';
 import { near } from '../lib/seo';
-import { km, dLong, catOf, weekendOf, dayStart } from '../lib/model';
+import { km, dLong, catOf, weekendOf, dayStart, hm } from '../lib/model';
+import { DAY_CATS } from '../lib/plan';
 import { ix, markets, from, generated, SITE } from '../lib/sitedata';
 
 export function getStaticPaths() {
@@ -17,6 +18,11 @@ const [sat, sun] = weekendOf(dayStart(from));
 const idx = (iso: string) => Math.round((dayStart(iso).getTime() - dayStart(from).getTime()) / 864e5);
 const openOn = (iso: string) => city.shops.filter(p => p.h?.[idx(iso)]?.length);
 const satOpen = openOn(sat), sunOpen = openOn(sun);
+const hours = (p: (typeof city.shops)[number], iso: string) => p.h![idx(iso)].map(([a, b]) => `${hm(a)}–${hm(b % 1440)}`).join(', ');
+// Kringlopen e.d. met bekende tijden eerst; sloop, opkoop en "tijden onbekend" onderaan (UX-test 30 okt: niet bovenaan een autodemontagebedrijf).
+const rank = (p: (typeof city.shops)[number]) => (DAY_CATS.includes(catOf(p)) ? 0 : 2) + (p.h ? 0 : 1);
+const shops = [...city.shops].sort((a, b) => rank(a) - rank(b) || a.name.localeCompare(b.name));
+const weekendDay = (iso: string, open: typeof satOpen) => ({ iso, open: open.filter(p => DAY_CATS.includes(catOf(p))) });
 const others = ix.cities.filter(c => c !== city).map(c => ({ c, d: km(city, c) })).sort((a, b) => a.d - b.d).slice(0, 8);
 const updated = dLong(generated.slice(0, 10)).toLowerCase();
 const parts = [city.shops.length && `${city.shops.length} ${city.shops.length === 1 ? 'tweedehandswinkel' : 'tweedehandswinkels'}${kring ? ` (waarvan ${kring} ${kring === 1 ? 'kringloop' : 'kringlopen'})` : ''}`, around.length && `${around.length} ${around.length === 1 ? 'markt' : 'markten'} in de buurt`].filter(Boolean);
@@ -30,8 +36,16 @@ const ld = { '@context': 'https://schema.org', '@type': 'ItemList', name: title,
   <p class="tp-crumbs"><a href="/">Snuffelkaart</a> › <a href="/plaatsen/">Plaatsen</a> › {city.name}</p>
   <h1>{title}</h1>
   <p class="lede">{description}</p>
-  <div class="tp-cta"><b>Plan je zaterdag</b><p>Kies stops op de kaart. Snuffelkaart zet ze in de slimste volgorde en kijkt of alles open is als je er bent.</p>
+  <div class="tp-cta"><b>Plan je snuffeldag</b><p>Kies stops op de kaart. Snuffelkaart zet ze in de slimste volgorde en kijkt of alles open is als je er bent.</p>
     <a class="btn primary" href={`/?plek=${encodeURIComponent(city.name)}&lat=${city.lat.toFixed(5)}&lon=${city.lon.toFixed(5)}`}>Open de kaart rond {city.name}</a></div>
+
+  {(satOpen.length > 0 || sunOpen.length > 0) && <section>
+    <h2>Open dit weekend</h2>
+    <div class="tp-weekend">{[weekendDay(sat, satOpen), weekendDay(sun, sunOpen)].map(({ iso, open }) => <div>
+      <h3>{dLong(iso)}</h3>
+      {open.length ? <ul class="tp-links" style="flex-direction:column">{open.map(p => <li><a href={ix.url(p.id)}>{p.name}</a> <span style="color:var(--fg-3)">{hours(p, iso)}</span></li>)}</ul> : <p>Geen kringloop open waarvan we de tijden kennen.</p>}
+    </div>)}</div>
+  </section>}
 
   {around.length > 0 && <section>
     <h2>Markten de komende weken</h2>
@@ -40,7 +54,7 @@ const ld = { '@context': 'https://schema.org', '@type': 'ItemList', name: title,
 
   {city.shops.length > 0 && <section>
     <h2>Tweedehandswinkels in {city.name}</h2>
-    <ul class="rows">{city.shops.map(p => <ItemRow it={p} />)}</ul>
+    <ul class="rows">{shops.map(p => <ItemRow it={p} />)}</ul>
   </section>}
 
   {city.shops.some(p => p.h) && <section>

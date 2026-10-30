@@ -41,7 +41,7 @@ export function toFiles(places, markets, from) {
     const h = oh ? precompute(oh, from) : null;
     return { ...d, id, ...(h ? { h } : {}) };
   });
-  const m = markets.filter(r => PUBLIC.includes(r.status) && r.date >= from).map(({ id, status, data }) => ({ ...data, id, status }))
+  const m = markets.filter(r => PUBLIC.includes(r.status) && r.date >= from).map(({ id, status, data }) => ({ ...data, t: 'm', id, status })) // t ontbrak bij Gemeenteblad-markten: die werden "Kringloop · tijden onbekend"
     .sort((a, b) => a.date.localeCompare(b.date) || a.start - b.start);
   const name = placeNames([...p, ...m].map(x => x.place));
   for (const x of [...p, ...m]) if (x.place) x.place = name(x.place);

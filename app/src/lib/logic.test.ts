@@ -86,7 +86,7 @@ describe('filters', () => {
     expect(matches(P(null), { ...f, open: false }, TUE)).toBe(true);
     const zat = P('Sa 10:00-17:00');
     expect(matches(zat, f, TUE)).toBe(false); // dinsdag: dicht
-    expect(matches(P('Tu 16:00-18:00'), f, TUE)).toBe(true); // gaat vandaag nog open
+    expect(matches(P('Tu 16:00-18:00'), f, TUE)).toBe(false); // gaat vandaag nog open: niet bij "alleen open"
     expect(matches(P('Tu 09:00-12:00'), f, TUE)).toBe(false); // vandaag al dicht
     expect(matches(zat, f, TUE, '2026-10-31')).toBe(true); // gekozen dag zaterdag
   });
@@ -174,7 +174,7 @@ describe('dagplan', () => {
 describe('plaats zoeken (PDOK)', () => {
   const pc = (n: string, x = 5.39) => ({ type: 'postcode', weergavenaam: n, centroide_ll: `POINT(${x} 52.15)` });
   it('vier cijfers worden één plek; woonplaats krijgt gemeente', () => {
-    expect(parsePdok([pc('Appelmarkt, 3811CT Amersfoort'), pc('Arnhemsestraat, 3811LE Amersfoort', 5.38)], '3811')).toEqual([{ lat: 52.15, lon: 5.39, label: '3811', sub: 'Amersfoort' }]);
+    expect(parsePdok([pc('Appelmarkt, 3811CT Amersfoort'), pc('Arnhemsestraat, 3811LE Amersfoort', 5.38)], '3811')).toEqual([{ lat: 52.15, lon: 5.39, label: 'Amersfoort', sub: 'postcode 3811' }]);
     expect(parsePdok([pc('Appelmarkt, 3811CT Amersfoort')], '3811ct')[0]).toMatchObject({ label: '3811CT', sub: 'Appelmarkt, Amersfoort' });
     const w = (n: string) => ({ type: 'woonplaats', weergavenaam: n, centroide_ll: 'POINT(5.25 52.09)' });
     expect(parsePdok([w('Zeist, Zeist, Utrecht'), w('Den Dolder, Zeist, Utrecht')], 'z').map(s => s.sub)).toEqual(['Utrecht', 'Gemeente Zeist, Utrecht']);

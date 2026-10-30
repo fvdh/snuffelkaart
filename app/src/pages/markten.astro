@@ -20,6 +20,9 @@ const ld = { '@context': 'https://schema.org', '@type': 'ItemList', name: title,
   <p class="tp-crumbs"><a href="/">Snuffelkaart</a> › Markten</p>
   <h1>{title}</h1>
   <p class="lede">{description} Of <a href="/">bekijk ze op de kaart</a>, samen met de kringlopen in de buurt.</p>
+  {/* 199 markten in één lijst is te veel om te scrollen (UX-test 30 okt): filteren op plaats of naam, in de browser. */}
+  <label class="search tp-filter"><svg class="i" aria-hidden="true"><use href="#i-search" /></svg><span class="sr">Zoek op plaats</span><input id="zoek" type="search" placeholder="Zoek op plaats, bijv. Eindhoven" autocomplete="off" /></label>
+  <p id="geen" hidden>Geen markten gevonden voor deze plaats. Probeer een plaats in de buurt, of <a href="/">kijk op de kaart</a>: die toont ook markten in de omgeving.</p>
   <section>
     <h2>Dit weekend ({dShort(sat).toLowerCase()} en {dShort(sun).toLowerCase()})</h2>
     {weekend.length ? <ul class="rows">{weekend.map(m => <ItemRow it={m} />)}</ul> : <p>Dit weekend staan er geen markten in onze agenda.</p>}
@@ -29,4 +32,18 @@ const ld = { '@context': 'https://schema.org', '@type': 'ItemList', name: title,
     <ul class="rows">{ms!.map(m => <ItemRow it={m} />)}</ul>
   </section>)}
   <p style="color:var(--fg-3)">Markten komen uit de agenda's van de organisatoren en worden elke nacht gecontroleerd. <a href="/hoe-we-controleren/">Hoe we controleren</a> · <a href="/plaatsen/">Kringlopen per plaats</a></p>
+  <script is:inline>
+    (() => {
+      const q = document.getElementById('zoek'), geen = document.getElementById('geen'), norm = s => s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+      q?.addEventListener('input', () => {
+        const t = norm(q.value.trim()); let n = 0;
+        document.querySelectorAll('section').forEach(sec => {
+          const rows = sec.querySelectorAll('li.rowli'); if (!rows.length) return; let k = 0;
+          rows.forEach(li => { const hit = !t || norm(li.textContent).includes(t); li.hidden = !hit; if (hit) k++; });
+          sec.hidden = !!t && !k; n += k;
+        });
+        geen.hidden = !t || n > 0;
+      });
+    })();
+  </script>
 </Tekst>

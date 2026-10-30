@@ -18,9 +18,9 @@ export function parsePdok(docs: Doc[], q: string): Spot[] {
     if (d.type === 'woonplaats') { // "Den Dolder, Zeist, Utrecht"
       const [name, gem, prov] = d.weergavenaam.split(', ');
       s = { ...ll, label: name, sub: gem && gem !== name ? `Gemeente ${gem}, ${prov}` : prov ?? '' };
-    } else { // "Appelmarkt, 3811CT Amersfoort"
+    } else { // "Appelmarkt, 3811CT Amersfoort"; een kale postcode krijgt de plaatsnaam, zodat de pil "Rond Deventer" zegt
       const [street, rest = ''] = d.weergavenaam.split(', '), [pc, ...city] = rest.split(' ');
-      s = pc4 ? { ...ll, label: q.trim(), sub: city.join(' ') } : { ...ll, label: pc, sub: `${street}, ${city.join(' ')}` };
+      s = pc4 ? { ...ll, label: city.join(' ') || q.trim(), sub: `postcode ${q.trim()}` } : { ...ll, label: pc, sub: `${street}, ${city.join(' ')}` };
     }
     const k = s.label + s.sub; if (seen.has(k)) continue; seen.add(k); out.push(s);
   }

@@ -25,6 +25,7 @@ it('export: verborgen en kandidaten niet op de kaart, tijden vooruitgerekend', (
   expect(f.places.places[0].h[0]).toEqual([[600, 1020]]);
   expect(f.places.places[0].oh).toBeUndefined();
   expect(f.markets.markets.map(m => m.id)).toEqual(['m']);
+  expect(f.markets.markets[0].t).toBe('m'); // ook als de bron hem niet meegaf (Gemeenteblad)
 });
 
 it('winkels: verdwenen uit de bron → verborgen; terug → actief; met de hand verborgen blijft verborgen', () => {

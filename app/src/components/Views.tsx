@@ -127,7 +127,7 @@ export function ListView({ c, inView, list, total, limit, more, counts, nPlaces 
   const FOLD: Group[] = ['unknown', 'closed'], fold = (g: Group) => FOLD.includes(g) && !all.includes(g) && !f.q;
   const isToday = day === isoDay(c.now), openLbl = c.live ? 'Alleen wat nu open is' : `Alleen open om ${hm(c.min)}`;
   const P = (b: boolean) => ({ 'aria-pressed': b });
-  const extra = f.hide.length + (f.gratis ? 1 : 0) + (f.overdekt ? 1 : 0) + (f.open ? 1 : 0);
+  const extra = (f.hide.length ? 1 : 0) + (f.gratis ? 1 : 0) + (f.overdekt ? 1 : 0) + (f.open ? 1 : 0);
   return (<>
     <div className="lv-head" data-drag>
       <ContextPill c={c} />
@@ -147,7 +147,8 @@ export function ListView({ c, inView, list, total, limit, more, counts, nPlaces 
         {f.type !== 'k' && <><button className="chip" {...P(f.gratis)} onClick={() => c.setF({ gratis: !f.gratis })}>Markt: gratis entree</button>
           <button className="chip" {...P(f.overdekt)} onClick={() => c.setF({ overdekt: !f.overdekt })}><Ic n="umbrella" />Markt: overdekt</button></>}
         {f.type !== 'm' && <div className="catstrip" role="group" aria-label="Soort winkel">
-          {CATS.map(k => { const on = !f.hide.includes(k); return <button key={k} className={`catchip c-${k}`} aria-pressed={on} onClick={() => c.setF({ hide: on ? [...f.hide, k] : f.hide.filter(x => x !== k) })}><span className="tile"><Ic n={CAT[k][2]} /></span>{CAT[k][1]}</button>; })}
+          {/* Tik = alleen deze soort (zo verwachten mensen het; UX-test 30 okt). Daarna voeg je soorten toe; de laatste uitzetten = weer alles. */}
+          {CATS.map(k => { const on = !f.hide.includes(k), all = !f.hide.length; return <button key={k} className={`catchip c-${k}`} aria-pressed={on} onClick={() => c.setF({ hide: all ? CATS.filter(x => x !== k) : on ? (f.hide.length === CATS.length - 1 ? [] : [...f.hide, k]) : f.hide.filter(x => x !== k) })}><span className="tile"><Ic n={CAT[k][2]} /></span>{CAT[k][1]}</button>; })}
           {f.hide.length > 0 && <button className="chip" onClick={() => c.setF({ hide: [] })}>Alle soorten</button>}</div>}</div>}
     </div>
     <div className="lv-notes">
@@ -198,7 +199,7 @@ export function WaarView({ c, count }: { c: Ctx; count: number }) {
         <button key={iso} className="day" aria-pressed={!c.live && c.day === iso} onClick={() => setDay(iso)} aria-label={dLong(iso) + (isHoliday(iso) ? ', feestdag' : '')}><span>{i === 0 ? 'vand.' : DAYS[d.getDay()]}</span><b className="tnum">{d.getDate()}</b><i className={`mk${isHoliday(iso) ? '' : ' none'}`} /></button>); })}
     </div>
     {!c.live && <div className="stepper"><span>Vertrek</span><button className="ibtn" onClick={() => step(-30)} aria-label="Een half uur eerder" disabled={c.min <= 420}><Ic n="minus" /></button><b className="tnum" aria-live="polite">{hm(c.min)}</b><button className="ibtn" onClick={() => step(30)} aria-label="Een half uur later" disabled={c.min >= 1260}><Ic n="plus" /></button></div>}
-    <button className="btn primary block" onClick={c.back}>{count ? (c.live ? 'Toon wat er nu open is' : `Toon wat open is om ${hm(c.min)}`) : 'Toon de kaart'}</button>
+    <button className="btn primary block" onClick={c.back}>{count ? (c.live ? 'Toon wat er nu open is' : `Toon wat open is ${c.day === today ? 'vandaag' : `op ${dShort(c.day).toLowerCase()}`} om ${hm(c.min)}`) : 'Toon de kaart'}</button>
   </div>);
 }
 
@@ -230,7 +231,7 @@ function PlaceDetail({ p, c, top, d, actions }: { p: Place; c: Ctx; top: ReactEl
     <header className="dv-head" data-peek data-drag>{top}
       <p className="eyebrow"><Tile it={p} small />{kindLabel(p)}</p>
       <h2>{p.name}</h2>
-      <p className="dv-status"><St s={now} pulse={c.live} /><span className="ds">·</span><span className="tnum">{fkm(d)} km</span>{p.place && <><span className="ds">·</span><span>{p.place}</span></>}</p>
+      <p className="dv-status"><St s={now} pulse={c.live} />{d >= 0.05 && <><span className="ds">·</span><span className="tnum">{fkm(d)} km</span></>}{p.place && <><span className="ds">·</span><span>{p.place}</span></>}</p>
       {actions}
     </header>
     <PhotoStrip photos={c.bij.extra.photos[p.id] ?? []} />
@@ -292,7 +293,7 @@ function MarketDetail({ m, c, top, d, actions }: { m: Market; c: Ctx; top: React
       <p className="eyebrow"><Tile it={m} small />{m.kind}{m.indoor !== undefined && <> · {m.indoor ? 'binnen' : 'buiten'}</>}{m.sample && <span className="sample">voorbeeld</span>}</p>
       <h2 className={s === 'cancel' ? 'strike' : ''}>{m.name}</h2>
       <p className={`bigdate tnum${s === 'cancel' ? ' strike' : ''}`}>{dLong(m.date)} · {m.timeKnown === false ? 'tijden bij de organisator' : m.end ? `${hm(m.start)}–${hm(m.end)}` : `vanaf ${hm(m.start)}`}</p>
-      <p className="dv-status"><span className="tnum">{fkm(d)} km</span><span className="ds">·</span><span>{m.venue ? `${m.venue}, ${m.place}` : m.place}</span></p>
+      <p className="dv-status">{d >= 0.05 && <><span className="tnum">{fkm(d)} km</span><span className="ds">·</span></>}<span>{m.venue ? `${m.venue}, ${m.place}` : m.place}</span></p>
       {box}{actions}
     </header>
     {more.length > 0 && <section className="dv-sec"><h3>Ook op deze plek</h3><ul className="more-dates">{more.map(x =>
@@ -381,11 +382,11 @@ export function PlanView({ c, items, plan, setPlan, optimizeSeen, onderweg, shar
             {x.issue?.lv !== 'bad' && <button onClick={() => c.toggleStop(it.id)} aria-label={`Verwijder ${it.name}`}><Ic n="x" /></button>}</span></li>]; })}
         <li className="leg" aria-hidden="true">↓ terug ±{sim.home - sim.end} min</li></ol>
       <hr className="rc-rule" />
-      <dl className="rc-tot"><dt>Stops</dt><dd>{stops.length}</dd><dt>Rijden</dt><dd>±{fkm(sim.km)} km</dd><dt>Weg bij de laatste</dt><dd>{hm(sim.end)}</dd><dt className="big">Terug rond</dt><dd className="big">{hm(sim.home)}</dd></dl>
+      <dl className="rc-tot"><dt>Stops</dt><dd>{stops.length}</dd><dt>Rijden, heen en terug</dt><dd>±{fkm(sim.km)} km</dd><dt>Weg bij de laatste</dt><dd>{hm(sim.end)}</dd><dt className="big">Terug rond</dt><dd className="big">{hm(sim.home)}</dd></dl>
       <div className="rc-bar" aria-hidden="true" /><p className="rc-foot">Fijne {dayName}!</p>
     </div></div>
     <div className="plan-actions">
-      <div className="row2 start"><button className="btn primary" onClick={onderweg}><Ic n="play" />{plan.done?.length || plan.skip?.length ? 'Verder met mijn dag' : 'Start mijn dag'}</button>
+      <div className="row2 start">{plan.day === isoDay(c.now) ? <button className="btn primary" onClick={onderweg}><Ic n="play" />{plan.done?.length || plan.skip?.length ? 'Verder met mijn dag' : 'Start mijn dag'}</button> : <p className="src start-later"><Ic n="cal" /><span>Op {dayName} start je hier je dag; dan lopen we met je mee.</span></p>}
         <button className="btn" aria-expanded={more} onClick={() => setMore(!more)}>Meer<Ic n={more ? 'chevu' : 'chevd'} /></button></div>
       {!isBest && !more && <button className="btn" onClick={() => setPlan({ stops: best.map(x => x.id) })}><Ic n="wand" />Slimste volgorde</button>}
       {more && <div className="more-acts">
@@ -479,7 +480,7 @@ export function DagView({ c, items, plan, setPlan }: { c: Ctx; items: Item[]; pl
             <div className="rc-m"><button className="st-name" onClick={() => c.open(it.id)}>{it.name}</button>{x.note && <span className="rc-note">{x.note}</span>}
               {x.issue && <p className={`issue ${x.issue.lv}`}><Ic n="alert" /><span>{x.issue.txt}</span></p>}</div></li>]; })}</ol>
         <hr className="rc-rule" />
-        <dl className="rc-tot"><dt>Rijden</dt><dd>±{fkm(sim.km)} km</dd><dt className="big">Klaar rond</dt><dd className="big">{hm(sim.end)}</dd></dl>
+        <dl className="rc-tot"><dt>Rijden, heen en terug</dt><dd>±{fkm(sim.km)} km</dd><dt className="big">Klaar rond</dt><dd className="big">{hm(sim.end)}</dd></dl>
       </div></div>
       <div className="plan-actions">
         {sure ? <div className="unknown-box"><p><b>Je dagplan vervangen?</b> Er {plan.stops.length === 1 ? 'staat 1 stop' : `staan ${plan.stops.length} stops`} in. Die gaan eruit.</p>

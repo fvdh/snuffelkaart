@@ -324,3 +324,28 @@ Ontwerp `ontwerp/lus/` (canvas "Snuffelkaart: de snuffellus"), na de UX-synthese
     - ponytail: de lijst van `_redirects` is één keer gemaakt; een nieuwe alias vraagt een nieuwe regel.
   - **Code, nog te doen:** oude marktpagina's doorsturen naar de stadspagina.
     - Organisatoren vragen om naar hun pagina te linken (backlinks).
+
+## UX-test met vier testers (30 oktober 2026)
+Vier testers met elk een eigen ingang: Google naar een stad, de homepage met "nu open", /markten/, en een winkelpagina op de laptop. Dit is opgelost:
+- **App:**
+  - **Kaart rond de plek.** Openen vanaf een winkel- of marktpagina zet de kaart rond die plek in plaats van rond Amersfoort. `&plan=1` zet hem meteen in Mijn dag.
+  - **Soortfilter.** Een tik toont alleen die soort, dan voeg je soorten toe, en wie de laatste uitzet ziet weer alles. Het telt als één filter.
+  - **"Alleen open".** Dit is echt alleen open; "gaat nog open" valt eruit.
+  - **Mijn dag.** "Start mijn dag" kan alleen op de dag zelf. "Rijden" telt de terugweg mee.
+  - **Kleinere punten:**
+    - Een postcode toont de plaatsnaam ("Rond Deventer").
+    - De knop in Waar noemt de dag.
+    - Delen gebruikt de leesbare pagina, ook voor markten.
+    - De melding bij het hartje zegt waar je het terugvindt.
+    - In het detail staat geen "0,0 km" meer, en de knoppen lopen niet meer uit het paneel.
+- **Data:** markten krijgen altijd `t: 'm'` (`toFiles`). Gemeenteblad-markten stonden als "Kringloop · tijden onbekend".
+- **Statische pagina's:**
+  - **Stad:** "Open dit weekend" staat bovenaan, met tijden en links. Winkels met bekende tijden staan eerst; sloop en "tijden onbekend" onderaan.
+  - **Winkel:** knoppen Route en Bel, het adres is een link, vandaag staat gemarkeerd, de datum is leesbaar, en de knop "Plan in Mijn dag" doet wat hij zegt.
+  - **Markt:** "Markten" staat in het kruimelpad, met knoppen Plan, Route en Deel.
+  - **/markten/:** zoeken op plaats.
+- **Nog open:**
+  - de "+"-knoppen voor wie niet plant;
+  - afgekapte plaatsnamen op een smal scherm;
+  - "Dit weekend" als één keuze;
+  - de entree bij markten uit het Gemeenteblad.

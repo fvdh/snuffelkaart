@@ -200,20 +200,20 @@ export default function App() {
   const resume = () => { try { const t = JSON.parse(sessionStorage.getItem('snuffel-terug') ?? 'null'); sessionStorage.removeItem('snuffel-terug'); if (!t?.v) return false; if (t.id) setSel(t.id); setView(t.v); return true; } catch { return false; } };
   const toggleFav = (id: string) => {
     const on = !favs.includes(id); setFavs(on ? [...favs, id] : favs.filter(x => x !== id));
-    if (!sess) return setToast(on ? 'Bewaard op dit apparaat.' : 'Niet meer bewaard.');
-    setToast(on ? 'Bewaard in je account.' : 'Niet meer bewaard.');
+    if (!sess) return setToast(on ? 'Bewaard. Je vindt hem terug onder Jij.' : 'Niet meer bewaard.');
+    setToast(on ? 'Bewaard in je account, onder Jij.' : 'Niet meer bewaard.');
     (on ? rest('favorites', { method: 'POST', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ item_id: id }) }) : rest(`favorites?item_id=eq.${encodeURIComponent(id)}`, { method: 'DELETE', headers: { Prefer: 'return=minimal' } }))
       .catch(() => setToast('Opslaan in je account lukte niet. Op dit apparaat staat het wel.'));
   };
   const openMe = () => { setDir('fwd'); setPrev(view); setView('me'); setSnap('full'); scrollTop(); }; // groot paneel: op mobiel het hele scherm
   const showFavs = () => { const pts = favs.map(id => byId.get(id)).filter(Boolean) as Item[]; setFState(o => ({ ...o, only: favs, open: false, q: '' })); setDir('back'); setView('list'); setSel(null); if (pts.length) setFit({ pts, key: Date.now() }); if (!desktop) setSnap('collapsed'); };
   // Delen: een winkel via zijn eigen pagina (vast adres, ook vindbaar), een markt via de app; het systeemmenu, anders kopiëren.
-  const shareIdx = useMemo(() => places ? siteIndex(places, []) : null, [places]);
+  const shareIdx = useMemo(() => places ? siteIndex(places, allMarkets.filter(m => m.date >= (dataFrom ?? '').slice(0, 10))) : null, [places, allMarkets, dataFrom]); // zelfde adressen als de statische pagina's
   const shareLink = (title: string, text: string, url: string) => {
     if (navigator.share) return navigator.share({ title, text, url }).catch(() => {});
     navigator.clipboard?.writeText(`${text} ${url}`).then(() => setToast('Link gekopieerd. Plak hem in een bericht.'), () => setToast(url));
   };
-  const shareItem = (it: Item) => { klik(it.id, 'share'); const st = statusFor(it, now, day, nowMode ? undefined : min); shareLink(it.name, `${it.name}${it.place ? `, ${it.place}` : ''} · ${st.txt}`, location.origin + (it.t === 'k' && shareIdx ? shareIdx.url(it.id) : `/?open=${encodeURIComponent(it.id)}`)); };
+  const shareItem = (it: Item) => { klik(it.id, 'share'); const st = statusFor(it, now, day, nowMode ? undefined : min); shareLink(it.name, `${it.name}${it.place ? `, ${it.place}` : ''} · ${st.txt}`, location.origin + (shareIdx?.url(it.id) ?? `/?open=${encodeURIComponent(it.id)}`)); };
   const sharePlan = () => { const q = new URLSearchParams({ dag: plan.day, v: String(effStart(plan, now)), s: plan.stops.join(',') }); shareLink(`Mijn ${DAYS_LONG[dayStart(plan.day).getDay()]}`, `Mijn ${DAYS_LONG[dayStart(plan.day).getDay()]} op Snuffelkaart: ${plan.stops.length} ${plan.stops.length === 1 ? 'stop' : 'stops'}.`, `${location.origin}/?${q}`); };
   const logout = () => { authLogout(sess); setSess(null); setToast('Uitgelogd. Je favorieten blijven op dit apparaat.'); };
   const download = () => {
@@ -250,10 +250,10 @@ export default function App() {
   useEffect(() => {
     const q = deep.current, id = q.get('open'), plek = q.get('plek'), lat = Number(q.get('lat')), lon = Number(q.get('lon'));
     if (plek && Number.isFinite(lat) && Number.isFinite(lon) && lat) { q.delete('plek'); pickSpot({ label: plek, sub: '', lat, lon }); }
-    if (id && byId.has(id)) { q.delete('open'); go(id); }
+    if (id && byId.has(id)) { const it = byId.get(id)!; if (!spot && !me) pickSpot({ label: it.place ?? it.name, sub: '', lat: it.lat, lon: it.lon }); q.delete('open'); go(id); if (q.get('plan') === '1') { q.delete('plan'); if (!planRef.current.stops.includes(id)) toggleStop(id); } } // rond de winkel, niet rond Amersfoort (UX-test 30 okt)
     const sd = q.get('dag'), ss = q.get('s');
     if (sd && ss && byId.size) { setShared({ day: sd >= today ? sd : today, start: Math.max(0, Math.min(1439, Number(q.get('v')) || 600)), stops: ss.split(',').slice(0, 8) }); ['dag', 'v', 's'].forEach(k => q.delete(k)); setView('gedeeld'); setSnap('full'); }
-    if (!q.has('open') && !q.has('plek') && /[?&](open|plek|dag|s)=/.test(location.search)) history.replaceState(null, '', location.pathname + (q.toString() ? `?${q}` : ''));
+    if (!q.has('open') && !q.has('plek') && /[?&](open|plek|plan|dag|s)=/.test(location.search)) history.replaceState(null, '', location.pathname + (q.toString() ? `?${q}` : ''));
   }, [byId]);
   // Al eerder toestemming gegeven? Dan zonder vragen opnieuw ophalen.
   // Safari (iPhone) meldt een eerdere toestemming niet via de permissions-API; daarom onthouden we zelf dat het eerder lukte.

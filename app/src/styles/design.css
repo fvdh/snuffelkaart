@@ -381,7 +381,8 @@ svg.i{width:20px;height:20px;flex:none;fill:none;stroke:currentColor;stroke-widt
 .bigdate.strike{text-decoration:line-through;color:var(--fg-3)}
 .dv-status{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:.9375rem}
 .dv-status .ds{color:var(--fg-3)}
-.actions{display:flex;gap:8px;margin-top:4px}
+.actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px}
+.actions .btn{min-width:0}
 .actions .btn:first-child{flex:1}
 .heart{width:44px;height:44px;border-radius:12px;border:1px solid var(--line-strong);background:var(--surface);display:grid;place-items:center;color:var(--fg-2);flex:none}
 .heart[aria-pressed="true"]{color:var(--bad);border-color:color-mix(in oklch,var(--bad) 40%,var(--line))}

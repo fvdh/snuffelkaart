@@ -3,7 +3,7 @@
 import Tekst from '../../layouts/Tekst.astro';
 import ItemRow from '../../components/ItemRow.astro';
 import type { Place } from '../../lib/model';
-import { catOf, km } from '../../lib/model';
+import { catOf, km, dLong } from '../../lib/model';
 import { near, weekHours, weekIntervals, hoursSpec, hoursSummary } from '../../lib/seo';
 import { CAT } from '../../components/ui';
 import { ix, places, markets, from, holidays, extra, SITE } from '../../lib/sitedata';
@@ -18,6 +18,8 @@ const cat = CAT[catOf(p)][0], week = weekHours(p.h, from, holidays), wk = weekIn
 const web = p.website ? (p.website.startsWith('http') ? p.website : `https://${p.website}`) : null;
 const osm = /^osm-([nwr])(\d+)$/.exec(p.id), osmUrl = osm ? `https://www.openstreetmap.org/${{ n: 'node', w: 'way', r: 'relation' }[osm[1] as 'n' | 'w' | 'r']}/${osm[2]}` : null;
 const mk = near(p, markets, from, 10, 4);
+const route = `https://www.google.com/maps/dir/?api=1&destination=${p.lat.toFixed(5)},${p.lon.toFixed(5)}`; // iPhone opent dit ook netjes
+const checked = p.checked ? dLong(p.checked).toLowerCase() : null;
 const others = places.filter(o => o !== p && km(p, o) < 5 && DAY_CATS.includes(catOf(o))) // geen sloop, opkoop of pandjeshuis bij "meer tweedehands".sort((a, b) => km(p, a) - km(p, b)).slice(0, 6);
 const reviews = extra.reviews[p.id] ?? [], photos = extra.photos[p.id] ?? [], rating = avg(reviews);
 const MONTHS = ['januari', 'februari', 'maart', 'april', 'mei', 'juni', 'juli', 'augustus', 'september', 'oktober', 'november', 'december'];
@@ -34,17 +36,17 @@ const ld = { '@context': 'https://schema.org', '@type': 'Store', name: p.name, u
   <p class="tp-crumbs"><a href="/">Snuffelkaart</a> › {cityUrl ? <a href={cityUrl}>{p.place}</a> : (p.place ?? 'Winkel')}</p>
   <p class="eyebrow" style="margin-top:12px"><span class={`tile k c-${catOf(p)}`} style="width:24px;height:24px"><svg class="i" aria-hidden="true" style="width:14px;height:14px"><use href={`#i-${CAT[catOf(p)][2]}`} /></svg></span>{cat}</p>
   <h1>{p.name}</h1>
-  <p class="lede">{p.addr ?? p.place ?? ''}</p>
+  <p class="lede"><a href={route} rel="nofollow" style="font-weight:inherit;color:inherit">{p.addr ?? p.place ?? ''}</a></p>
   {/* Wie via Google komt, wil vooral weten: is hij nu open? Uitgerekend in de browser uit de tijden van de komende twee weken. */}
   {p.h && <p class="tp-now" id="nu" data-from={from} data-h={JSON.stringify(p.h.slice(0, 14))} hidden></p>}
   {p.kind === 'tweedehands' && <p>Geen standaard kringloop: tweedehands, maar prijzen en aanbod kunnen anders zijn dan bij een kringloop.</p>}
   <div class="tp-cta"><b>Zet hem in je dagplan</b><p>Plan hem samen met andere kringlopen en markten. We rekenen uit wanneer je waar bent en of alles dan open is.</p>
-    <a class="btn primary" href={`/?open=${encodeURIComponent(p.id)}`}>Open in de kaart</a></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap"><a class="btn primary" href={`/?open=${encodeURIComponent(p.id)}&plan=1`}>Plan in Mijn dag</a><a class="btn" href={route} rel="nofollow">Route</a>{p.phone && <a class="btn" href={`tel:${p.phone.split(';')[0].replace(/\s/g, '')}`}>Bel</a>}</div></div>
 
   <section>
     <h2>Openingstijden</h2>
-    {week ? <><dl class="tp-hours">{week.map(d => <><dt>{d.day}</dt><dd>{d.txt}</dd></>)}</dl>
-      <p style="font-size:.875rem;color:var(--fg-3)">{p.hs === 'bezoeker' ? `Doorgegeven door ${p.hb} en door ons gecontroleerd` : p.hs === 'web' ? <>Van <a href={p.hu}>de website van de winkel</a></> : `Bron: ${p.src === 'osm' ? 'OpenStreetMap' : 'Overture Maps'}`}{p.checked ? `, gecontroleerd op ${p.checked}` : ''}. Rond feestdagen kunnen de tijden afwijken.</p></>
+    {week ? <><dl class="tp-hours">{week.map(d => <><dt data-dag={d.day}>{d.day}</dt><dd data-dag={d.day}>{d.txt}</dd></>)}</dl>
+      <p style="font-size:.875rem;color:var(--fg-3)">{p.hs === 'bezoeker' ? `Doorgegeven door ${p.hb} en door ons gecontroleerd` : p.hs === 'web' ? <>Van <a href={p.hu}>de website van de winkel</a></> : `Bron: ${p.src === 'osm' ? 'OpenStreetMap' : 'Overture Maps'}`}{checked ? `, gecontroleerd op ${checked}` : ''}. Rond feestdagen kunnen de tijden afwijken.</p></>
       : <p>We weten de openingstijden nog niet. {p.src === 'osm' ? 'Deze winkel staat op OpenStreetMap, maar zonder tijden.' : 'Deze winkel komt uit Overture Maps en is nog niet door ons gecontroleerd; misschien bestaat hij niet meer.'} Bel even of kijk op de website voordat je gaat.</p>}
   </section>
 
@@ -75,6 +77,7 @@ const ld = { '@context': 'https://schema.org', '@type': 'Store', name: p.name, u
       if (cur) { txt = `Nu open · sluit ${hm(cur[1])}`; cls = 'open'; }
       else if (later) txt = `Nu dicht · opent vandaag om ${hm(later[0])}`;
       else { for (let k = 1; k < 8 && h[i0 + k]; k++) if (h[i0 + k].length) { const w = new Date(now); w.setDate(w.getDate() + k); txt = `Nu dicht · opent ${k === 1 ? 'morgen' : DAG[w.getDay()]} om ${hm(h[i0 + k][0][0])}`; break; } }
+      document.querySelectorAll(`[data-dag="${DAG[now.getDay()][0].toUpperCase() + DAG[now.getDay()].slice(1)}"]`).forEach(e => e.classList.add('vandaag'));
       if (!txt) return;
       el.textContent = txt; el.className = `tp-now ${cls}`; el.hidden = false;
     })();

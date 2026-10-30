@@ -27,6 +27,9 @@ const canonical = SITE + Astro.url.pathname;
       .tp .rows { list-style: none; margin: 0; padding: 0 } .tp .row { text-decoration: none; color: inherit } .tp .r-meta { white-space: normal }
       .tp-cta { display: flex; flex-direction: column; gap: 10px; padding: 16px; border-radius: 14px; background: var(--surface-2); margin-top: 18px } .tp-cta .btn { align-self: flex-start; text-decoration: none }
       .tp-now { display: inline-flex; align-items: center; gap: 8px; font-weight: 650; font-size: .9375rem; margin: 0 } .tp-now::before { content: ''; width: 9px; height: 9px; border-radius: 50% } .tp-now.open { color: var(--open-ink) } .tp-now.open::before { background: var(--open) } .tp-now.closed { color: var(--fg-2) } .tp-now.closed::before { background: var(--fg-3) }
+      .tp-weekend { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 18px } .tp-weekend h3 { font-size: 1rem; font-weight: 700; margin: 0 0 8px } .tp-weekend li { line-height: 1.4 }
+      .tp-hours .vandaag { color: var(--fg); font-weight: 700 }
+      .tp-filter { margin-top: 14px } .tp-filter input { font: inherit }
       .tp-hours { display: grid; grid-template-columns: auto 1fr; gap: 4px 18px; margin: 0; font-variant-numeric: tabular-nums } .tp-hours dt { color: var(--fg-2) } .tp-hours dd { margin: 0 }
       .tp-links { display: flex; flex-wrap: wrap; gap: 6px 14px; list-style: none; padding: 0 !important; margin: 0 }
       .tp h1.strike { text-decoration: line-through; text-decoration-color: var(--bad); text-decoration-thickness: 2px }

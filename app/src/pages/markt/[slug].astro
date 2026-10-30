@@ -32,13 +32,20 @@ const ld = { '@context': 'https://schema.org', '@type': 'Event', name: m.name, u
 ---
 <Tekst title={title} description={description}>
   <script type="application/ld+json" slot="head" set:html={JSON.stringify(ld)} />
-  <p class="tp-crumbs"><a href="/">Snuffelkaart</a> › {cityUrl ? <a href={cityUrl}>{m.place}</a> : m.place}</p>
+  <p class="tp-crumbs"><a href="/">Snuffelkaart</a> › <a href="/markten/">Markten</a> › {cityUrl ? <a href={cityUrl}>{m.place}</a> : m.place}</p>
   <p class="eyebrow" style="margin-top:12px"><span class="tile m" style="width:24px;height:24px"><svg class="i" aria-hidden="true" style="width:14px;height:14px"><use href="#i-kraam" /></svg></span>{m.kind}{m.indoor !== undefined && ` · ${m.indoor ? 'binnen' : 'buiten'}`}</p>
   <h1 id="naam" class={m.status === 'cancel' ? 'strike' : ''}>{m.name}</h1>
   <p class="lede"><b>{dLong(m.date)}</b> · {time}<br />{where}</p>
   <div id="status" data-id={m.id} class={`statusbox ${cls}`} style="margin-top:14px"><svg class="i" aria-hidden="true"><use href={`#i-${m.status === 'cancel' ? 'x' : m.status === 'unconf' ? 'alert' : 'check'}`} /></svg><div><b>{head}</b><p>{body}</p></div></div>
   <div class="tp-cta"><b>Combineer met kringlopen</b><p>Zet deze markt in je dagplan; de kaart kijkt welke winkels dan open zijn op je route.</p>
-    <a class="btn primary" href={`/?open=${encodeURIComponent(m.id)}`}>Open in de kaart</a></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap"><a class="btn primary" href={`/?open=${encodeURIComponent(m.id)}&plan=1`}>Plan in Mijn dag</a><a class="btn" href={`https://www.google.com/maps/dir/?api=1&destination=${m.lat.toFixed(5)},${m.lon.toFixed(5)}`} rel="nofollow">Route</a><button class="btn" id="deel" type="button">Deel</button></div></div>
+  <script is:inline>
+    // Delen: het deelmenu van de telefoon, anders de link kopiëren (UX-test 30 okt: "naar mijn partner sturen").
+    document.getElementById('deel')?.addEventListener('click', e => {
+      const d = { title: document.title, text: document.querySelector('.lede')?.innerText.replace(/\n/g, ' · '), url: location.href };
+      if (navigator.share) navigator.share(d).catch(() => {}); else navigator.clipboard?.writeText(`${d.text} ${d.url}`).then(() => { e.target.textContent = 'Link gekopieerd'; });
+    });
+  </script>
 
   <section>
     <h2>Praktisch</h2>
