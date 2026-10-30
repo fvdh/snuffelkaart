@@ -28,7 +28,7 @@ jobs:
         id: ovcache
         with:
           path: app/data-raw/overture.json
-          key: overture-${{ steps.ov.outputs.release }}
+          key: overture-v2-${{ steps.ov.outputs.release }} # v2: met socials (Facebook)
       - name: Overture ophalen (alleen bij een nieuwe release)
         if: steps.ovcache.outputs.cache-hit != 'true'
         run: node scripts/fetch-overture.mjs "${{ steps.ov.outputs.release }}"

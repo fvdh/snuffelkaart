@@ -9,6 +9,7 @@ import { searchSpots, type Spot } from '../lib/pdok';
 import { providers, oauthUrl, verifyCode, SB, KEY, type Session } from '../lib/auth';
 import { Ic, Tile, St, Conf, Banner, CAT, kindLabel, isUnsure, EASE, reduced, pop } from './ui';
 import { PhotoStrip, ReviewsSection, NameField, PILL, WHAT, type Bij } from './Bijdragen';
+const fbUrl = (path: string) => `https://www.facebook.com/${path}`;
 import { errText } from '../lib/bijdragen';
 
 export interface Ctx {
@@ -252,12 +253,13 @@ function PlaceDetail({ p, c, top, d, actions }: { p: Place; c: Ctx; top: ReactEl
       <dl className="hours">{w.map(x => <div key={x.iso} style={{ display: 'contents' }}><dt className={x.iso === today ? 'today' : ''}>{x.label}</dt><dd className={`${x.iso === today ? 'today' : ''}${x.txt.startsWith('Dicht') ? ' shut' : ''}`}>{x.txt}</dd></div>)}</dl>
       <p className={`src${stale ? ' stale' : ''}`}><Ic n={stale ? 'alert' : 'clock'} /><span>{p.checked ? (stale ? `Laatst gecontroleerd op ${p.checked}, dat is al even geleden. Bel even voordat je gaat.` : `${p.hs === 'web' ? 'Gelezen op' : p.hs === 'bezoeker' ? 'Gezien op' : 'Laatst gecontroleerd op'} ${p.checked}`) : 'Controledatum onbekend'} · {p.hs === 'bezoeker' ? `doorgegeven door ${p.hb}, gecontroleerd door ons` : p.hs === 'web' ? <>van <a href={p.hu} target="_blank" rel="noopener">de website van de winkel</a></> : `bron: ${p.src === 'osm' ? 'OpenStreetMap' : 'Overture Maps'}`}<br />Rond feestdagen kunnen tijden afwijken.</span></p></section>
       : <section className="dv-sec"><h3>Openingstijden</h3><div className="unknown-box"><p><b>We weten de openingstijden nog niet.</b> {p.src === 'osm' ? 'Deze winkel staat op OpenStreetMap, maar zonder tijden.' : 'Deze winkel komt uit Overture Maps en is nog niet door ons gecontroleerd. Misschien bestaat hij niet meer.'} Bel even of kijk op de website voordat je gaat.</p>
-        <div className="btns">{p.phone && <a className="btn sm" href={`tel:${p.phone.split(';')[0].replace(/\s/g, '')}`}><Ic n="phone" />{p.phone.split(';')[0].trim()}</a>}{!p.phone && p.website && <a className="btn sm" href={webUrl(p.website)} target="_blank" rel="noopener"><Ic n="globe" />Website</a>}<button className="btn sm primary" onClick={() => c.bij.go('suggest', p.id)}><Ic n="edit" />Ik weet de tijden</button></div></div>
+        <div className="btns">{p.phone && <a className="btn sm" href={`tel:${p.phone.split(';')[0].replace(/\s/g, '')}`}><Ic n="phone" />{p.phone.split(';')[0].trim()}</a>}{!p.phone && (p.website || p.fb) && <a className="btn sm" href={p.website ? webUrl(p.website) : fbUrl(p.fb!)} target="_blank" rel="noopener"><Ic n="globe" />{p.website ? 'Website' : 'Facebook'}</a>}<button className="btn sm primary" onClick={() => c.bij.go('suggest', p.id)}><Ic n="edit" />Ik weet de tijden</button></div></div>
         <p className="src"><Ic n="info" /><span>In “Nu open” tonen we deze winkel niet, omdat we dat niet kunnen beloven.</span></p></section>}
     <section className="dv-sec">
       {p.addr && <div className="inforow"><Ic n="pin" /><span>{p.addr}</span></div>}
       {p.phone && <div className="inforow"><Ic n="phone" /><span className="tnum phones">{p.phone.split(/\s*;\s*/).map(t => <a key={t} href={`tel:${t.replace(/\s/g, '')}`}>{t}</a>)}</span></div>}
       {p.website && <div className="inforow"><Ic n="globe" /><a href={webUrl(p.website)} target="_blank" rel="noopener">{p.website.replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '')}</a></div>}
+      {p.fb && !/facebook\.com/i.test(p.website ?? '') && <div className="inforow"><Ic n="globe" /><a href={fbUrl(p.fb)} target="_blank" rel="noopener">Facebook</a></div>}
     </section>
     <ReviewsSection p={p} b={c.bij} />
     <footer className="dv-foot"><Report id={p.id} what={SHOP_WHAT} suggest={() => c.bij.go('suggest', p.id)} />

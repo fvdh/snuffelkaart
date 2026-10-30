@@ -7,6 +7,13 @@
 import fs from 'node:fs';
 import { precompute, holidays, todayIso, DAYS_AHEAD } from './hours-precompute.mjs';
 import { siteKey } from './hours-from-web.mjs';
+/** Facebookpagina van de winkel (OSM contact:facebook, Overture socials, of een "website" die Facebook is) → het deel na facebook.com/, of null.
+ *  ponytail: alleen het pad, de app zet er https://www.facebook.com/ voor (scheelt ±40 kB in places.json). */
+const fbOf = (...v) => {
+  const u = v.flat().find(x => x && (/facebook\.com\//i.test(x) || !/[/.:]/.test(x))); if (!u) return null;
+  const path = /facebook\.com\//i.test(u) ? u.replace(/^.*?facebook\.com\//i, '') : u.replace(/^@/, '');
+  return /^(sharer|share|dialog|plugins|tr)\b/.test(path) ? null : path.replace(/\?.*$/, '').replace(/\/$/, '');
+};
 import { kindOf, refine } from './soort.mjs';
 
 const BBOX = [50.75, 3.35, 53.56, 7.23]; // z, w, n, o: heel Nederland (knippen op de grens gebeurt hieronder)
@@ -84,7 +91,7 @@ let places = raw.elements
       addr: [street, [t['addr:postcode'], city].filter(Boolean).join(' ')].filter(Boolean).join(', ') || null, place: city || null,
       h, ohRaw: t.opening_hours && !h ? t.opening_hours : undefined, oh: h ? t.opening_hours : undefined,
       checked: t['check_date:opening_hours'] || t.check_date || t['survey:date'] || null,
-      website: t.website || t['contact:website'] || null, phone: t.phone || t['contact:phone'] || null,
+      website: t.website || t['contact:website'] || null, phone: t.phone || t['contact:phone'] || null, fb: fbOf(t['contact:facebook'], t.facebook, t.website, t['contact:website']),
       wheelchair: t.wheelchair || null, src: 'osm',
     };
   })
@@ -122,7 +129,7 @@ if (fs.existsSync(OV)) {
     const twin = places.find(p => isDup(o, p));
     if (twin) { // zelfde winkel: lege velden aanvullen uit Overture, OSM houdt voorrang
       ovStat.dup++;
-      const fill = { website: o.website || null, phone: telNL(o.phone) };
+      const fill = { website: o.website || null, phone: telNL(o.phone), fb: fbOf(o.socials, o.website) };
       let hit = false; for (const k in fill) if (!twin[k] && fill[k]) { twin[k] = fill[k]; (twin.from ??= {})[k] = 'overture'; hit = true; }
       if (hit) ovStat.enriched++;
       continue;
@@ -131,7 +138,7 @@ if (fs.existsSync(OV)) {
     places.push({
       id: `ov-${o.id.replace(/-/g, '').slice(0, 12)}`, /* ingekort: scheelt ±100 kB, stabiel zolang Overture het id houdt */ t: 'k', kind: kindOf({ name: o.name }), sub: SUB[o.cat] ?? undefined, name: o.name.trim(), lat: +o.lat.toFixed(5), lon: +o.lon.toFixed(5),
       addr: [nice(o.street), [o.postcode, city].filter(Boolean).join(' ')].filter(Boolean).join(', ') || null, place: city,
-      h: null, checked: null, website: o.website || null, phone: telNL(o.phone), conf: o.conf, src: 'overture',
+      h: null, checked: null, website: o.website || null, phone: telNL(o.phone), fb: fbOf(o.socials, o.website), conf: o.conf, src: 'overture',
     });
     ovStat.added++;
   }

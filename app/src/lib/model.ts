@@ -5,6 +5,8 @@ export interface Place {
   id: string; t: 'k'; kind: Kind; name: string; lat: number; lon: number;
   addr: string | null; place: string | null; h: [number, number][][] | null; checked: string | null;
   website: string | null; phone: string | null; src: 'osm' | 'overture';
+  /** Facebookpagina van de winkel (OSM contact:facebook of Overture socials): het deel na facebook.com/. */
+  fb?: string;
   /** Overture: nadere soort van een tweedehandswinkel, en hun betrouwbaarheidsscore. */
   sub?: 'antiek' | 'kleding' | 'schroot' | 'pandjeshuis' | 'vlooienmarkt'; conf?: number;
   /** Openingstijden van de eigen website van de winkel (hs), gelezen van pagina hu. */

@@ -20,7 +20,7 @@ await db.run("INSTALL httpfs; LOAD httpfs; SET s3_region='us-west-2';");
 const res = await db.runAndReadAll(`
   SELECT id, names.primary AS name, taxonomy.primary AS cat, round(confidence, 2) AS conf, operating_status AS status,
     addresses[1].freeform AS street, addresses[1].postcode AS postcode, addresses[1].locality AS city,
-    websites[1] AS website, phones[1] AS phone, (bbox.xmin + bbox.xmax) / 2 AS lon, (bbox.ymin + bbox.ymax) / 2 AS lat
+    websites[1] AS website, socials, phones[1] AS phone, (bbox.xmin + bbox.xmax) / 2 AS lon, (bbox.ymin + bbox.ymax) / 2 AS lat
   FROM read_parquet('s3://overturemaps-us-west-2/release/${release}/theme=places/type=place/*', hive_partitioning = 1)
   WHERE bbox.xmin BETWEEN ${BBOX.w} AND ${BBOX.e} AND bbox.ymin BETWEEN ${BBOX.s} AND ${BBOX.n}
     AND (basic_category = 'second_hand_store' OR regexp_matches(names.primary, 'kringlo|kringwinkel', 'i'))`);
