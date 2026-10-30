@@ -47,6 +47,8 @@ function compute(t: T[], c: C[], info: Map<string, Info>, days: number) {
     const orgOf = (id: string) => { const x = info.get(id); return x ? (x.org && !x.org.startsWith('Gemeenteblad') ? x.org : null) : pre.get(id.split('-')[0]) ?? null; };
     const orgSlug = new Map<string, string>(); for (const x of info.values()) if (x.org) orgSlug.set(slugify(x.org), x.org);
     const orgs = new Map<string, Record<string, number>>();
+    // Alle organisatoren met een agenda, ook zonder bezoeken: dan zie je ook wie niets trekt.
+    for (const x of info.values()) if (x.org && !x.org.startsWith('Gemeenteblad')) orgs.set(x.org, orgs.get(x.org) ?? {});
     const bump = (o: string | null, k: string, n: number) => { if (!o) return; const r = orgs.get(o) ?? {}; r[k] = (r[k] ?? 0) + n; orgs.set(o, r); };
     for (const r of c.filter(cur)) bump(orgOf(r.item_id), r.what, r.n);
     for (const r of tm('pagina').filter(cur)) bump(r.key.startsWith('org:') ? orgSlug.get(r.key.slice(4)) ?? null : orgOf(r.key), 'pagina', r.n);
