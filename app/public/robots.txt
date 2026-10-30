@@ -1,2 +1,6 @@
 User-agent: *
-Disallow: /
+Disallow: /beheer
+Disallow: /data/
+Disallow: /*?
+
+Sitemap: https://snuffelkaart.nl/sitemap.xml

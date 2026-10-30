@@ -5,7 +5,7 @@ import { km, addDays, dayStart, DAYS_LONG, hm, cap } from './model';
 
 export const slugify = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/['’]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 /** Bestaande adressen in de root; een plaats met zo'n naam krijgt "-plaats" erachter. */
-const RESERVED = new Set(['beheer', 'privacy', 'hoe-we-controleren', 'plaatsen', 'winkel', 'markt', 'data', 'fonts', 'icons', '_astro', 'sitemap', 'robots']);
+const RESERVED = new Set(['beheer', 'privacy', 'hoe-we-controleren', 'plaatsen', 'markten', 'colofon', 'voorwaarden', 'offline', '404', 'winkel', 'markt', 'data', 'fonts', 'icons', '_astro', 'sitemap', 'robots']);
 
 /** Uniek adres per item: eerst de mooie naam, bij een botsing het korte id erachter. Zelfde invoer → zelfde adressen. */
 function unique<T>(items: T[], base: (x: T) => string, id: (x: T) => string): Map<string, T> {
@@ -49,12 +49,31 @@ export const near = (c: { lat: number; lon: number }, markets: Market[], today: 
 
 /** Openingstijden per weekdag (ma t/m zo), uit de vooruitgerekende dagen vanaf `from`. Feestdagen slaan we over: die zeggen niets over een gewone week. */
 export function weekHours(h: [number, number][][] | null, from: string, holidays: string[] = []): { day: string; txt: string }[] | null {
+  const w = weekIntervals(h, from, holidays);
+  return w && w.map(({ wd, iv }) => ({ day: cap(DAYS_LONG[wd]), txt: iv.length ? iv.map(([a, b]) => `${hm(a)}–${hm(b % 1440)}`).join(', ') : 'dicht' }));
+}
+/** Intervallen per weekdag (wd: 0 = zondag), ma t/m zo; feestdagen overgeslagen. */
+export function weekIntervals(h: [number, number][][] | null, from: string, holidays: string[] = []): { wd: number; iv: [number, number][] }[] | null {
   if (!h) return null;
-  const out = new Map<number, string>();
+  const out = new Map<number, [number, number][]>();
   for (let i = 0; i < h.length && out.size < 7; i++) {
     const iso = addDays(from, i), wd = dayStart(iso).getDay();
-    if (out.has(wd) || holidays.includes(iso)) continue;
-    out.set(wd, h[i].length ? h[i].map(([a, b]) => `${hm(a)}–${hm(b % 1440)}`).join(', ') : 'dicht');
+    if (!out.has(wd) && !holidays.includes(iso)) out.set(wd, h[i]);
   }
-  return [1, 2, 3, 4, 5, 6, 0].filter(d => out.has(d)).map(d => ({ day: cap(DAYS_LONG[d]), txt: out.get(d)! }));
+  return [1, 2, 3, 4, 5, 6, 0].filter(d => out.has(d)).map(wd => ({ wd, iv: out.get(wd)! }));
+}
+
+const SCHEMA_DAY = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+const hhmm = (m: number) => (m >= 1440 ? '23:59' : `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`);
+/** schema.org openingHoursSpecification: wat Google bij "nu open" en "open op zondag" leest. */
+export const hoursSpec = (w: { wd: number; iv: [number, number][] }[]) =>
+  w.flatMap(({ wd, iv }) => iv.map(([a, b]) => ({ '@type': 'OpeningHoursSpecification', dayOfWeek: SCHEMA_DAY[wd], opens: hhmm(a), closes: hhmm(b) })));
+
+const SHORT = ['zo', 'ma', 'di', 'wo', 'do', 'vr', 'za'];
+/** Korte week voor de zoekresultaat-tekst: "ma–vr 10:00–17:00, za 10:00–16:00, zo dicht". */
+export function hoursSummary(w: { wd: number; iv: [number, number][] }[]): string {
+  const txt = (iv: [number, number][]) => (iv.length ? iv.map(([a, b]) => `${hm(a)}–${hm(b % 1440)}`).join(' en ') : 'dicht');
+  const runs: { a: number; b: number; t: string }[] = [];
+  for (const { wd, iv } of w) { const t = txt(iv), last = runs[runs.length - 1]; if (last && last.t === t) last.b = wd; else runs.push({ a: wd, b: wd, t }); }
+  return runs.map(r => `${SHORT[r.a]}${r.a !== r.b ? `–${SHORT[r.b]}` : ''} ${r.t}`).join(', ');
 }

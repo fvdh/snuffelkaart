@@ -23,12 +23,13 @@ import Meten from '../components/Meten.astro';
       if (import.meta.env.PROD && 'serviceWorker' in navigator) addEventListener('load', () => navigator.serviceWorker.register('/sw.js'));
     </script>
     <Meten />
-    <title>Snuffelkaart</title>
+    <title>Snuffelkaart · Kringlopen en rommelmarkten bij jou in de buurt</title>
     <meta name="description" content="Kringlopen en rommelmarkten op één kaart. Zie wat er nu open is en plan je zaterdag." />
     <Deel title="Snuffelkaart" description="Kringlopen en rommelmarkten op één kaart. Zie wat er nu open is en plan je zaterdag." url={SITE + '/'} />
   </head>
   <body>
     <Sprite />
+    <h1 class="sr-only">Kringlopen en rommelmarkten bij jou in de buurt</h1>
     <App client:only="react" />
   </body>
 </html>

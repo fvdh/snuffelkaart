@@ -1,0 +1,32 @@
+---
+// Alle rommel- en vlooienmarkten van de komende weken: dit weekend voorop, daarna per maand. Voor "rommelmarkt dit weekend" en "vlooienmarkt".
+import Tekst from '../layouts/Tekst.astro';
+import ItemRow from '../components/ItemRow.astro';
+import { weekendOf, dayStart, dShort, MON_LONG } from '../lib/model';
+import { ix, markets, from, SITE } from '../lib/sitedata';
+
+const [sat, sun] = weekendOf(dayStart(from));
+const all = markets.filter(m => m.date >= from).sort((a, b) => a.date.localeCompare(b.date) || a.start - b.start || a.name.localeCompare(b.name));
+const weekend = all.filter(m => m.date === sat || m.date === sun), later = all.filter(m => m.date > sun);
+const months = Object.entries(Object.groupBy(later, m => m.date.slice(0, 7)));
+const monthName = (ym: string) => `${MON_LONG[+ym.slice(5) - 1][0].toUpperCase()}${MON_LONG[+ym.slice(5) - 1].slice(1)} ${ym.slice(0, 4)}`;
+const places = new Set(all.map(m => m.place)).size;
+const title = 'Rommelmarkten en vlooienmarkten in Nederland';
+const description = `${all.length} rommelmarkten, vlooienmarkten en snuffelmarkten in ${places} plaatsen, met datum, tijden, entree en of ze doorgaan. ${weekend.length ? `Dit weekend: ${weekend.length} ${weekend.length === 1 ? 'markt' : 'markten'}.` : ''}`.trim();
+const ld = { '@context': 'https://schema.org', '@type': 'ItemList', name: title, itemListElement: all.slice(0, 50).map((m, i) => ({ '@type': 'ListItem', position: i + 1, url: SITE + ix.url(m.id), name: `${m.name}, ${dShort(m.date)}` })) };
+---
+<Tekst title={title} description={description} wide>
+  <script type="application/ld+json" slot="head" set:html={JSON.stringify(ld)} />
+  <p class="tp-crumbs"><a href="/">Snuffelkaart</a> › Markten</p>
+  <h1>{title}</h1>
+  <p class="lede">{description} Of <a href="/">bekijk ze op de kaart</a>, samen met de kringlopen in de buurt.</p>
+  <section>
+    <h2>Dit weekend ({dShort(sat).toLowerCase()} en {dShort(sun).toLowerCase()})</h2>
+    {weekend.length ? <ul class="rows">{weekend.map(m => <ItemRow it={m} />)}</ul> : <p>Dit weekend staan er geen markten in onze agenda.</p>}
+  </section>
+  {months.map(([ym, ms]) => <section>
+    <h2>{monthName(ym)}</h2>
+    <ul class="rows">{ms!.map(m => <ItemRow it={m} />)}</ul>
+  </section>)}
+  <p style="color:var(--fg-3)">Markten komen uit de agenda's van de organisatoren en worden elke nacht gecontroleerd. <a href="/hoe-we-controleren/">Hoe we controleren</a> · <a href="/plaatsen/">Kringlopen per plaats</a></p>
+</Tekst>

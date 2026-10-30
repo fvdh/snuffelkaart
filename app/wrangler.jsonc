@@ -5,7 +5,7 @@
   "account_id": "092890fe4cde8445e74991b7d7ae19fd", // geen geheim; het token staat als secret in GitHub
   "compatibility_date": "2026-10-27",
   "main": "worker/klok.js",
-  "assets": { "directory": "./dist", "binding": "ASSETS", "not_found_handling": "single-page-application" },
+  "assets": { "directory": "./dist", "binding": "ASSETS", "not_found_handling": "404-page" },
   "triggers": { "crons": ["*/15 * * * *"] },
   // workers.dev-adres blijft ook werken (oude links, geïnstalleerde app); zonder deze regel zet wrangler het uit
   "workers_dev": true,

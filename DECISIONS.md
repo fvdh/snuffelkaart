@@ -304,3 +304,20 @@ Ontwerp `ontwerp/lus/` (canvas "Snuffelkaart: de snuffellus"), na de UX-synthese
 - **Waarom:** zo zien we wat bezoekers echt gebruiken. Het is ook de onderbouwing voor afspraken met organisatoren, zoals een vergoeding per doorverwijzing naar kraamhuur of een betaalde organisatorpagina. Zie het verdienmodel: passief, geen advertenties, geen betaalde plek in de lijst.
 - **Privacy:** we slaan geen losse klikken, IP-adres of account op, alleen het getal. Dat staat op de privacypagina.
 - **Rem:** er is geen rem. Spam blaast hooguit tellers op; de opslag groeit er niet door, want er is één rij per dag, plek en soort. Komt er spam, dan voegen we een rem per uur toe.
+
+## SEO: indexeren aan (30 oktober 2026)
+- **Wanneer:** we indexeren nu al, niet pas na de testronde. Google doet weken over ruim 4.400 pagina's; wat testers vinden, passen we gewoon aan. Freek wil goed scoren in Google omdat de app van gebruikers afhangt.
+- **Alleen snuffelkaart.nl in Google.** workers.dev houdt `X-Robots-Tag: noindex` (via `_headers` met hostnaam). /beheer, /data en adressen met `?` (app-standen) staan in robots.txt op disallow.
+- **Echte 404's:** `not_found_handling` staat op "404-page" in plaats van SPA. De app gebruikt alleen `/` met parameters, dus de SPA-fallback leverde alleen zachte 404's op.
+- **Homepage:** titel met zoekwoorden, een h1 voor schermlezers en zoekmachines, en links naar de grote steden en /markten onder de lijst.
+- **Winkels:** openingstijden in `openingHoursSpecification` en in de description, bijvoorbeeld "open ma–vr 10:00–17:00, zo dicht". Dat is voor zoekopdrachten als "kringloop open zondag".
+- **/markten/:** alle markten, eerst dit weekend en daarna per maand. Die pagina is voor "rommelmarkt dit weekend" en "vlooienmarkt".
+- **Nog te doen:**
+  - **Freek:**
+    - Search Console aanmelden en de sitemap insturen.
+    - www doorsturen naar de kale domeinnaam.
+    - Bing Webmaster Tools via import uit Search Console.
+  - **Code:**
+    - 's-Gravenhage/Den Haag en 's-Hertogenbosch/Den Bosch zijn dubbele stadspagina's; die samenvoegen.
+    - Oude marktpagina's doorsturen naar de stadspagina.
+    - Organisatoren vragen om naar hun pagina te linken (backlinks).

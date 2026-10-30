@@ -115,6 +115,11 @@ function ContextPill({ c }: { c: Ctx }) {
     <span className="cp-m">{c.live && <i className="cdot" />}{momentLabel(c)}<Ic n="chevd" /></span></button>);
 }
 
+/** Vaste links onder de lijst: voor bezoekers een snelle ingang, voor Google de weg naar de stadspagina's (SEO, 30 okt). */
+const BIG: [string, string][] = [['Amsterdam', 'amsterdam'], ['Rotterdam', 'rotterdam'], ['Den Haag', 'den-haag'], ['Utrecht', 'utrecht'], ['Eindhoven', 'eindhoven'], ['Groningen', 'groningen'],
+  ['Tilburg', 'tilburg'], ['Almere', 'almere'], ['Breda', 'breda'], ['Nijmegen', 'nijmegen'], ['Apeldoorn', 'apeldoorn'], ['Arnhem', 'arnhem'], ['Haarlem', 'haarlem'], ['Enschede', 'enschede'],
+  ['Amersfoort', 'amersfoort'], ['Zwolle', 'zwolle'], ['Leeuwarden', 'leeuwarden'], ['Maastricht', 'maastricht'], ['Den Bosch', 'den-bosch']];
+
 export function ListView({ c, inView, list, total, limit, more, counts, nPlaces }: { c: Ctx; inView: { nearest: () => void } | null; list: { it: Item; d: number }[]; total: number; limit: number; more: () => void; counts: { open: number; later: number; unknown: number }; nPlaces: number }) {
   const { f, day } = c, shown = list.slice(0, limit), secs = groupRows(shown, day, c.min), flip = useFlip(shown), [cats, setCats] = useState(false), [finding, setFinding] = useState(false), [all, setAll] = useState<Group[]>([]);
   // Tijden onbekend en dicht: de dichtstbijzijnde drie, de rest achter een knop. Bij zoeken alles.
@@ -161,6 +166,7 @@ export function ListView({ c, inView, list, total, limit, more, counts, nPlaces 
         : <div className="empty"><h3>{f.q ? `Niets gevonden voor “${f.q}”` : 'Geen resultaten met deze filters'}</h3><p>{f.q ? 'Zoek op de naam van een winkel of markt. Een plaats kies je bovenaan.' : 'Zet een filter uit.'}</p>
           <div className="btns">{f.q && <button className="btn sm" onClick={() => c.setF({ q: '' })}>Wis zoekopdracht</button>}{f.q && <button className="btn sm" onClick={c.openWaar}>Kies een plaats</button>}<button className="btn sm primary" onClick={() => c.setF({ open: false, gratis: false, overdekt: false, hide: [], only: null, q: '' })}>Toon alles</button></div></div>}
       {total > limit && <button className="more" onClick={more}>Toon meer, iets verder weg</button>}
+      <nav className="src seo-nav" aria-label="Kringlopen per plaats"><span>Kringlopen in {BIG.map(([n, s], i) => <span key={s}>{i ? ' · ' : ''}<a href={`/${s}/`}>{n}</a></span>)} · <a href="/plaatsen/">alle plaatsen</a>. <a href="/markten/">Alle rommelmarkten en vlooienmarkten</a>.</span></nav>
       <p className="src" style={{ marginTop: 18 }}><Ic n="info" /><span>{nPlaces} winkels uit © OpenStreetMap-bijdragers en © Overture Maps Foundation, heel Nederland. De winkelgegevens zijn vrij te gebruiken onder de <a href="https://opendatacommons.org/licenses/odbl/1-0/" target="_blank" rel="noopener">ODbL</a> (<a href="/data/places.json">download</a>). Markten uit de eigen agenda van organisatoren; bij elke markt staat welke. <a href="/plaatsen/">Alle plaatsen</a> · <a href="/hoe-we-controleren">Hoe we controleren</a> · <a href="/privacy">Privacy</a> · <a href="/voorwaarden">Voorwaarden</a> · <a href="/colofon">Colofon</a></span></p>
     </div>
   </>);

@@ -65,7 +65,7 @@ export function weekendOf(now: Date): [string, string] {
 export const DAYS = ['zo', 'ma', 'di', 'wo', 'do', 'vr', 'za'];
 export const DAYS_LONG = ['zondag', 'maandag', 'dinsdag', 'woensdag', 'donderdag', 'vrijdag', 'zaterdag'];
 const MON = ['jan', 'feb', 'mrt', 'apr', 'mei', 'jun', 'jul', 'aug', 'sep', 'okt', 'nov', 'dec'];
-const MON_LONG = ['januari', 'februari', 'maart', 'april', 'mei', 'juni', 'juli', 'augustus', 'september', 'oktober', 'november', 'december'];
+export const MON_LONG = ['januari', 'februari', 'maart', 'april', 'mei', 'juni', 'juli', 'augustus', 'september', 'oktober', 'november', 'december'];
 export const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 export const hm = (min: number) => `${Math.floor(min / 60)}:${String(min % 60).padStart(2, '0')}`;
 export const hShort = (min: number) => (min % 60 ? hm(min) : String(min / 60));

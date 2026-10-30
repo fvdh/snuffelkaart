@@ -1,0 +1,11 @@
+---
+import Tekst from '../layouts/Tekst.astro';
+// Echte 404 (wrangler: not_found_handling "404-page"), zodat Google geen eindeloze kopieën van de homepage ziet. Ook voor markten die al geweest zijn.
+---
+<Tekst title="Niet gevonden" description="Deze pagina bestaat niet (meer).">
+  <meta name="robots" content="noindex" slot="head" />
+  <h1>Deze pagina bestaat niet (meer)</h1>
+  <p class="lede">Zocht je een markt? Die is dan waarschijnlijk al geweest. Een winkel kan gesloten zijn of verhuisd.</p>
+  <p><a class="btn primary" href="/">Open de kaart</a></p>
+  <p><a href="/plaatsen/">Alle plaatsen</a> · <a href="/markten/">Alle markten</a></p>
+</Tekst>

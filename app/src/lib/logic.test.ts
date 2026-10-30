@@ -8,6 +8,7 @@ import { effStart, shortStatus } from '../components/Views';
 import { sampleMarkets } from './markets';
 import { parsePdok } from './pdok';
 import { linkKind } from './klik';
+import { hoursSummary, hoursSpec } from './seo';
 // dezelfde code als de import gebruikt
 import { precompute, holidays } from '../../scripts/hours-precompute.mjs';
 
@@ -229,5 +230,16 @@ describe('klikteller', () => {
     expect(linkKind('https://www.vlooienmarkten.nl/houten')).toBe('site');
     expect(linkKind('https://www.openstreetmap.org/node/1')).toBeNull();
     expect(linkKind('/privacy')).toBeNull();
+  });
+});
+
+describe('openingstijden voor Google', () => {
+  const w = [1, 2, 3, 4, 5].map(wd => ({ wd, iv: [[600, 1020]] as [number, number][] })).concat([{ wd: 6, iv: [[600, 960]] }, { wd: 0, iv: [] }]);
+  it('korte week voor het zoekresultaat', () => expect(hoursSummary(w)).toBe('ma–vr 10:00–17:00, za 10:00–16:00, zo dicht'));
+  it('schema.org: één regel per open blok, dichte dagen niet', () => {
+    const s = hoursSpec(w);
+    expect(s).toHaveLength(6);
+    expect(s[5]).toEqual({ '@type': 'OpeningHoursSpecification', dayOfWeek: 'Saturday', opens: '10:00', closes: '16:00' });
+    expect(hoursSpec([{ wd: 3, iv: [[0, 1440]] }])[0].closes).toBe('23:59');
   });
 });

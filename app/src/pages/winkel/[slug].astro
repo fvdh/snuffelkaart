@@ -4,7 +4,7 @@ import Tekst from '../../layouts/Tekst.astro';
 import ItemRow from '../../components/ItemRow.astro';
 import type { Place } from '../../lib/model';
 import { catOf, km } from '../../lib/model';
-import { near, weekHours } from '../../lib/seo';
+import { near, weekHours, weekIntervals, hoursSpec, hoursSummary } from '../../lib/seo';
 import { CAT } from '../../components/ui';
 import { ix, places, markets, from, holidays, extra, SITE } from '../../lib/sitedata';
 import { avg } from '../../lib/bijdragen';
@@ -13,7 +13,7 @@ export function getStaticPaths() {
   return [...ix.shops].map(([slug, p]) => ({ params: { slug }, props: { p } }));
 }
 const { p } = Astro.props as { p: Place };
-const cat = CAT[catOf(p)][0], week = weekHours(p.h, from, holidays), cityUrl = ix.cityUrl(p.place);
+const cat = CAT[catOf(p)][0], week = weekHours(p.h, from, holidays), wk = weekIntervals(p.h, from, holidays), cityUrl = ix.cityUrl(p.place);
 const web = p.website ? (p.website.startsWith('http') ? p.website : `https://${p.website}`) : null;
 const osm = /^osm-([nwr])(\d+)$/.exec(p.id), osmUrl = osm ? `https://www.openstreetmap.org/${{ n: 'node', w: 'way', r: 'relation' }[osm[1] as 'n' | 'w' | 'r']}/${osm[2]}` : null;
 const mk = near(p, markets, from, 10, 4);
@@ -21,9 +21,10 @@ const others = places.filter(o => o !== p && km(p, o) < 5).sort((a, b) => km(p, 
 const reviews = extra.reviews[p.id] ?? [], photos = extra.photos[p.id] ?? [], rating = avg(reviews);
 const MONTHS = ['januari', 'februari', 'maart', 'april', 'mei', 'juni', 'juli', 'augustus', 'september', 'oktober', 'november', 'december'];
 const title = `${p.name}${p.place ? `, ${p.place}` : ''}`;
-const description = `${cat}${p.place ? ` in ${p.place}` : ''}: ${week ? 'openingstijden' : 'adres'}${p.addr ? `, ${p.addr}` : ''}, en markten in de buurt.`;
+// Met tijden: die staan zo in het zoekresultaat ("kringloop open zondag"); zonder: adres en markten in de buurt.
+const description = wk ? `${cat}${p.place ? ` in ${p.place}` : ''}, open ${hoursSummary(wk)}.${p.addr ? ` ${p.addr}.` : ''}` : `${cat}${p.place ? ` in ${p.place}` : ''}: adres${p.addr ? `, ${p.addr}` : ''}, en markten in de buurt.`;
 const ld = { '@context': 'https://schema.org', '@type': 'Store', name: p.name, url: SITE + ix.url(p.id), geo: { '@type': 'GeoCoordinates', latitude: p.lat, longitude: p.lon },
-  ...(p.addr ? { address: { '@type': 'PostalAddress', streetAddress: p.addr, addressLocality: p.place ?? undefined, addressCountry: 'NL' } } : {}), ...(p.phone ? { telephone: p.phone } : {}), ...(web ? { sameAs: web } : {}),
+  ...(p.addr ? { address: { '@type': 'PostalAddress', streetAddress: p.addr, addressLocality: p.place ?? undefined, addressCountry: 'NL' } } : {}), ...(p.phone ? { telephone: p.phone } : {}), ...(web ? { sameAs: web } : {}), ...(wk ? { openingHoursSpecification: hoursSpec(wk) } : {}),
   ...(reviews.length ? { aggregateRating: { '@type': 'AggregateRating', ratingValue: rating, reviewCount: reviews.length, bestRating: 5, worstRating: 1 } } : {}),
   ...(photos.length ? { image: photos.slice(0, 3).map(f => f.url) } : {}) };
 ---
