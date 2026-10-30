@@ -1,5 +1,5 @@
 import { it, expect } from 'vitest';
-import { merge, vanished, toFiles, placeRows, toExtra, placeNames } from './db.mjs';
+import { merge, vanished, toFiles, placeRows, toExtra, placeNames, dedupe } from './db.mjs';
 
 it('import laat met de hand gezette velden en status staan', () => {
   const old = { id: 'a', status: 'cancel', locked: ['status', 'name'], data: { name: 'Goede naam', place: 'Oud' } };
@@ -59,4 +59,10 @@ it('één schrijfwijze per plaats: andere namen en hoofdletters samen', () => {
   expect(n("'s-Hertogenbosch")).toBe('Den Bosch');
   expect(n('Zwolle')).toBe('Zwolle');
   expect(n(null)).toBe(null);
+});
+
+it('dubbele winkels: zelfde naam (zonder "kringloopwinkel") binnen 150 m wordt één, de volledigste blijft', () => {
+  const p = (id, name, lat, extra = {}) => ({ id, name, lat, lon: 5, src: 'osm', ...extra });
+  const out = dedupe([p('a', 'De Arm', 52), p('b', 'Kringloopwinkel De Arm', 52.0003, { website: 'x' }), p('c', 'De Arm', 51), p('d', 'Anders', 52)]);
+  expect(out.map(x => x.id).sort()).toEqual(['b', 'c', 'd']);
 });

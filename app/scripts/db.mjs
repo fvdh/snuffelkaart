@@ -35,12 +35,31 @@ export function placeNames(names) {
   return n => (n ? best.get((ALIAS[n] ?? n).toLowerCase()) ?? n : n);
 }
 
+/** Dubbele invoer in de bronnen (MooiZooi ×3, "De Arm" en "Kringloopwinkel De Arm" op dezelfde plek): dezelfde naam, zonder
+ *  "kringloop(winkel)" ervoor, op (bijna) dezelfde plek is één winkel. We houden de versie met de meeste gegevens.
+ *  ponytail: O(n²) per naam; namen zijn bijna altijd uniek. */
+const plain = n => n.toLowerCase().replace(/^(kringloop(winkel)?|winkel)\s+/, '').trim();
+const score = p => (p.oh || p.h ? 4 : 0) + (p.website ? 1 : 0) + (p.phone ? 1 : 0) + (p.src === 'osm' ? 0.5 : 0) + (p.addr ?? '').length / 1000;
+export function dedupe(places) {
+  const by = new Map(), drop = new Set();
+  for (const p of places) by.set(plain(p.name), [...(by.get(plain(p.name)) ?? []), p]);
+  for (const xs of by.values()) {
+    if (xs.length < 2) continue;
+    xs.sort((a, b) => score(b) - score(a) || a.id.localeCompare(b.id));
+    // Binnen 40 m altijd dezelfde; tot 150 m alleen als de adressen niet duidelijk anders zijn (Emmaus Wageningen heeft er echt twee).
+    const street = p => (p.addr ?? '').split(',')[0].toLowerCase().replace(/\s+/g, ' ').trim();
+    const same = (p, q) => { const d = Math.hypot((p.lat - q.lat) * 111, (p.lon - q.lon) * 68); return d < 0.04 || (d < 0.15 && (!street(p) || !street(q) || street(p) === street(q))); };
+    xs.forEach((p, i) => { if (xs.slice(0, i).some(q => !drop.has(q.id) && same(p, q))) drop.add(p.id); });
+  }
+  return places.filter(p => !drop.has(p.id));
+}
+
 /** Rijen → bestanden voor de app (zelfde vorm als vroeger, zodat de app niet verandert). */
 export function toFiles(places, markets, from) {
-  const p = places.filter(r => r.status === 'actief').map(({ id, data: { oh, ...d } }) => {
+  const p = dedupe(places.filter(r => r.status === 'actief').map(({ id, data: { oh, ...d } }) => {
     const h = oh ? precompute(oh, from) : null;
     return { ...d, id, ...(h ? { h } : {}) };
-  });
+  }));
   const m = markets.filter(r => PUBLIC.includes(r.status) && r.date >= from).map(({ id, status, data }) => ({ ...data, t: 'm', id, status })) // t ontbrak bij Gemeenteblad-markten: die werden "Kringloop · tijden onbekend"
     .sort((a, b) => a.date.localeCompare(b.date) || a.start - b.start);
   const name = placeNames([...p, ...m].map(x => x.place));

@@ -1,7 +1,7 @@
 // Statische pagina's voor zoekmachines (§3.1, ontwerp §08): per plaats, per winkel en per markt, elke nacht opnieuw gebouwd
 // uit dezelfde kaartdata als de app. Hier alleen de logica (adressen, wie een pagina krijgt, tijden per week); de opmaak staat in src/pages.
 import type { Place, Market } from './model';
-import { km, addDays, dayStart, DAYS_LONG, hm, cap } from './model';
+import { km, addDays, dayStart, DAYS_LONG, hm, cap, catOf } from './model';
 
 export const slugify = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/['’]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 /** Bestaande adressen in de root; een plaats met zo'n naam krijgt "-plaats" erachter. */
@@ -77,3 +77,7 @@ export function hoursSummary(w: { wd: number; iv: [number, number][] }[]): strin
   for (const { wd, iv } of w) { const t = txt(iv), last = runs[runs.length - 1]; if (last && last.t === t) last.b = wd; else runs.push({ a: wd, b: wd, t }); }
   return runs.map(r => `${SHORT[r.a]}${r.a !== r.b ? `–${SHORT[r.b]}` : ''} ${r.t}`).join(', ');
 }
+
+/** Dunne winkelpagina's houden we uit Google (wel op de kaart): ongecontroleerd uit Overture zonder tijden, website of telefoon,
+ *  en sloop of pandjeshuis. Zulke pagina's zeggen weinig meer dan "misschien bestaat hij niet meer". */
+export const thin = (p: Place) => (p.src === 'overture' && !p.h && !p.website && !p.phone) || ['schroot', 'pandjeshuis'].includes(catOf(p));
