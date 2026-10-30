@@ -429,7 +429,7 @@ type Tel = Record<string, number>;
 function Clicks({ s }: { s: Session }) {
   const [rows, setRows] = useState<{ day: string; item_id: string; what: string; n: number }[] | null>(null), [names, setNames] = useState<Record<string, { name: string; org?: string }>>({}), [err, setErr] = useState('');
   useEffect(() => {
-    api(s, `clicks?select=day,item_id,what,n&day=gte.${new Date(Date.now() - 30 * 864e5).toISOString().slice(0, 10)}&limit=10000`).then(setRows).catch(e => setErr(e.message));
+    api(s, 'rpc/beheer_tellers', { method: 'POST', body: JSON.stringify({ sinds: new Date(Date.now() - 30 * 864e5).toISOString().slice(0, 10) }) }).then(j => setRows(j?.clicks ?? [])).catch(e => setErr(e.message));
     // ponytail: namen uit de openbare bestanden (±2 MB, staat meestal al in de cache); een view in Supabase als dit traag wordt
     Promise.all([fetch('/data/places.json').then(r => r.json()), fetch('/data/markets.json').then(r => r.json())]).then(([p, m]) =>
       setNames(Object.fromEntries([...(p.places ?? p), ...m.markets].map((x: { id: string; name: string; place?: string; org?: string }) => [x.id, { name: x.place ? `${x.name}, ${x.place}` : x.name, org: x.org }])))).catch(() => {});

@@ -79,9 +79,10 @@ export function Dashboard({ s }: { s: Session }) {
   const [t, setT] = useState<T[] | null>(null), [c, setC] = useState<C[] | null>(null), [info, setInfo] = useState<Map<string, Info>>(new Map()), [err, setErr] = useState('');
   const [days, setDays] = useState(30), [org, setOrg] = useState<string | null>(null);
   useEffect(() => {
-    // ponytail: 120 dagen in één keer (PostgREST max 10000 per verzoek hier); pagineren of een view als het meer wordt
-    api(s, `tellers?select=day,metric,key,n&day=gte.${ago(120)}&limit=10000`).then(setT).catch(e => setErr(e.message));
-    api(s, `clicks?select=day,item_id,what,n&day=gte.${ago(120)}&limit=10000`).then(setC).catch(e => setErr(e.message));
+    // ponytail: 120 dagen in één keer; een samenvatting in de database als dit te groot wordt
+    // Beide tabellen in één verzoek (migratie dashboard_rpc). Let op: lib/auth wil het hele pad, met rest/v1.
+    api(s, 'rest/v1/rpc/beheer_tellers', { method: 'POST', body: JSON.stringify({ sinds: ago(120) }) })
+      .then(j => { setT(j?.tellers ?? []); setC(j?.clicks ?? []); }).catch(e => setErr(`Tellers laden lukte niet: ${e.message}`));
     Promise.all([fetch('/data/places.json').then(r => r.json()), fetch('/data/markets.json').then(r => r.json())]).then(([p, m]) =>
       setInfo(new Map([...p.places, ...m.markets].map((x: Info & { id: string }) => [x.id, x])))).catch(() => {});
   }, []);
