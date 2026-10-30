@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseHoursNL, toText } from './hours-from-web.mjs';
+import { parseHoursNL, toText, hoursLD } from './hours-from-web.mjs';
 import { precompute } from './hours-precompute.mjs';
 
 const oh = t => parseHoursNL(t)?.oh ?? null;
@@ -54,5 +54,28 @@ describe('openingstijden van websites', () => {
   });
   it('html naar tekst', () => {
     expect(toText('<p>Ma:&nbsp;10:00&ndash;12:00</p><script>x</script><li>Di</li>')).toBe('Ma: 10:00–12:00\nDi\n');
+  });
+});
+
+describe('schema.org in de pagina', () => {
+  const ld = x => `<script type="application/ld+json">${JSON.stringify(x)}</script>`;
+  it('openingHoursSpecification, feestdag-uitzondering telt niet', () => {
+    expect(hoursLD(ld({ '@type': 'Store', openingHoursSpecification: [
+      { dayOfWeek: ['https://schema.org/Tuesday', 'Wednesday', 'Thursday', 'Friday'], opens: '10:00', closes: '17:00' },
+      { dayOfWeek: 'Saturday', opens: '10:00:00', closes: '16:00:00' },
+      { validFrom: '2026-12-25', validThrough: '2026-12-26', opens: '00:00', closes: '00:00' }] }))?.oh).toBe('Tu-Fr 10:00-17:00; Sa 10:00-16:00');
+  });
+  it('openingHours als tekst, standaardwaarde van een thema niet', () => {
+    expect(hoursLD(ld({ '@graph': [{ '@type': 'LocalBusiness', openingHours: ['Mo-Fr 09:30-17:00', 'Sa 10:00-16:00'] }] }))?.oh).toBe('Mo-Fr 09:30-17:00; Sa 10:00-16:00');
+    expect(hoursLD(ld({ openingHours: 'Mo-Su 00:00-23:59' }))).toBeNull();
+    expect(hoursLD(ld({ openingHours: 'Mo,Tu,We,Th,Fr,Sa,Su 09:00-17:00' }))).toBeNull();
+    expect(hoursLD(ld({ openingHoursSpecification: { dayOfWeek: 'Monday', opens: '00:00', closes: '23:59' } }))).toBeNull();
+  });
+  it('keten met twee winkels en andere tijden: twijfel', () => {
+    expect(hoursLD(ld([{ openingHours: 'Mo-Fr 09:00-17:00' }, { openingHours: 'Tu-Sa 10:00-16:00' }]))).toBeNull();
+  });
+  it('kop "Openingstijden" direct boven de lijst gaat voor een inbreng-zin erboven', () => {
+    expect(oh('Inbreng boven 20 stuks alleen op afspraak!\nOpeningstijden\nMaandag: Gesloten\nDinsdag: 10:00 – 14:00\nWoensdag: 10:00 – 15:00\nZaterdag: 10:00 – 14:00\nZondag: Gesloten'))
+      .toBe('Tu 10:00-14:00; We 10:00-15:00; Sa 10:00-14:00');
   });
 });

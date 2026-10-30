@@ -54,7 +54,9 @@ export function parseHoursNL(text) {
   }
   const results = new Map();
   for (const b of blocks) {
-    const before = text.slice(Math.max(0, b.start - 200), b.start).split('\n').filter(l => l.trim()).slice(-3).join(' '), inside = text.slice(b.start, b.end);
+    const lines = text.slice(Math.max(0, b.start - 200), b.start).split('\n').filter(l => l.trim()), inside = text.slice(b.start, b.end);
+    // Staat er direct boven "Openingstijden", dan telt alleen die kop (een inbreng-zin daarboven gaat over iets anders).
+    const before = /^\s*openings/i.test(lines.at(-1) ?? '') ? lines.at(-1) : lines.slice(-3).join(' ');
     if (NOT_SHOP.test(before) || NOT_SHOP.test(inside)) continue;
     // Gaat de lijst verder met een dag die we niet konden lezen? Dan is hij half: liever niets dan "za dicht" terwijl ze open zijn.
     if (new RegExp(`^\\s*${D}\\b`, 'i').test(text.slice(b.end, b.end + 60))) continue;
@@ -76,6 +78,43 @@ export function parseHoursNL(text) {
   if (/feestdagen[^.!\n]{0,60}gesloten|gesloten\s+op\s+(zon- en )?feestdagen/i.test(text)) oh += '; PH off';
   return { oh };
 }
+
+const LD_DAY = { monday: 0, tuesday: 1, wednesday: 2, thursday: 3, friday: 4, saturday: 5, sunday: 6 };
+/** schema.org in de pagina (JSON-LD): openingHoursSpecification of openingHours. Eén winkel met geldige tijden, anders null. */
+export function hoursLD(html) {
+  const found = new Set();
+  for (const m of html.matchAll(/<script[^>]*application\/ld\+json[^>]*>([\s\S]*?)<\/script>/gi)) {
+    let data; try { data = JSON.parse(m[1]); } catch { continue; }
+    const walk = x => {
+      if (Array.isArray(x)) return x.forEach(walk);
+      if (!x || typeof x !== 'object') return;
+      const week = Array(7).fill(null);
+      for (const s of [x.openingHoursSpecification ?? []].flat()) {
+        if (s.validFrom || s.validThrough || !s.opens || !s.closes) continue; // uitzonderingen (feestdagen) slaan we over
+        const [a, b] = [s.opens, s.closes].map(t => /^(\d{1,2}):(\d{2})/.exec(t)).map(t => t && mins(t[1], t[2]));
+        if (!(a >= 360 && b <= 1380 && b > a)) return; // 00:00-23:59 is een standaardwaarde van een thema, geen tijd
+        for (const d of [s.dayOfWeek].flat()) { const i = LD_DAY[String(d).split('/').pop().toLowerCase()]; if (i >= 0) week[i] = [week[i], `${hhmm(a)}-${hhmm(b)}`].filter(Boolean).join(','); }
+      }
+      if (week.some(Boolean)) {
+        const parts = [];
+        for (let i = 0; i < 7;) { const v = week[i]; let j = i; while (j + 1 < 7 && week[j + 1] === v) j++; if (v) parts.push(`${OSM[i]}${j > i ? '-' + OSM[j] : ''} ${v}`); i = j + 1; }
+        found.add(parts.join('; '));
+      } else if (typeof x.openingHours === 'string' || Array.isArray(x.openingHours)) {
+        const oh = [x.openingHours].flat().join('; ').trim();
+        // Al OSM-achtig ("Mo-Fr 09:00-17:00"); alleen overnemen als elk deel dat ook echt is.
+        if (oh && oh.split(/\s*;\s*/).every(p => /^(Mo|Tu|We|Th|Fr|Sa|Su)([-,](Mo|Tu|We|Th|Fr|Sa|Su))* ([0-2]\d:[0-5]\d-[0-2]\d:[0-5]\d,?)+$/.test(p)) && !/00:00-23:59|00:00-24:00/.test(oh)) found.add(oh);
+      }
+      Object.values(x).forEach(v => typeof v === 'object' && walk(v));
+    };
+    walk(data);
+  }
+  // Elke dag van de week precies dezelfde tijden is bijna altijd de standaardwaarde van een plugin, geen echte winkel.
+  for (const oh of found) if (/^Mo-Su |^Mo,Tu,We,Th,Fr,Sa,Su /.test(oh) && !oh.includes(';')) found.delete(oh);
+  return found.size === 1 ? { oh: [...found][0] } : null; // twee winkels met andere tijden (keten): twijfel
+}
+
+/** Tijden van een pagina: eerst schema.org, dan de tekst. */
+export const hoursFromHtml = html => hoursLD(html) ?? parseHoursNL(toText(html));
 
 /** Sleutel voor de cache: host + pad, zonder www en slash. Winkels van één keten op één pagina delen hem. */
 export const siteKey = u => { try { const x = new URL(/^https?:/i.test(u) ? u : 'https://' + u); return x.host.replace(/^www\./, '').toLowerCase() + x.pathname.replace(/\/$/, ''); } catch { return null; } };

@@ -5,7 +5,7 @@
 //          npm run data:web -- --fresh (alles opnieuw)
 //          npm run data:web -- --limit=50 (proef)
 import fs from 'node:fs';
-import { parseHoursNL, toText, siteKey } from './hours-from-web.mjs';
+import { hoursFromHtml, toText, siteKey } from './hours-from-web.mjs';
 
 const PLACES = new URL('../public/data/places.json', import.meta.url), OUT = new URL('../data-raw/web-hours.json', import.meta.url);
 const UA = 'Snuffelkaart-PoC/0.1 (openingstijden van kringlopen; freek@draad.nu)';
@@ -75,10 +75,10 @@ async function read(key, url) {
   try {
     if (!(await allowed(url))) { res.note = 'robots.txt'; return res; }
     const first = await getAny(url); let html = first.html, at = first.url;
-    let hit = parseHoursNL(toText(html));
+    let hit = hoursFromHtml(html);
     for (const next of hit ? [] : candidates(html, at)) {
       await sleep(PAUSE); if (!(await allowed(next))) continue;
-      try { const r = await get(next); hit = parseHoursNL(toText(r.html)); if (hit) { at = r.url; break; } } catch { /* volgende */ }
+      try { const r = await get(next); hit = hoursFromHtml(r.html); if (hit) { at = r.url; break; } } catch { /* volgende */ }
     }
     // Postcodes op de pagina (4 cijfers): staat de winkel er niet tussen, dan is het misschien een andere winkel (zie fetch-osm).
     if (hit) { res.oh = hit.oh; res.page = at; res.pc = [...new Set([...toText(html).matchAll(/\b([1-9]\d{3})\s?[A-Z]{2}\b/g)].map(m => m[1]))].slice(0, 12); } else res.note = 'geen tijden gevonden';
