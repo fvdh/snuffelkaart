@@ -265,7 +265,7 @@ export default function App() {
   useEffect(() => { if (!wide && aside) { setView(aside); setAside(null); } else if (wide && PLANISH.includes(view as never)) { setAside(view as Aside); setView('list'); } }, [wide]);
   const st = useCallback((it: Item) => statusFor(it, now, day, nowMode ? undefined : min), [now, day, min, nowMode]);
 
-  const c: Ctx = { now, f, online, dataFrom, install, origin, originLabel, locDenied, locating, spot: !!spot, pickSpot, recent: spot ? [spot, ...recent.filter(r => r.label !== spot.label)].slice(0, 3) : recent, me, favs, bij, planStops: plan.stops, planDay: plan.day,
+  const c: Ctx = { now, f, online, dataFrom, install, origin, originLabel, locDenied, locating, spot: !!spot, pickSpot, markets, recent: spot ? [spot, ...recent.filter(r => r.label !== spot.label)].slice(0, 3) : recent, me, favs, bij, planStops: plan.stops, planDay: plan.day,
     day, min, live: nowMode, setWhen: w => setWhen(w), st, setF, open, toggleStop, toggleFav, here, locate, back, openPlan, openMe, openDag, openWaar, share: shareItem, user: sess?.email ?? null };
   const planProps = { items, plan, setPlan };
   const closeAside = () => setAside(null);

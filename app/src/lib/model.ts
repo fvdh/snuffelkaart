@@ -35,6 +35,9 @@ export interface LatLon { lat: number; lon: number }
 
 export const DEFAULT_CENTER: LatLon = { lat: 52.1561, lon: 5.3878 }; // Amersfoort, midden in het land
 
+/** Zelfde plek (±10 m): markten die hier op meer dagen staan, delen één pin. */
+export const spotKey = (p: LatLon) => `${p.lat.toFixed(4)},${p.lon.toFixed(4)}`;
+
 /** Afstand in km (haversine). */
 export function km(a: LatLon, b: LatLon): number {
   const R = 6371, r = Math.PI / 180;

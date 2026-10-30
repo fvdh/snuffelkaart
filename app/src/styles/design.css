@@ -736,3 +736,13 @@ details.sugg summary h3,details.sugg summary .sub{grid-column:1;margin:0}
 details.sugg summary svg{grid-column:2;grid-row:1/3;width:18px;height:18px;color:var(--fg-2)}
 details.sugg[open] summary svg{transform:rotate(180deg)}
 .phones{display:flex;flex-direction:column}
+
+/* Markt op meer dagen op dezelfde plek: één pin met het aantal; in het detail de andere data */
+.pin-x{position:absolute;top:-7px;right:-9px;min-width:18px;height:18px;border-radius:9px;background:var(--ink);color:var(--on-ink);font-size:.7rem;font-weight:750;display:grid;place-items:center;padding:0 4px;border:2px solid var(--surface);font-variant-numeric:tabular-nums}
+.more-dates{list-style:none;margin:0;padding:0}
+.more-dates li+li{border-top:1px solid var(--line)}
+.more-dates button{all:unset;box-sizing:border-box;width:100%;display:grid;grid-template-columns:1fr auto;align-items:center;gap:2px 8px;padding:10px 0;cursor:pointer}
+.more-dates button>span:first-child{font-weight:650}
+.more-dates .sub{grid-column:1;color:var(--fg-2);font-size:.875rem}
+.more-dates svg{grid-column:2;grid-row:1/3;width:18px;height:18px}
+.more-dates button:focus-visible{outline:2px solid var(--focus,currentColor);outline-offset:2px;border-radius:6px}

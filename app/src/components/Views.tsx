@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactElement } from 'react';
 import type { Item, LatLon, Place, Market } from '../lib/model';
-import { dDay, dShort, dLong, fkm, hm, isoDay, addDays, dayStart, minutesOf, DAYS, DAYS_LONG, km, cap, CATS } from '../lib/model';
+import { spotKey, dDay, dShort, dLong, fkm, hm, isoDay, addDays, dayStart, minutesOf, DAYS, DAYS_LONG, km, cap, CATS } from '../lib/model';
 import { placeNow, placeDay, placeAt, marketStatus, week, isHoliday, openOn, intervals, type Status } from '../lib/hours';
 import { simulate, bestOrder, routeUrl, dayProposals } from '../lib/plan';
 import { groupRows, type Filters, type Group } from '../lib/filter';
@@ -12,7 +12,7 @@ import { errText } from '../lib/bijdragen';
 
 export interface Ctx {
   now: Date; f: Filters; online: boolean; dataFrom: string | null; install: { add: () => void; no: () => void } | null; origin: LatLon; originLabel: string | null; locDenied: boolean; spot: boolean; me: LatLon | null; locating: boolean;
-  pickSpot: (s: Spot) => void; recent: Spot[]; favs: string[]; bij: Bij; planStops: string[]; planDay: string;
+  pickSpot: (s: Spot) => void; recent: Spot[]; markets: Market[]; favs: string[]; bij: Bij; planStops: string[]; planDay: string;
   /** Het gekozen moment: nu (live) of een dag + vertrektijd. Geldt voor lijst, kaart en detail; het dagplan heeft een eigen dag en tijd. */
   day: string; min: number; live: boolean; setWhen: (w: { day: string; start: number } | null) => void; st: (it: Item) => Status;
   setF: (p: Partial<Filters>) => void; open: (id: string, from?: HTMLElement | null) => void; toggleStop: (id: string) => void; toggleFav: (id: string) => void;
@@ -275,7 +275,7 @@ function Report({ id, what }: { id: string; what: [string, string][] }) {
 }
 
 function MarketDetail({ m, c, top, d, actions }: { m: Market; c: Ctx; top: ReactElement; d: number; actions: ReactElement }) {
-  const s = m.status;
+  const s = m.status, k = spotKey(m), more = c.markets.filter(x => x.id !== m.id && spotKey(x) === k).sort((a, b) => a.date.localeCompare(b.date) || a.start - b.start);
   const box = s === 'org' ? <div className="statusbox org"><Ic n="check" /><div><b>Bevestigd door de organisator</b><p>{m.org} heeft deze datum zelf opgegeven.</p></div></div>
     : s === 'chk' ? <div className="statusbox chk"><Ic n="check" /><div><b>Gecontroleerd op {m.checked && dDay(m.checked)}</b><p>Deze editie stond bij de laatste controle op de website van {m.org}.</p></div></div>
     : s === 'unconf' ? <div className="statusbox unconf"><Ic n="alert" /><div><b>Nog niet bevestigd</b><p>Deze datum is afgeleid uit het schema “{m.schema.toLowerCase()}”. Check het voordat je gaat; we stellen hem niet vanzelf voor in je dagplan.</p></div></div>
@@ -288,6 +288,8 @@ function MarketDetail({ m, c, top, d, actions }: { m: Market; c: Ctx; top: React
       <p className="dv-status"><span className="tnum">{fkm(d)} km</span><span className="ds">·</span><span>{m.venue ? `${m.venue}, ${m.place}` : m.place}</span></p>
       {box}{actions}
     </header>
+    {more.length > 0 && <section className="dv-sec"><h3>Ook op deze plek</h3><ul className="more-dates">{more.map(x =>
+      <li key={x.id}><button onClick={e => c.open(x.id, e.currentTarget)}><span className={`tnum${x.status === 'cancel' ? ' strike' : ''}`}>{cap(dLong(x.date))}</span><span className="sub">{x.name !== m.name ? `${x.name} · ` : ''}{x.status === 'cancel' ? 'afgelast' : x.timeKnown === false ? 'tijden bij de organisator' : x.end ? `${hm(x.start)}–${hm(x.end)}` : `vanaf ${hm(x.start)}`}</span><Ic n="chev" /></button></li>)}</ul></section>}
     {m.sample && <Banner icon="info">Dit is een <b>verzonnen voorbeeldmarkt</b> om het ontwerp te testen.</Banner>}
     <section className="dv-sec"><h3>Praktisch</h3><dl className="facts">
       <dt>Entree</dt><dd>{m.entree === 'gratis' ? 'Gratis' : m.entree === 'onbekend' ? 'Staat niet in de agenda' : m.entree}</dd>

@@ -3,7 +3,7 @@ import type { Place, Cat } from './model';
 import { weekendOf, DEFAULT_CENTER, catOf } from './model';
 import { placeNow, placeDay, placeAt, isHoliday, week, setWindow, intervals } from './hours';
 import { simulate, bestOrder, routeUrl, dayProposals } from './plan';
-import { matches, visible, groupOf, groupRows } from './filter';
+import { matches, visible, groupOf, groupRows, stackMarkets } from './filter';
 import { effStart, shortStatus } from '../components/Views';
 import { sampleMarkets } from './markets';
 import { parsePdok } from './pdok';
@@ -205,5 +205,17 @@ describe('dag voor me', () => {
     const p = dayProposals(shops, '2026-10-31', 570, from, 2).map(x => ids(x).join());
     expect(p.length).toBeGreaterThan(1);
     expect(new Set(p).size).toBe(p.length);
+  });
+});
+
+describe('markten op dezelfde plek', () => {
+  it('één pin per plek: de eerstvolgende datum, met het aantal data', () => {
+    const [a] = sampleMarkets(new Date(2026, 9, 26));
+    const m = (id: string, date: string, lat = a.lat) => ({ ...a, id, date, lat });
+    const shop = P('Mo-Sa 10:00-17:00');
+    const r = stackMarkets([m('b', '2027-03-28'), shop, m('a', '2027-02-07'), m('c', '2027-02-07', a.lat + 0.01)]);
+    expect(r.items.map(x => x.id)).toEqual([shop.id, 'a', 'c']);
+    expect(r.n.get('a')).toBe(2);
+    expect(r.n.get('c')).toBe(1);
   });
 });

@@ -8,6 +8,7 @@ import type { Item, LatLon } from '../lib/model';
 import { DEFAULT_CENTER } from '../lib/model';
 import { isUnsure, catCls, kindIcon, CAT, EASE, reduced } from './ui';
 import { CATS, catOf } from '../lib/model';
+import { stackMarkets } from '../lib/filter';
 
 const STYLE = 'https://tiles.openfreemap.org/styles/positron';
 
@@ -52,7 +53,7 @@ const icon = (n: string) => `<svg class="i" aria-hidden="true"><use href="#i-${n
 export default function MapView(p: MapProps) {
   const box = useRef<HTMLDivElement>(null), mapRef = useRef<ML.Map | null>(null);
   const marks = useRef(new Map<string, { m: ML.Marker; el: HTMLDivElement; at: [number, number]; leaves?: string[] }>());
-  const shownIndex = useRef<unknown>(null);
+  const shownIndex = useRef<unknown>(null), stacked = useRef(new Map<string, number>());
   const meMark = useRef<ML.Marker | null>(null), routeShown = useRef(false);
   const [ready, setReady] = useState(false), [tick, setTick] = useState(0);
   const cb = useRef(p); cb.current = p;
@@ -85,7 +86,9 @@ export default function MapView(p: MapProps) {
   // ponytail: supercluster op alle zichtbare items; HTML-markers zodat pins exact het ontwerp volgen. Bij duizenden punten: symbol-laag.
   const index = useMemo(() => {
     const sc = new Supercluster<{ id: string; c: string }>({ radius: 34, maxZoom: 16 });
-    sc.load(p.items.filter(it => it.id !== p.sel && !p.planIds.includes(it.id)).map(it => ({ type: 'Feature', geometry: { type: 'Point', coordinates: [it.lon, it.lat] }, properties: { id: it.id, c: it.t === 'm' ? 'm' : catOf(it) } })));
+    const shown = stackMarkets(p.items.filter(it => it.id !== p.sel && !p.planIds.includes(it.id)));
+    stacked.current = shown.n;
+    sc.load(shown.items.map(it => ({ type: 'Feature', geometry: { type: 'Point', coordinates: [it.lon, it.lat] }, properties: { id: it.id, c: it.t === 'm' ? 'm' : catOf(it) } })));
     return sc;
   }, [p.items, p.sel, p.planIds]);
 
@@ -114,7 +117,7 @@ export default function MapView(p: MapProps) {
     function pinFor(it: Item) {
       const n = p.planIds.indexOf(it.id), sel = it.id === p.sel;
       return { lnglat: [it.lon, it.lat] as [number, number], cls: `mk${sel ? ' zsel' : ''}`, label: it.name, onClick: () => cb.current.onSelect(it.id),
-        html: `<button class="pin ${it.t}${catCls(it)} ${cb.current.pinClass(it)}${it.t === 'k' && isUnsure(it) ? ' unknown' : ''}${sel ? ' sel' : ''}${n >= 0 ? ' numbered' : ''}${p.planIds.length && n < 0 ? ' dim' : ''}" aria-label="${it.name.replace(/"/g, '&quot;')}"><span class="pin-b">${icon(kindIcon(it))}</span><span class="pin-dot"></span><span class="pin-n">${n + 1}</span><span class="pin-lbl"></span></button>` };
+        html: `<button class="pin ${it.t}${catCls(it)} ${cb.current.pinClass(it)}${it.t === 'k' && isUnsure(it) ? ' unknown' : ''}${sel ? ' sel' : ''}${n >= 0 ? ' numbered' : ''}${p.planIds.length && n < 0 ? ' dim' : ''}" aria-label="${it.name.replace(/"/g, '&quot;')}${(stacked.current.get(it.id) ?? 1) > 1 ? `, ${stacked.current.get(it.id)} data` : ''}"><span class="pin-b">${icon(kindIcon(it))}</span><span class="pin-dot"></span><span class="pin-n">${n + 1}</span><span class="pin-lbl"></span>${(stacked.current.get(it.id) ?? 1) > 1 ? `<span class="pin-x">${stacked.current.get(it.id)}</span>` : ''}</button>` };
     }
     // Bewegingen: nieuwe data → pins vallen in (28 ms na elkaar, samen ≤ 0,5 s); groepje splitst → pins schuiven
     // vanuit het midden (450 ms); wat verdwijnt schaalt weg (180 ms).

@@ -1,4 +1,4 @@
-import { type Item, type LatLon, type Cat, catOf, km, isoDay, minutesOf, mEnd } from './model';
+import { type Item, type LatLon, type Cat, catOf, km, isoDay, minutesOf, mEnd, spotKey } from './model';
 import { intervals } from './hours';
 
 /** open: alleen wat open is of nog opengaat op het gekozen moment. Staat standaard uit (Freek). Het moment (nu, of een dag + tijd)
@@ -50,4 +50,14 @@ export function groupRows<T extends { it: Item }>(rows: T[], day: string, min: n
   const by = new Map<Group, T[]>();
   for (const r of rows) { const g = groupOf(r.it, day, min); by.set(g, [...(by.get(g) ?? []), r]); }
   return GROUPS.filter(g => by.has(g)).map(g => ({ g, rows: by.get(g)! }));
+}
+
+/** Markten op dezelfde plek op meer dagen: alleen de eerstvolgende op de kaart; n = hoeveel data er achter die pin zitten. */
+export function stackMarkets(items: Item[]): { items: Item[]; n: Map<string, number> } {
+  const first = new Map<string, Extract<Item, { t: 'm' }>>(), cnt = new Map<string, number>();
+  for (const it of items) if (it.t === 'm') {
+    const k = spotKey(it), f = first.get(k); cnt.set(k, (cnt.get(k) ?? 0) + 1);
+    if (!f || f.date > it.date) first.set(k, it);
+  }
+  return { items: items.filter(it => it.t !== 'm' || first.get(spotKey(it)) === it), n: new Map([...first].map(([k, it]) => [it.id, cnt.get(k)!])) };
 }
