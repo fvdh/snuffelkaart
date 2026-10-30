@@ -298,3 +298,9 @@ Ontwerp `ontwerp/lus/` (canvas "Snuffelkaart: de snuffellus"), na de UX-synthese
 - Zoeken achter een vergrootglas in de filterrij; klapt open bij tikken.
 - Mijn dag: vertrekblok als één regel met Wijzig; onder de bon alleen "Start mijn dag" en "Meer" (slimste volgorde, ander voorstel, kaart-apps). "Past ook" ingeklapt.
 - Winkeldetail: weektijden vanaf de gekozen dag (geen voorbije dagen met "–"); meerdere telefoonnummers apart.
+
+## Klikteller (30 oktober 2026)
+- **Wat:** per dag, per plek en per soort een teller. Soorten: bekeken, in dagplan, gedeeld, route, website, bellen. Het gaat via `rpc count_click` (migratie `klikken`) en is te zien in /beheer → Klikken, ook per organisator.
+- **Waarom:** zo zien we wat bezoekers echt gebruiken. Het is ook de onderbouwing voor afspraken met organisatoren, zoals een vergoeding per doorverwijzing naar kraamhuur of een betaalde organisatorpagina. Zie het verdienmodel: passief, geen advertenties, geen betaalde plek in de lijst.
+- **Privacy:** we slaan geen losse klikken, IP-adres of account op, alleen het getal. Dat staat op de privacypagina.
+- **Rem:** er is geen rem. Spam blaast hooguit tellers op; de opslag groeit er niet door, want er is één rij per dag, plek en soort. Komt er spam, dan voegen we een rem per uur toe.

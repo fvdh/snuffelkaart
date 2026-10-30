@@ -7,6 +7,7 @@ import { matches, visible, groupOf, groupRows, stackMarkets } from './filter';
 import { effStart, shortStatus } from '../components/Views';
 import { sampleMarkets } from './markets';
 import { parsePdok } from './pdok';
+import { linkKind } from './klik';
 // dezelfde code als de import gebruikt
 import { precompute, holidays } from '../../scripts/hours-precompute.mjs';
 
@@ -217,5 +218,16 @@ describe('markten op dezelfde plek', () => {
     expect(r.items.map(x => x.id)).toEqual([shop.id, 'a', 'c']);
     expect(r.n.get('a')).toBe(2);
     expect(r.n.get('c')).toBe(1);
+  });
+});
+
+describe('klikteller', () => {
+  it('soort klik uit de link', () => {
+    expect(linkKind('tel:0381234567')).toBe('tel');
+    expect(linkKind('https://maps.apple.com/?daddr=52.5,6.1')).toBe('route');
+    expect(linkKind('https://www.google.com/maps/dir/?api=1')).toBe('route');
+    expect(linkKind('https://www.vlooienmarkten.nl/houten')).toBe('site');
+    expect(linkKind('https://www.openstreetmap.org/node/1')).toBeNull();
+    expect(linkKind('/privacy')).toBeNull();
   });
 });

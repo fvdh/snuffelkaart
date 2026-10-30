@@ -50,8 +50,8 @@ function Login() {
   </form></main>);
 }
 
-type View = 'wachtrij' | 'bijdragen' | 'meldingen' | 'kandidaten' | 'week' | 'winkels' | 'bronnen' | 'log';
-const NAV: [View, string][] = [['wachtrij', 'Wachtrij'], ['bijdragen', 'Bijdragen'], ['meldingen', 'Meldingen'], ['kandidaten', 'Kandidaten'], ['week', 'Markten deze week'], ['winkels', 'Winkels'], ['bronnen', 'Bronnen'], ['log', 'Moderatielog']];
+type View = 'wachtrij' | 'bijdragen' | 'meldingen' | 'kandidaten' | 'week' | 'winkels' | 'bronnen' | 'klikken' | 'log';
+const NAV: [View, string][] = [['wachtrij', 'Wachtrij'], ['bijdragen', 'Bijdragen'], ['meldingen', 'Meldingen'], ['kandidaten', 'Kandidaten'], ['week', 'Markten deze week'], ['winkels', 'Winkels'], ['bronnen', 'Bronnen'], ['klikken', 'Klikken'], ['log', 'Moderatielog']];
 const STATUS: Record<string, string> = { org: 'Bevestigd door organisator', chk: 'Gecontroleerd', unconf: 'Nog niet bevestigd', cancel: 'Afgelast', kandidaat: 'Kandidaat', afgewezen: 'Afgewezen' };
 
 function Panel({ s, out }: { s: Session; out: () => void }) {
@@ -105,6 +105,7 @@ function Panel({ s, out }: { s: Session; out: () => void }) {
       : view === 'meldingen' ? <Reports s={s} reps={reps} setReps={setReps} rows={rows ?? []} />
       : view === 'winkels' ? <Shops s={s} />
       : view === 'bronnen' ? <Sources s={s} runs={runs} warn={warn} rows={rows ?? []} />
+      : view === 'klikken' ? <Clicks s={s} />
       : <Log s={s} />}
     </main>
     {undo && <div className="adm-undo" role="status"><span>{undo.what}</span><button className="btn sm" onClick={revert}>Ongedaan maken <span className="kbd">Z</span></button></div>}
@@ -416,5 +417,36 @@ function Log({ s }: { s: Session }) {
     <p className="adm-sub">Alles wat met de hand is gezet, nieuwste eerst. Afwijzingen en afgelastingen hebben een reden (DSA).</p>
     {!rows ? <p>Laden…</p> : <table className="adm-table"><thead><tr><th>Wanneer</th><th>Wat</th><th>Status</th><th>Vastgezet</th><th>Reden</th></tr></thead>
       <tbody>{rows.map(r => <tr key={r.t + r.id}><td>{new Date(r.updated_at!).toLocaleString('nl-NL', { dateStyle: 'short', timeStyle: 'short' })}</td><td>{r.data.name}{r.date && <span className="muted"> · {day(r.date)}</span>}</td><td><span className={`bh-st ${r.status}`}>{STATUS[r.status] ?? r.status}</span></td><td>{r.locked.join(', ')}</td><td>{r.data.rejectWhy ?? r.data.cancelWhy ?? ''}</td></tr>)}</tbody></table>}
+  </section>);
+}
+
+const KLIK: [string, string][] = [['view', 'Bekeken'], ['plan', 'In dagplan'], ['route', 'Route'], ['site', 'Website'], ['tel', 'Gebeld'], ['share', 'Gedeeld']];
+type Tel = Record<string, number>;
+
+/** Klikteller (migratie klikken): per plek en per organisator, laatste 30 dagen. Onderbouwing voor gesprekken met organisatoren. */
+function Clicks({ s }: { s: Session }) {
+  const [rows, setRows] = useState<{ item_id: string; what: string; n: number }[] | null>(null), [names, setNames] = useState<Record<string, { name: string; org?: string }>>({}), [err, setErr] = useState('');
+  useEffect(() => {
+    api(s, `clicks?select=item_id,what,n&day=gte.${new Date(Date.now() - 30 * 864e5).toISOString().slice(0, 10)}&limit=10000`).then(setRows).catch(e => setErr(e.message));
+    // ponytail: namen uit de openbare bestanden (±2 MB, staat meestal al in de cache); een view in Supabase als dit traag wordt
+    Promise.all([fetch('/data/places.json').then(r => r.json()), fetch('/data/markets.json').then(r => r.json())]).then(([p, m]) =>
+      setNames(Object.fromEntries([...(p.places ?? p), ...m.markets].map((x: { id: string; name: string; place?: string; org?: string }) => [x.id, { name: x.place ? `${x.name}, ${x.place}` : x.name, org: x.org }])))).catch(() => {});
+  }, []);
+  if (err) return <section className="adm-wide"><h2>Klikken</h2><p className="bh-err">{err}</p></section>;
+  if (!rows) return <section className="adm-wide"><h2>Klikken</h2><p className="adm-sub">Laden…</p></section>;
+  const add = (a: Record<string, Tel>, k: string, w: string, n: number) => { (a[k] ??= {})[w] = ((a[k] ??= {})[w] ?? 0) + n; };
+  const per: Record<string, Tel> = {}, org: Record<string, Tel> = {}, tot: Tel = {};
+  for (const r of rows) { add(per, r.item_id, r.what, r.n); tot[r.what] = (tot[r.what] ?? 0) + r.n; const o = names[r.item_id]?.org; if (o) add(org, o, r.what, r.n); }
+  const sum = (t: Tel) => Object.values(t).reduce((a, b) => a + b, 0);
+  const table = (title: string, data: Record<string, Tel>, label: (k: string) => string) => <>
+    <h3>{title}</h3>
+    <table className="adm-table"><thead><tr><th>{title === 'Per organisator' ? 'Organisator' : 'Plek'}</th>{KLIK.map(([k, l]) => <th key={k} className="tnum">{l}</th>)}</tr></thead>
+      <tbody>{Object.entries(data).sort((a, b) => sum(b[1]) - sum(a[1])).slice(0, 50).map(([k, t]) =>
+        <tr key={k}><td>{label(k)}</td>{KLIK.map(([w]) => <td key={w} className="tnum">{t[w] ?? ''}</td>)}</tr>)}</tbody></table></>;
+  return (<section className="adm-wide" aria-label="Klikken">
+    <h2>Klikken</h2>
+    <p className="adm-sub">Laatste 30 dagen, zonder wie het was. {KLIK.map(([k, l]) => `${l}: ${tot[k] ?? 0}`).join(' · ')}</p>
+    {rows.length ? <>{Object.keys(org).length > 0 && table('Per organisator', org, k => k)}{table('Meest bekeken plekken', per, k => names[k]?.name ?? k)}</>
+      : <p className="adm-sub">Nog geen klikken. Ze komen binnen zodra bezoekers winkels en markten openen.</p>}
   </section>);
 }

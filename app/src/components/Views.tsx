@@ -219,7 +219,7 @@ export function DetailView({ it, c, backLabel }: { it: Item; c: Ctx; backLabel: 
 function PlaceDetail({ p, c, top, d, actions }: { p: Place; c: Ctx; top: ReactElement; d: number; actions: ReactElement }) {
   const now = c.st(p), w = week(p, c.day, true), osm = osmUrl(p.id), today = c.day;
   const stale = p.checked && monthsAgo(p.checked, c.now) > 4;
-  return (<article>
+  return (<article data-item={p.id}>
     <header className="dv-head" data-peek data-drag>{top}
       <p className="eyebrow"><Tile it={p} small />{kindLabel(p)}</p>
       <h2>{p.name}</h2>
@@ -280,7 +280,7 @@ function MarketDetail({ m, c, top, d, actions }: { m: Market; c: Ctx; top: React
     : s === 'chk' ? <div className="statusbox chk"><Ic n="check" /><div><b>Gecontroleerd op {m.checked && dDay(m.checked)}</b><p>Deze editie stond bij de laatste controle op de website van {m.org}.</p></div></div>
     : s === 'unconf' ? <div className="statusbox unconf"><Ic n="alert" /><div><b>Nog niet bevestigd</b><p>Deze datum is afgeleid uit het schema “{m.schema.toLowerCase()}”. Check het voordat je gaat; we stellen hem niet vanzelf voor in je dagplan.</p></div></div>
     : <div className="statusbox cancel"><Ic n="x" /><div><b>Afgelast</b><p>{m.cancelWhy}</p></div></div>;
-  return (<article>
+  return (<article data-item={m.id}>
     <header className="dv-head" data-peek data-drag>{top}
       <p className="eyebrow"><Tile it={m} small />{m.kind}{m.indoor !== undefined && <> · {m.indoor ? 'binnen' : 'buiten'}</>}{m.sample && <span className="sample">voorbeeld</span>}</p>
       <h2 className={s === 'cancel' ? 'strike' : ''}>{m.name}</h2>

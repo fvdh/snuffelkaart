@@ -14,6 +14,7 @@ import { readSession, returnError, api, sendLink, userId, logout as authLogout, 
 import { applyStatus, type Live } from '../lib/markets';
 import { Ic, reduced } from './ui';
 import { watchErrors } from '../lib/errors';
+import { klik, linkKind } from '../lib/klik';
 
 /** "Nu", met ?nu=2026-10-31T09:10 om tijdsbewust gedrag te testen. */
 function useNow(): [Date, boolean] {
@@ -124,7 +125,12 @@ export default function App() {
   }, [items, now, origin, day, min, f]);
 
   const setF = useCallback((p: Partial<Filters>) => { setFState(o => ({ ...o, ...p })); setLimit(40); if (view !== 'list') { setView('list'); setSel(null); } }, [view]);
-  const go = (id: string) => { const it = byId.get(id); if (!it) return; setDir('fwd'); if (view !== 'detail') setPrev(view); setSel(id); setView('detail'); if (snap === 'collapsed') setSnap('half'); setFocus({ lat: it.lat, lon: it.lon, key: Date.now() }); scrollTop(); };
+  const go = (id: string) => { const it = byId.get(id); if (!it) return; if (id !== sel) klik(id, 'view'); setDir('fwd'); if (view !== 'detail') setPrev(view); setSel(id); setView('detail'); if (snap === 'collapsed') setSnap('half'); setFocus({ lat: it.lat, lon: it.lon, key: Date.now() }); scrollTop(); };
+  // Doorklikken vanuit een detail (route, website/organisator, bellen) tellen: één luisteraar voor alle links met een [data-item] erboven.
+  useEffect(() => {
+    const on = (e: MouseEvent) => { const a = (e.target as Element).closest?.('a[href]'), id = a?.closest('[data-item]')?.getAttribute('data-item'), k = a && linkKind(a.getAttribute('href')!); if (id && k) klik(id, k); };
+    document.addEventListener('click', on, true); return () => document.removeEventListener('click', on, true);
+  }, []);
   // Lijst → detail: de naam vliegt naar de titel (View Transition, 300 ms). Zonder ondersteuning: gewoon openen.
   const open = (id: string, from?: HTMLElement | null) => {
     if (!from || !document.startViewTransition || reduced()) return go(id);
@@ -207,7 +213,7 @@ export default function App() {
     if (navigator.share) return navigator.share({ title, text, url }).catch(() => {});
     navigator.clipboard?.writeText(`${text} ${url}`).then(() => setToast('Link gekopieerd. Plak hem in een bericht.'), () => setToast(url));
   };
-  const shareItem = (it: Item) => { const st = statusFor(it, now, day, nowMode ? undefined : min); shareLink(it.name, `${it.name}${it.place ? `, ${it.place}` : ''} · ${st.txt}`, location.origin + (it.t === 'k' && shareIdx ? shareIdx.url(it.id) : `/?open=${encodeURIComponent(it.id)}`)); };
+  const shareItem = (it: Item) => { klik(it.id, 'share'); const st = statusFor(it, now, day, nowMode ? undefined : min); shareLink(it.name, `${it.name}${it.place ? `, ${it.place}` : ''} · ${st.txt}`, location.origin + (it.t === 'k' && shareIdx ? shareIdx.url(it.id) : `/?open=${encodeURIComponent(it.id)}`)); };
   const sharePlan = () => { const q = new URLSearchParams({ dag: plan.day, v: String(effStart(plan, now)), s: plan.stops.join(',') }); shareLink(`Mijn ${DAYS_LONG[dayStart(plan.day).getDay()]}`, `Mijn ${DAYS_LONG[dayStart(plan.day).getDay()]} op Snuffelkaart: ${plan.stops.length} ${plan.stops.length === 1 ? 'stop' : 'stops'}.`, `${location.origin}/?${q}`); };
   const logout = () => { authLogout(sess); setSess(null); setToast('Uitgelogd. Je favorieten blijven op dit apparaat.'); };
   const download = () => {
@@ -220,6 +226,7 @@ export default function App() {
     const plan = planRef.current, it = byId.get(id)!, has = plan.stops.includes(id);
     if (has) return setPlan({ stops: plan.stops.filter(x => x !== id) });
     if (plan.stops.length >= 8) return setToast('Maximaal 8 stops per dag. Haal er eerst een weg.');
+    klik(id, 'plan');
     const next: Partial<Plan> = { stops: [...plan.stops, id] };
     // Eerste stop: het plan neemt het moment over dat je bekijkt (of de dag van de markt).
     if (!plan.stops.length) { next.day = it.t === 'm' ? it.date : day; next.start = next.day === today && nowMode ? -1 : when && next.day === when.day ? when.start : 600; next.done = []; next.skip = []; }
