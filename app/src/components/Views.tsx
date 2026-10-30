@@ -143,7 +143,7 @@ export function ListView({ c, inView, list, total, limit, more, counts, nPlaces 
     </div>
     {/* Alleen zoeken en filters blijven staan bij scrollen: op de stoep wil je regels zien, geen bediening (UX-review 28 okt). */}
     <div className="lv-tools" data-peek data-drag>
-      {(finding || f.q) && <label className="search"><Ic n="search" /><span className="sr">Zoeken</span><input type="search" autoFocus placeholder="Zoek een winkel of markt op naam" value={f.q} onChange={e => c.setF({ q: e.target.value })} onBlur={() => !f.q && setFinding(false)} autoComplete="off" /></label>}
+      {(finding || f.q) && <label className="search"><Ic n="search" /><span className="sr">Zoeken</span><input type="search" autoFocus placeholder="Zoek op naam of soort, bijv. antiek" value={f.q} onChange={e => c.setF({ q: e.target.value })} onBlur={() => !f.q && setFinding(false)} autoComplete="off" /></label>}
       <div className="chips" role="group" aria-label="Filters">
         {!finding && !f.q && <button className="chip ic-chip" onClick={() => setFinding(true)} aria-label="Zoek op naam"><Ic n="search" /></button>}
         {f.only && <button className="chip" aria-pressed onClick={() => c.setF({ only: null })} aria-label="Toon weer alles, niet alleen bewaard"><Ic n="heart" />Bewaard · {f.only.length}<Ic n="x" /></button>}
@@ -172,10 +172,11 @@ export function ListView({ c, inView, list, total, limit, more, counts, nPlaces 
       {list.length ? secs.map(s => <section key={s.g} aria-labelledby={`sec-${s.g}`}>
         <h3 className="sec" id={`sec-${s.g}`}><span>{SEC[s.g](c.live, day, c.min)}</span><span className="tnum">{s.rows.length}</span></h3>
         <ul className="rows">{(fold(s.g) ? s.rows.slice(0, 3) : s.rows).map(x => <Row key={x.it.id} it={x.it} d={x.d} c={c} />)}</ul>
+        {s.g === 'unknown' && <p className="src fold-hint"><Ic n="clock" /><span>Van deze winkels weten we de tijden nog niet. Was je er? Open de winkel en tik op <b>Ik weet de tijden</b>; zo help je de volgende snuffelaar.</span></p>}
         {fold(s.g) && s.rows.length > 3 && <button className="fold" onClick={() => setAll([...all, s.g])}>Nog {s.rows.length - 3} {s.g === 'unknown' ? 'zonder bekende tijden' : 'die dan dicht zijn'}<Ic n="chevd" /></button>}</section>)
         : inView ? <div className="empty"><h3>{noMarket ? `Geen markten ${dayTxt} op dit stuk van de kaart` : 'Niets op dit stuk van de kaart'}</h3><p>{!f.open && !f.hide.length && !f.gratis && !f.overdekt ? 'Verschuif de kaart of zoom uit.' : 'Verschuif de kaart, zoom uit, of zet een filter uit.'}</p>
           <div className="btns"><button className="btn sm primary" onClick={inView.nearest}>Toon de dichtstbijzijnde</button>{f.open && <button className="btn sm" onClick={() => c.setF({ open: false })}>Toon ook wat dicht is</button>}</div></div>
-        : <div className="empty"><h3>{f.q ? `Niets gevonden voor “${f.q}”` : 'Geen resultaten met deze filters'}</h3><p>{f.q ? 'Zoek op de naam van een winkel of markt. Een plaats kies je bovenaan.' : 'Zet een filter uit.'}</p>
+        : <div className="empty"><h3>{f.q ? `Niets gevonden voor “${f.q}”` : 'Geen resultaten met deze filters'}</h3><p>{f.q ? 'Zoek op naam of soort, bijv. antiek of vintage. Een plaats kies je bovenaan.' : 'Zet een filter uit.'}</p>
           <div className="btns">{f.q && <button className="btn sm" onClick={() => c.setF({ q: '' })}>Wis zoekopdracht</button>}{f.q && <button className="btn sm" onClick={c.openWaar}>Kies een plaats</button>}<button className="btn sm primary" onClick={() => c.setF({ open: false, gratis: false, overdekt: false, hide: [], only: null, q: '' })}>Toon alles</button></div>
           {f.q && <p className="src"><Ic n="info" /><span>Mis je een kringloop of markt? <a href="mailto:info@freekvanderhorst.com?subject=Plek%20voor%20Snuffelkaart">Mail hem door</a>, dan zetten we hem erop.</span></p>}</div>}
       {total > limit && <button className="more" onClick={more}>Toon meer, iets verder weg</button>}

@@ -21,6 +21,9 @@ export function groupOf(it: Item, day: string, min: number): Group {
   return min >= it.start ? 'open' : 'later';
 }
 
+/** Zoeken op soort ("antiek", "vintage", "kofferbak"), niet alleen op naam. */
+const KIND_WORDS: Record<Cat, string> = { kringloop: 'kringloop kringloopwinkel tweedehands', antiek: 'antiek brocante curiosa', kleding: 'kleding vintage tweedehands kleding',
+  schroot: 'sloop schroot onderdelen', pandjeshuis: 'pandjeshuis lommerd', vlooienmarkt: 'vlooienmarkt markt', tweedehands: 'tweedehands' };
 const norm = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
 
 /** min: het gekozen moment; zonder: nu (vandaag) of 10:00 (een andere dag). */
@@ -30,7 +33,7 @@ export function matches(it: Item, f: Filters, now: Date, day = isoDay(now), min 
   if (it.t === 'k' && f.hide.includes(catOf(it))) return false;
   if (f.gratis && it.t === 'm' && it.entree !== 'gratis') return false;
   if (f.overdekt && it.t === 'm' && !it.indoor) return false;
-  if (f.q) { const q = norm(f.q); if (!norm(`${it.name} ${it.place ?? ''}`).includes(q)) return false; }
+  if (f.q) { const q = norm(f.q); if (!norm(`${it.name} ${it.place ?? ''} ${it.t === 'm' ? `${it.kind} markt` : KIND_WORDS[catOf(it)]}`).includes(q)) return false; }
   if (!f.open) return true;
   // onbekende tijden: nooit bij "open", dat kunnen we niet beloven (A6). "Gaat nog open" hoort er ook niet bij (UX-test 30 okt).
   return groupOf(it, day, min) === 'open';

@@ -258,3 +258,12 @@ it('tellers: afstandsgroepen en regio-vakken', async () => {
   expect([0.3, 5, 14.9, 29, 80].map(kmBucket)).toEqual(['0-5', '5-15', '5-15', '15-30', '30+']);
   expect(regio({ lat: 52.0912, lon: 5.1214 })).toBe('52.1,5.1');
 });
+
+it('zoeken op soort, niet alleen op naam', async () => {
+  const { matches } = await import('./filter');
+  const f = { type: 'all' as const, open: false, gratis: false, overdekt: false, q: 'antiek', hide: [] };
+  const p = (sub?: string) => ({ t: 'k', id: 'x', name: 'De Zolder', lat: 52, lon: 5, kind: sub ? 'tweedehands' : 'kringloop', sub } as unknown as Place);
+  expect(matches(p('antiek'), f, new Date())).toBe(true);
+  expect(matches(p(), f, new Date())).toBe(false);
+  expect(matches(p(), { ...f, q: 'kringloop' }, new Date())).toBe(true);
+});

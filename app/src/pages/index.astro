@@ -16,6 +16,9 @@ import Meten from '../components/Meten.astro';
     <link rel="manifest" href="/manifest.webmanifest" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="preload" href="/fonts/figtree.woff2" as="font" type="font/woff2" crossorigin />
+    <!-- De lijst wacht op de winkels en markten: die alvast ophalen terwijl de app-code laadt (Lighthouse: LCP is de lijst). -->
+    <link rel="preload" href="/data/places.json" as="fetch" crossorigin />
+    <link rel="preload" href="/data/markets.json" as="fetch" crossorigin />
     <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
     <meta name="apple-mobile-web-app-title" content="Snuffelkaart" />
     <script>
