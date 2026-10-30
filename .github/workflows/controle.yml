@@ -11,7 +11,7 @@ jobs:
     steps:
       - name: Site, gegevens en statusbestand
         env:
-          SITE: https://snuffelkaart.ironfront-relay.workers.dev
+          SITE: https://snuffelkaart.nl
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
         run: |
