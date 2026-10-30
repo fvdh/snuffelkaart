@@ -10,6 +10,8 @@ const OUT = new URL('../public/data/markets.json', import.meta.url);
 const MONTHS = ['januari', 'februari', 'maart', 'april', 'mei', 'juni', 'juli', 'augustus', 'september', 'oktober', 'november', 'december'];
 const INDOOR = /hal\b|hallen|hangar|sport|expo|beurs|fabriek|loods|manege|huis van|centrum|evenementen|compl?ex|theater/i, OUTDOOR = /buiten|openlucht|parkeerterrein|plein\b|weiland/i;
 const pad = n => String(n).padStart(2, '0');
+/** "€ 3,50,- p.p.", "€ 4- p.p.", "€ 6,50" → "€3,50", "€4", "€6,50" (zelfde vorm als de andere organisatoren). */
+export const euro = (m) => (m ? `€${m[1]}${m[2] && m[2] !== '00' ? `,${m[2]}` : ''}` : 'onbekend');
 const mins = t => { const [h, m] = t.split(/[:.]/); return +h * 60 + +m; };
 const title = s => s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
 
@@ -65,7 +67,7 @@ export function donProduct(html, url, cal = null) {
     date: dm ? `${dm[4]}-${pad(MONTHS.indexOf(dm[3].toLowerCase()) + 1)}-${pad(d)}` : hol,
     // Zonder tijden op de pagina én in de kalender: start onbekend; 9:00 is alleen een plek om te tekenen, timeKnown = false.
     start: times ? times[0] : 540, end: times ? times[1] : null, timeKnown: !!times,
-    indoor: INDOOR.test(venue ?? '') ? true : OUTDOOR.test(venue ?? '') ? false : undefined, /* onbekend = niet raden */ entree: 'onbekend', kramen: +(/(\d{2,4})\s*kramen/i.exec(t)?.[1] ?? 0) || undefined,
+    indoor: INDOOR.test(venue ?? '') ? true : OUTDOOR.test(venue ?? '') ? false : undefined, /* onbekend = niet raden */ entree: /Toegang\w*:?\s*gratis/i.test(t) ? 'gratis' : euro(/Toegangsprijs:?\s*€\s?(\d+)(?:,(\d{2}))?/i.exec(t)), kramen: +(/(\d{2,4})\s*kramen/i.exec(t)?.[1] ?? 0) || undefined,
     kraamhuur: /Kraamhuur:?\s*(€\s?[\d,.\-]+)/i.exec(t)?.[1]?.replace(/,-$/, ',00'), org: 'Don Events', url, schema: '', status: 'chk',
   }));
 }
@@ -220,15 +222,15 @@ export function nlDays(s) {
   }).filter(Boolean);
 }
 /** Agenda → per weekend "31 oktober en 1 november 2026 / 09:00 - 16:30 / 600 kramen / Binnen", één editie per dag. Altijd dezelfde plek (NDSM-werf). */
-export function ijAgenda(html) {
-  const out = [];
+export function ijAgenda(html, home = '') {
+  const out = [], entree = euro(/Entree volwassenen:?\s*(?:€\s?)?(\d+)(?:,(\d{2}))?/i.exec(toText(home))); // prijs staat op de voorpagina
   for (const ul of html.matchAll(/<ul\b[^>]*>([\s\S]*?)<\/ul>/g)) {
     const li = k => toText(new RegExp(`<li class="${k}\\b[^"]*">([\\s\\S]*?)<\\/li>`).exec(ul[1])?.[1] ?? '').trim();
     const days = nlDays(li('date')); if (!days.length) continue;
     const tm = /(\d{1,2}[:.]\d{2})\s*[-–]\s*(\d{1,2}[:.]\d{2})/.exec(li('time')), io = li('location');
     for (const date of days) out.push({ id: `ij-${date}`, t: 'm', name: 'Vlooienmarkt IJ-Hallen', kind: 'Vlooienmarkt', place: 'Amsterdam', venue: 'IJ-Hallen, NDSM-werf',
       addr: 'NDSM-Plein 1, 1033 WC Amsterdam', street: 'NDSM-Plein 1', postcode: '1033WC', date, start: tm ? mins(tm[1]) : 540, end: tm ? mins(tm[2]) : null, timeKnown: !!tm,
-      indoor: /^binnen/i.test(io) ? true : /^buiten/i.test(io) ? false : undefined, entree: 'onbekend', kramen: +(/(\d+)\s*kramen/i.exec(li('stalls'))?.[1] ?? 0) || undefined,
+      indoor: /^binnen/i.test(io) ? true : /^buiten/i.test(io) ? false : undefined, entree, kramen: +(/(\d+)\s*kramen/i.exec(li('stalls'))?.[1] ?? 0) || undefined,
       org: 'IJ-Hallen', url: 'https://ijhallen.nl/agenda.php', schema: '', status: 'chk' });
   }
   return out;
@@ -472,7 +474,7 @@ async function mikki(skipped) {
   }
   return out;
 }
-async function ijHallen() { return ijAgenda(await (await get('https://ijhallen.nl/agenda.php')).text()); }
+async function ijHallen() { return ijAgenda(await (await get('https://ijhallen.nl/agenda.php')).text(), await (await get('https://ijhallen.nl/')).text().catch(() => '')); }
 async function animo(skipped) {
   const out = [];
   for (const c of animoCalendar(await (await get('https://animo-vlooienmarkten.nl/kalender')).text())) {

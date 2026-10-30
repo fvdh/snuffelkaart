@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import fs from 'node:fs';
-import { donCalendar, donProduct, holidayDate, wildroEvent, vacAgenda, vacAddress, aerleAgenda, aerleProduct, vitalisIcs, vitalisPlace, evlAgenda, mikkiEvent, nlDays, ijAgenda, animoCalendar, animoEvent, jojoAgenda, jojoEvent, nextDate, mdvLocations, mdvAgenda, carbootAgenda, liromAgenda, liromLocation, twenteEdition, problem } from './fetch-markets.mjs';
+import { euro, donCalendar, donProduct, holidayDate, wildroEvent, vacAgenda, vacAddress, aerleAgenda, aerleProduct, vitalisIcs, vitalisPlace, evlAgenda, mikkiEvent, nlDays, ijAgenda, animoCalendar, animoEvent, jojoAgenda, jojoEvent, nextDate, mdvLocations, mdvAgenda, carbootAgenda, liromAgenda, liromLocation, twenteEdition, problem } from './fetch-markets.mjs';
 
 // Opgeslagen pagina's van Don Events (27 okt 2026): breekt de site-opbouw, dan faalt deze test.
 const fx = f => fs.readFileSync(new URL(`./fixtures/${f}`, import.meta.url), 'utf8');
@@ -242,4 +242,13 @@ describe('problem (uitlezer melden)', () => {
     expect(problem('A', null, 0, 0, true)).toBeNull();
     expect(problem('A', null, 8, 10, false)).toBeNull();
   });
+});
+
+it('entree: Don Events "Toegangsprijs" en IJ-Hallen "Entree volwassenen"', () => {
+  const url = 'https://donevents.nl/product/vlooienmarkt-amstelveen-de-emergohal-zondag-1-november-2026/';
+  const don = fx('donevents-product.html').replace('Toegangsprijs', 'Toegangsprijs € 3,50,- p.p. kinderen t/m 12 jaar gratis');
+  expect(donProduct(don, url)[0].entree).toBe('€3,50');
+  expect(euro(/€\s?(\d+)(?:,(\d{2}))?/.exec('€ 4- p.p.'))).toBe('€4');
+  expect(ijAgenda(fx('ijhallen-agenda.html'), '<p>Prijzen bezoeker</p><p>Entree volwassenen: € 6,50</p>')[0].entree).toBe('€6,50');
+  expect(ijAgenda(fx('ijhallen-agenda.html'))[0].entree).toBe('onbekend');
 });
