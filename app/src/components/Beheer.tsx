@@ -425,9 +425,9 @@ type Tel = Record<string, number>;
 
 /** Klikteller (migratie klikken): per plek en per organisator, laatste 30 dagen. Onderbouwing voor gesprekken met organisatoren. */
 function Clicks({ s }: { s: Session }) {
-  const [rows, setRows] = useState<{ item_id: string; what: string; n: number }[] | null>(null), [names, setNames] = useState<Record<string, { name: string; org?: string }>>({}), [err, setErr] = useState('');
+  const [rows, setRows] = useState<{ day: string; item_id: string; what: string; n: number }[] | null>(null), [names, setNames] = useState<Record<string, { name: string; org?: string }>>({}), [err, setErr] = useState('');
   useEffect(() => {
-    api(s, `clicks?select=item_id,what,n&day=gte.${new Date(Date.now() - 30 * 864e5).toISOString().slice(0, 10)}&limit=10000`).then(setRows).catch(e => setErr(e.message));
+    api(s, `clicks?select=day,item_id,what,n&day=gte.${new Date(Date.now() - 30 * 864e5).toISOString().slice(0, 10)}&limit=10000`).then(setRows).catch(e => setErr(e.message));
     // ponytail: namen uit de openbare bestanden (±2 MB, staat meestal al in de cache); een view in Supabase als dit traag wordt
     Promise.all([fetch('/data/places.json').then(r => r.json()), fetch('/data/markets.json').then(r => r.json())]).then(([p, m]) =>
       setNames(Object.fromEntries([...(p.places ?? p), ...m.markets].map((x: { id: string; name: string; place?: string; org?: string }) => [x.id, { name: x.place ? `${x.name}, ${x.place}` : x.name, org: x.org }])))).catch(() => {});
@@ -438,6 +438,11 @@ function Clicks({ s }: { s: Session }) {
   const per: Record<string, Tel> = {}, org: Record<string, Tel> = {}, tot: Tel = {};
   for (const r of rows) { add(per, r.item_id, r.what, r.n); tot[r.what] = (tot[r.what] ?? 0) + r.n; const o = names[r.item_id]?.org; if (o) add(org, o, r.what, r.n); }
   const sum = (t: Tel) => Object.values(t).reduce((a, b) => a + b, 0);
+  // Week tegenover de week ervoor: groeit het? En wat trok deze week het meest (UX-voorstel 30 okt: "waar zit het werk").
+  const ago = (d: number) => new Date(Date.now() - d * 864e5).toISOString().slice(0, 10), w1 = ago(7), w2 = ago(14);
+  const wk: Tel = {}, prev: Tel = {}, top: Record<string, Tel> = {};
+  for (const r of rows) if (r.day >= w1) { wk[r.what] = (wk[r.what] ?? 0) + r.n; add(top, r.item_id, r.what, r.n); } else if (r.day >= w2) prev[r.what] = (prev[r.what] ?? 0) + r.n;
+  const delta = (a: number, b: number) => (b ? `${a >= b ? '+' : ''}${Math.round(((a - b) / b) * 100)}%` : a ? 'nieuw' : '–');
   const table = (title: string, data: Record<string, Tel>, label: (k: string) => string) => <>
     <h3>{title}</h3>
     <table className="adm-table"><thead><tr><th>{title === 'Per organisator' ? 'Organisator' : 'Plek'}</th>{KLIK.map(([k, l]) => <th key={k} className="tnum">{l}</th>)}</tr></thead>
@@ -445,7 +450,14 @@ function Clicks({ s }: { s: Session }) {
         <tr key={k}><td>{label(k)}</td>{KLIK.map(([w]) => <td key={w} className="tnum">{t[w] ?? ''}</td>)}</tr>)}</tbody></table></>;
   return (<section className="adm-wide" aria-label="Klikken">
     <h2>Klikken</h2>
-    <p className="adm-sub">Laatste 30 dagen, zonder wie het was. {KLIK.map(([k, l]) => `${l}: ${tot[k] ?? 0}`).join(' · ')}</p>
+    <h3>Deze week</h3>
+    <table className="adm-table"><thead><tr><th>Afgelopen 7 dagen</th>{KLIK.map(([k, l]) => <th key={k} className="tnum">{l}</th>)}</tr></thead>
+      <tbody><tr><td>Deze week</td>{KLIK.map(([k]) => <td key={k} className="tnum">{wk[k] ?? 0}</td>)}</tr>
+        <tr><td>Week ervoor</td>{KLIK.map(([k]) => <td key={k} className="tnum">{prev[k] ?? 0}</td>)}</tr>
+        <tr><td>Verschil</td>{KLIK.map(([k]) => <td key={k} className="tnum">{delta(wk[k] ?? 0, prev[k] ?? 0)}</td>)}</tr></tbody></table>
+    {Object.keys(top).length > 0 && <p className="adm-sub">Meest bekeken deze week: {Object.entries(top).sort((a, b) => sum(b[1]) - sum(a[1])).slice(0, 5).map(([k, t]) => `${names[k]?.name ?? k} (${sum(t)})`).join(' · ')}</p>}
+    <h3>Laatste 30 dagen</h3>
+    <p className="adm-sub">Zonder wie het was. {KLIK.map(([k, l]) => `${l}: ${tot[k] ?? 0}`).join(' · ')}</p>
     {rows.length ? <>{Object.keys(org).length > 0 && table('Per organisator', org, k => k)}{table('Meest bekeken plekken', per, k => names[k]?.name ?? k)}</>
       : <p className="adm-sub">Nog geen klikken. Ze komen binnen zodra bezoekers winkels en markten openen.</p>}
   </section>);
