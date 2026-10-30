@@ -6,7 +6,7 @@ project_id = "snuffelkaart"
 site_url = "https://snuffelkaart.nl"
 additional_redirect_urls = ["https://snuffelkaart.nl/beheer", "https://www.snuffelkaart.nl", "https://www.snuffelkaart.nl/beheer", "https://snuffelkaart.ironfront-relay.workers.dev/beheer", "http://localhost:4321/beheer", "http://localhost:4321"]
 
-# Mail via Resend (tijdelijk vanaf runebinder.app, tot D1 een eigen domein oplevert). De sleutel staat in app/.env als RESEND_API_KEY:
+# Mail via Resend, vanaf inloggen@snuffelkaart.nl (domein geverifieerd in Resend, EU). De sleutel staat in app/.env als RESEND_API_KEY:
 #   set -a; . app/.env; set +a; npx supabase config push --yes
 [auth.email.smtp]
 enabled = true
@@ -14,7 +14,7 @@ host = "smtp.resend.com"
 port = 465
 user = "resend"
 pass = "env(RESEND_API_KEY)"
-admin_email = "snuffelkaart@runebinder.app"
+admin_email = "inloggen@snuffelkaart.nl"
 sender_name = "Snuffelkaart"
 
 [auth.email.template.magic_link]
