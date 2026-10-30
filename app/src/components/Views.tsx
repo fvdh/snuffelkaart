@@ -62,7 +62,7 @@ export function Row({ it, d, c }: { it: Item; d: number; c: Ctx }) {
         <Tile it={it} />
         <span className="r-main">
           <span className={`r-name${cancel ? ' strike' : ''}`}>{it.name}</span>
-          <span className="r-meta">{short && <span className={`st-i ${st.cls}`}>{short}</span>}{it.t === 'm' && <Conf it={it} />}
+          <span className="r-meta">{short && <span className={`st-i ${st.cls}`}>{short}</span>}{it.t === 'm' && it.status === 'unconf' && <Conf it={it} />}
             {parts.map((p, i) => <span key={i}>{(i > 0 || short || it.t === 'm') && <span aria-hidden="true">· </span>}{p}</span>)}</span>
         </span>
         <span className="r-km">{fkm(d)} km</span>
@@ -176,7 +176,7 @@ export function ListView({ c, inView, list, total, limit, more, counts, nPlaces 
 /** Waar en wanneer: plek (je locatie, een plaats of postcode, recent) en moment (nu, of een dag + vertrektijd) op één scherm. */
 export function WaarView({ c, count }: { c: Ctx; count: number }) {
   const [q, setQ] = useState(''), spots = useSpots(q), today = isoDay(c.now);
-  const pick = (s: Spot) => { c.pickSpot(s); setQ(''); };
+  const pick = (s: Spot) => { c.pickSpot(s); setQ(''); c.back(); }; // kiezen = klaar; de tijd kies je vooraf of via de pil (Freek, 30 okt)
   const setDay = (d: string | null) => c.setWhen(d == null ? null : { day: d, start: c.live ? (d === today ? Math.min(1260, Math.ceil((minutesOf(c.now) + 30) / 30) * 30) : 600) : c.min });
   const step = (n: number) => c.setWhen({ day: c.day, start: Math.max(420, Math.min(1260, c.min + n)) });
   return (<div className="waar">
@@ -187,7 +187,7 @@ export function WaarView({ c, count }: { c: Ctx; count: number }) {
     <label className="search"><Ic n="search" /><span className="sr">Plaats of postcode</span><input type="search" enterKeyHint="search" placeholder="Plaats of postcode" value={q} onChange={e => setQ(e.target.value)} autoComplete="off"
       onKeyDown={e => { if (e.key === 'Enter' && spots[0]) { e.preventDefault(); pick(spots[0]); } }} /></label>
     <div className="opts">
-      <button className="opt" onClick={() => c.locate()} aria-pressed={!!c.me}><Ic n="loc" /><span><b>{c.locating ? 'Locatie zoeken…' : 'Mijn locatie'}</b><small>blijft op je telefoon</small></span>{c.me && <Ic n="check" />}</button>
+      <button className="opt" onClick={() => { c.locate(); c.back(); }} aria-pressed={!!c.me}><Ic n="loc" /><span><b>{c.locating ? 'Locatie zoeken…' : 'Mijn locatie'}</b><small>blijft op je telefoon</small></span>{c.me && <Ic n="check" />}</button>
       {spots.map(s => <button key={s.label + s.sub} className="opt" onClick={() => pick(s)}><Ic n="pin" /><span><b>{s.label}</b><small>{s.sub}</small></span></button>)}
       {!q && c.recent.map(s => <button key={s.label + s.sub} className="opt" aria-pressed={!c.me && c.originLabel === s.label} onClick={() => pick(s)}><Ic n="clock" /><span><b>{s.label}</b><small>{s.sub || 'recent'}</small></span>{!c.me && c.originLabel === s.label && <Ic n="check" />}</button>)}
     </div>
@@ -506,7 +506,6 @@ export function MeView({ c, items, showFavs, login, logout, download, remove }: 
   const slots = Array.from({ length: 10 }, (_, i) => [...mine].reverse()[i] ?? null), over = Math.max(0, mine.length - 10);
   const stops = c.planStops.map(id => byId.get(id)).filter(Boolean) as Item[], dayName = DAYS_LONG[dayStart(c.planDay).getDay()];
   return (<div className="me">
-    <div className="dv-top me-top" data-peek data-drag><button className="back" onClick={c.back}><Ic n="back" />Kaart</button></div>
     <section className="pas" aria-labelledby="pas-naam">
       <div className="pas-top"><span className="pas-brand"><Ic n="tag" />SNUFFELPAS</span><span className="pas-mail">{c.user ?? 'op dit apparaat'}</span></div>
       <h2 id="pas-naam" className="pas-name">{c.user ? (c.bij.name ?? 'Snuffelaar') : 'Gast'}</h2>
