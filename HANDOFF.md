@@ -114,8 +114,8 @@ Licenties per databron staan in `LICENTIES.md`; dit gaat over de verantwoordelij
 | Privacyverklaring | `/privacy` | Wie, wat per situatie (zonder account, melden, fouten, tellen, account, bijdragen), diensten, rechten, klacht bij de AP |
 | Voorwaarden | `/voorwaarden` | Account, meldingen, bijdragen en moderatie (reden bij afwijzen, bezwaar), hergebruik data, winkeleigenaren/organisatoren |
 | Verwerkingsverantwoordelijke | `/privacy`, `/colofon` | Freek als persoon, contact info@freekvanderhorst.com (ook voor autoriteiten). KvK en adres zodra er een onderneming is |
-| Bewaartermijnen | `/privacy` | Fouten 30 dagen; account, favorieten en bijdragen tot je het account verwijdert (foto's binnen een dag weg); meldingen zonder persoonsgegevens; tellers zijn alleen aantallen. **Gat:** back-ups (30 dagen, versleuteld) staan niet in de privacytekst |
-| Verwijderen en inzage | app (Jij) + mail | Zelf: account verwijderen en gegevens downloaden. Bijdrage intrekken bij Mijn bijdragen. Winkel of markt eraf: meldknop of mail. Geen vaste reactietermijn vastgelegd (AVG: binnen een maand) |
+| Bewaartermijnen | `/privacy` | Fouten 30 dagen; account, favorieten en bijdragen tot je het account verwijdert (foto's binnen een dag weg); meldingen zonder persoonsgegevens; tellers zijn alleen aantallen. back-ups (hooguit 30 dagen, versleuteld) staan erin |
+| Verwijderen en inzage | app (Jij) + mail | Zelf: account verwijderen en gegevens downloaden. Bijdrage intrekken bij Mijn bijdragen. Winkel of markt eraf: meldknop of mail. Reactie binnen een maand staat in de privacytekst |
 | Aansprakelijkheid | `/voorwaarden` | Tijden en datums zijn een hulpmiddel, geen garantie; niet aansprakelijk voor bv. een vergeefse rit, tenzij de wet anders zegt |
 | Verwerkers | — | Supabase, Cloudflare, Resend (EU waar mogelijk). **Open:** verwerkersovereenkomsten (DPA's) niet expliciet gecontroleerd of vastgelegd |
 | Register van verwerkingen | — | **Open:** niet gemaakt (klein, maar wel aan te raden zodra er een onderneming is) |
