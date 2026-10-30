@@ -56,7 +56,7 @@ const ld = { '@context': 'https://schema.org', '@type': 'Event', name: m.name, u
       {m.kramen && <><dt>Kramen</dt><dd>±{m.kramen}</dd></>}
       {m.kraamhuur && <><dt>Kraam huren</dt><dd>{m.kraamhuur}</dd></>}
       {m.schema && <><dt>Schema</dt><dd>{m.schema}</dd></>}
-      <dt>Organisator</dt><dd>{m.url ? <a href={m.url} rel="nofollow">{m.org}</a> : m.org}</dd>
+      <dt>Organisator</dt><dd>{ix.orgUrl(m.org) ? <a href={ix.orgUrl(m.org)!}>{m.org}</a> : m.org}{m.url && <> · <a href={m.url} rel="nofollow">naar hun site</a></>}</dd>
     </dl>
   </section>
 

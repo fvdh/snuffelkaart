@@ -5,7 +5,7 @@ import { km, addDays, dayStart, DAYS_LONG, hm, cap, catOf } from './model';
 
 export const slugify = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/['’]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 /** Bestaande adressen in de root; een plaats met zo'n naam krijgt "-plaats" erachter. */
-const RESERVED = new Set(['beheer', 'privacy', 'hoe-we-controleren', 'plaatsen', 'markten', 'colofon', 'voorwaarden', 'offline', '404', 'winkel', 'markt', 'data', 'fonts', 'icons', '_astro', 'sitemap', 'robots']);
+const RESERVED = new Set(['beheer', 'privacy', 'hoe-we-controleren', 'plaatsen', 'markten', 'organisator', 'colofon', 'voorwaarden', 'offline', '404', 'winkel', 'markt', 'data', 'fonts', 'icons', '_astro', 'sitemap', 'robots']);
 
 /** Uniek adres per item: eerst de mooie naam, bij een botsing het korte id erachter. Zelfde invoer → zelfde adressen. */
 function unique<T>(items: T[], base: (x: T) => string, id: (x: T) => string): Map<string, T> {
@@ -40,7 +40,12 @@ export function siteIndex(places: Place[], markets: Market[]) {
   // ponytail: twee plaatsen met dezelfde naam (Hengelo Ov/Gld) vallen samen; uit elkaar halen als er een gemeenteveld komt.
   cities.sort((a, b) => a.name.localeCompare(b.name, 'nl'));
   const citySlug = new Map(cities.map(c => [c.name, c.slug]));
-  return { shops, markets: mkts, cities, url: (id: string) => slugOf.get(id)!, cityUrl: (name: string | null | undefined) => (name && citySlug.has(name) ? `/${citySlug.get(name)}/` : null) };
+  // Organisatoren met een eigen agenda (niet het Gemeenteblad: dat is een vergunning, geen organisator) krijgen een eigen pagina.
+  const orgs = new Map<string, { name: string; markets: Market[] }>();
+  for (const m of markets) if (m.org && !/^Gemeenteblad/.test(m.org)) { const k = slugify(m.org); if (!orgs.has(k)) orgs.set(k, { name: m.org, markets: [] }); orgs.get(k)!.markets.push(m); }
+  const orgSlug = new Map([...orgs].map(([k, o]) => [o.name, k]));
+  return { shops, markets: mkts, cities, orgs, url: (id: string) => slugOf.get(id)!, cityUrl: (name: string | null | undefined) => (name && citySlug.has(name) ? `/${citySlug.get(name)}/` : null),
+    orgUrl: (name: string | null | undefined) => (name && orgSlug.has(name) ? `/organisator/${orgSlug.get(name)}/` : null) };
 }
 
 /** Markten in de buurt (km), vanaf vandaag, op datum. */

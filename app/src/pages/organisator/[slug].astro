@@ -1,0 +1,39 @@
+---
+// Organisatorpagina: alle markten van één organisator, met een badge die hij op zijn eigen site kan zetten (links terug = vindbaarheid).
+import Tekst from '../../layouts/Tekst.astro';
+import ItemRow from '../../components/ItemRow.astro';
+import type { Market } from '../../lib/model';
+import { ix, SITE } from '../../lib/sitedata';
+
+export function getStaticPaths() {
+  return [...ix.orgs].map(([slug, o]) => ({ params: { slug }, props: { slug, name: o.name, markets: o.markets } }));
+}
+const { slug, name, markets } = Astro.props as { slug: string; name: string; markets: Market[] };
+const ms = [...markets].sort((a, b) => a.date.localeCompare(b.date) || a.start - b.start);
+const site = (() => { try { return new URL(ms.find(m => m.url)?.url ?? '').origin; } catch { return null; } })();
+const places = [...new Set(ms.map(m => m.place))];
+const title = `Markten van ${name}`;
+const description = `${ms.length} ${ms.length === 1 ? 'markt' : 'markten'} van ${name} in ${places.slice(0, 4).join(', ')}${places.length > 4 ? ` en nog ${places.length - 4} plaatsen` : ''}, met datum, tijden en entree. Elke nacht gecontroleerd op de site van de organisator.`;
+const url = `${SITE}/organisator/${slug}/`;
+const snippet = `<a href="${url}"><img src="${SITE}/badge.svg" alt="Onze markten staan op Snuffelkaart" width="200" height="48"></a>`;
+const ld = { '@context': 'https://schema.org', '@type': 'Organization', name, ...(site ? { url: site } : {}),
+  event: ms.slice(0, 50).map(m => ({ '@type': 'Event', name: m.name, url: SITE + ix.url(m.id), startDate: m.date, location: { '@type': 'Place', name: m.venue ?? m.place, address: m.addr ?? m.place } })) };
+---
+<Tekst title={title} description={description}>
+  <script type="application/ld+json" slot="head" set:html={JSON.stringify(ld)} />
+  <p class="tp-crumbs"><a href="/">Snuffelkaart</a> › <a href="/markten/">Markten</a> › {name}</p>
+  <h1>{title}</h1>
+  <p class="lede">{description}{site && <> Meer informatie en kramen huren: <a href={site} rel="nofollow">{site.replace(/^https?:\/\/(www\.)?/, '')}</a>.</>}</p>
+  <section>
+    <h2>Komende markten</h2>
+    <ul class="rows">{ms.map(m => <ItemRow it={m} />)}</ul>
+  </section>
+  <section>
+    <h2>Organiseer je deze markten?</h2>
+    <p>We lezen je agenda elke nacht, dus nieuwe data en afgelastingen staan er vanzelf op. Zet deze badge op je site, dan vinden bezoekers je markten ook op de kaart, samen met de kringlopen in de buurt.</p>
+    <p><img src="/badge.svg" alt="Onze markten staan op Snuffelkaart" width="200" height="48" /></p>
+    <label for="badge-code" style="font-weight:600">Code om te plakken</label>
+    <textarea id="badge-code" class="textarea" readonly rows="3" style="width:100%;font-family:ui-monospace,monospace;font-size:.8125rem" onclick="this.select()">{snippet}</textarea>
+    <p style="font-size:.875rem;color:var(--fg-3)">Klopt er iets niet, of wil je liever niet op Snuffelkaart? Mail <a href="mailto:info@freekvanderhorst.com">info@freekvanderhorst.com</a>.</p>
+  </section>
+</Tekst>

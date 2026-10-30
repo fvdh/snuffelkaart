@@ -31,6 +31,10 @@ const ld = { '@context': 'https://schema.org', '@type': 'ItemList', name: title,
     <h2>{monthName(ym)}</h2>
     <ul class="rows">{ms!.map(m => <ItemRow it={m} />)}</ul>
   </section>)}
+  <section>
+    <h2>Per organisator</h2>
+    <ul class="tp-links">{[...ix.orgs].sort((a, b) => a[1].name.localeCompare(b[1].name, 'nl')).map(([slug, o]) => <li><a href={`/organisator/${slug}/`}>{o.name}</a> <span style="color:var(--fg-3)">{o.markets.length}</span></li>)}</ul>
+  </section>
   <p style="color:var(--fg-3)">Markten komen uit de agenda's van de organisatoren en worden elke nacht gecontroleerd. <a href="/hoe-we-controleren/">Hoe we controleren</a> · <a href="/plaatsen/">Kringlopen per plaats</a></p>
   <script is:inline>
     (() => {
