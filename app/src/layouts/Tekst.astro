@@ -67,5 +67,7 @@ const canonical = SITE + Astro.url.pathname;
       <slot />
       <footer class="tp-foot"><a href="/plaatsen/">Alle plaatsen</a><a href="/hoe-we-controleren">Hoe we controleren</a><a href="/privacy">Privacy</a><a href="/voorwaarden">Voorwaarden</a><a href="/colofon">Colofon</a><a href="/data/places.json">Open data (ODbL)</a></footer>
     </main>
+    {/* Links naar andere sites (organisator, winkel, OSM) in een nieuw tabblad, zodat je Snuffelkaart niet kwijtraakt. Route en bellen niet. */}
+    <script is:inline>document.querySelectorAll('a[href^="http"]').forEach(a => { if (a.host !== location.host && !/google\.com\/maps/.test(a.href)) { a.target = '_blank'; a.rel = `${a.rel} noopener`.trim(); } });</script>
   </body>
 </html>
