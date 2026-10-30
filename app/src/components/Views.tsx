@@ -58,7 +58,9 @@ export function Row({ it, d, c }: { it: Item; d: number; c: Ctx }) {
   // dan valt de soort weg en niet de plaats (UX-test 30 okt). De soort niet herhalen als hij al in de naam staat ("Vlooienmarkt Baarn").
   const kind = (it.t === 'm' ? it.kind : kindLabel(it)).toLowerCase();
   const parts: [string, string][] = [];
-  if (it.place && it.place !== c.originLabel) parts.push(['r-plaats', it.place]);
+  // Plaats al bekend (je zoekt daar, of hij staat in de naam: "Kringloop Zwolle" ×3)? Dan de straat, zodat je ze uit elkaar houdt.
+  const street = it.t === 'k' && it.addr ? it.addr.split(',')[0] : null, known = !it.place || it.place === c.originLabel || it.name.includes(it.place);
+  if (known ? street : it.place) parts.push(['r-plaats', (known ? street : it.place)!]);
   if (!it.name.toLowerCase().includes(kind)) parts.push(['r-kind', kind]);
   return (
     <li className="rowli" data-key={it.id}>
