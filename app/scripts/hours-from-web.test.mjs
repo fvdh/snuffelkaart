@@ -78,4 +78,23 @@ describe('schema.org in de pagina', () => {
     expect(oh('Inbreng boven 20 stuks alleen op afspraak!\nOpeningstijden\nMaandag: Gesloten\nDinsdag: 10:00 – 14:00\nWoensdag: 10:00 – 15:00\nZaterdag: 10:00 – 14:00\nZondag: Gesloten'))
       .toBe('Tu 10:00-14:00; We 10:00-15:00; Sa 10:00-14:00');
   });
+  it('tabel winkel | inleveren: alleen de winkelkolom (Het Goed)', () => {
+    expect(oh('Openingstijden\nWinkel open\nSpullen inleveren Inleveren\nMaandag\n10:00 - 18:00\n10:00 - 17:00\nDinsdag\n10:00 - 18:00\n10:00 - 17:00\nZaterdag\n10:00 - 18:00\n10:00 - 16:30\nZondag\n12:00 - 17:00\ngesloten\nOpeningstijden feestdagen\n'))
+      .toBe('Mo-Tu 10:00-18:00; Sa 10:00-18:00; Su 12:00-17:00');
+    expect(oh('Maandag\n10:00 - 18:00\n10:00 - 17:00\nDinsdag\n10:00 - 18:00\n10:00 - 17:00\nZaterdag\n10:00 - 18:00\n10:00 - 16:30\n')).toBeNull(); // welke kolom? onbekend
+  });
+  it('"Spullen inleveren" eronder is een ander blok (GoudGoed)', () => {
+    expect(oh('Openingstijden winkel:\nmaandag t/m zaterdag:\n10:00 – 17:00 uur\nSpullen inleveren:\nmaandag t/m zaterdag\nvan 10:00 tot 16:00 uur\n')).toBe('Mo-Sa 10:00-17:00');
+  });
+  it('hele uren zonder "uur" alleen onder een kop (Appel & Ei)', () => {
+    expect(oh('Openingstijden\nMaandag 13 – 17.30\nDinsdag t/m vrijdag 10 – 17.30\nZaterdag 10 – 17\nContact')).toBe('Mo 13:00-17:30; Tu-Fr 10:00-17:30; Sa 10:00-17:00');
+    expect(oh('Kerstmarkt\nzaterdag 10 - 12\nzondag 10 - 12\nmaandag 10 - 14')).toBeNull();
+  });
+  it('twee lijsten zonder dag gemeen: twijfel', () => {
+    expect(oh('Openingstijden\nMaandag 10:00 - 17:00\nDinsdag 10:00 - 17:00\n\nGeopend\nDonderdag 13:00 - 16:00\nVrijdag 13:00 - 16:00\n')).toBeNull();
+  });
+  it('"dinsdags", "zaterdags" (Geurden)', () => {
+    expect(oh('Geopend: Maandag 9 uur tot 18 uur\nDinsdags 9 uur tot 18 uur\nWoensdag 9 uur tot 18 uur\nDonderdags Gesloten\nVrijdags 9 uur tot 18 uur\nZaterdags 9 uur tot 16 uur\nOf op afspraak'))
+      .toBe('Mo-We 09:00-18:00; Fr 09:00-18:00; Sa 09:00-16:00');
+  });
 });

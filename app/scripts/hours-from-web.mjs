@@ -11,15 +11,17 @@ export function toText(html) {
 
 const DAY = [['maandag', 'ma'], ['dinsdag', 'di'], ['woensdag', 'wo'], ['donderdag', 'do'], ['vrijdag', 'vr', 'vrij'], ['zaterdag', 'za', 'zat'], ['zondag', 'zo', 'zon']];
 const OSM = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'];
-const D = '(maandag|dinsdag|woensdag|donderdag|vrijdag|zaterdag|zondag|ma|di|wo|do|vrij|vr|zat|za|zon|zo)(?:en)?\\.?'; // "de zaterdagen" telt ook
-const dayIdx = w => DAY.findIndex(n => n.includes(w.toLowerCase().replace('.', '').replace(/(dag)en$/, '$1')));
+const D = '(maandag|dinsdag|woensdag|donderdag|vrijdag|zaterdag|zondag|ma|di|wo|do|vrij|vr|zat|za|zon|zo)(?:en|s)?\\.?'; // "de zaterdagen" en "dinsdags" tellen ook
+const dayIdx = w => DAY.findIndex(n => n.includes(w.toLowerCase().replace('.', '').replace(/(dag)(en|s)$/, '$1')));
 const T = '(\\d{1,2})(?:[:.](\\d{2}))?\\s*(?:uur|u)?';
 const RANGE = `${T}\\s*(?:-|–|tot|t/m)\\s*${T}`;
 // Eén regel-element: dagen (met t/m of opsomming), dan tijden of "gesloten".
 const ENTRY = new RegExp(`\\b${D}(?:\\s*(?:t/m|tot en met|-|–|tot)\\s*${D}|(?:\\s*(?:,|en|&)\\s*${D})*)\\s*:?\\s*(?:van\\s+|tussen\\s+)?(${RANGE}(?:\\s*(?:en|&|,|/|\\|)\\s*(?:van\\s+)?${RANGE})*|gesloten|dicht|closed)`, 'gi');
 // Blokken die niet over de winkeltijden gaan.
-const NOT_SHOP = /spreekuur|inname|inbreng|brengen|afgifte|aanlever|ophaal|kantoor|secretariaat|telefon|bereikbaar|feestdag|kerst|oud ?jaar|nieuwjaar|pasen|pinkster|zomer|vakantie|januari|februari|maart|april|mei|juni|juli|augustus|september|oktober|november|december|\d{1,2}[-/]\d{1,2}[-/]\d{2,4}/i;
+const NOT_SHOP = /spreekuur|inname|inbreng|inlever|brengen|afgifte|aanlever|ophaal|kantoor|secretariaat|telefon|bereikbaar|feestdag|kerst|oud ?jaar|nieuwjaar|pasen|pinkster|zomer|vakantie|januari|februari|maart|april|mei|juni|juli|augustus|september|oktober|november|december|\d{1,2}[-/]\d{1,2}[-/]\d{2,4}/i;
 
+const DAYS_FULL = 'maandag|dinsdag|woensdag|donderdag|vrijdag|zaterdag|zondag', CELL = `(?:\\d{1,2}[:.]\\d{2}\\s*(?:-|–)\\s*\\d{1,2}[:.]\\d{2}|gesloten|dicht)`;
+const COLS = new RegExp(`(?:^(?:${DAYS_FULL})\\n${CELL}\\n${CELL}\\n){3,}`, 'gim');
 const mins = (h, m) => +h * 60 + (m ? +m : 0);
 const hhmm = x => `${String(Math.floor(x / 60)).padStart(2, '0')}:${String(x % 60).padStart(2, '0')}`;
 
@@ -34,16 +36,21 @@ function entry(m) {
   if (/gesloten|dicht|closed/.test(low)) return { days, spans: 'off' };
   const spans = [];
   for (const r of low.slice(daysPart.length).matchAll(new RegExp(RANGE, 'gi'))) {
-    if (!r[2] && !r[4] && !/uur|u\b/.test(r[0])) return null; // "10 - 12" zonder minuten of "uur": te dubbelzinnig
+    const loose = !r[2] && !r[4] && !/uur|u\b/.test(r[0]); // "10 - 17" zonder minuten of "uur": alleen onder een kop "Openingstijden" (anders misschien een datum)
     const a = mins(r[1], r[2]), b = mins(r[3], r[4]);
     if (!(a >= 360 && b <= 1380 && b > a)) return null; // tussen 6:00 en 23:00, en eerst open dan dicht
-    spans.push([a, b]);
+    spans.push([a, b]); if (loose) spans.loose = true;
   }
-  return spans.length ? { days, spans } : null;
+  return spans.length ? { days, spans, loose: !!spans.loose } : null;
 }
 
 /** Tekst → { oh, days } of null. Kiest het enige winkelblok; twee verschillende blokken = twijfel = null. */
 export function parseHoursNL(text) {
+  // Tabel met twee kolommen (dag, winkel, inleveren onder elkaar, zoals bij Het Goed): alleen de eerste kolom als de kop zegt dat dat de winkel is.
+  text = text.replace(COLS, (tbl, ...a) => {
+    const at = a.at(-2), head = text.slice(Math.max(0, at - 80), at);
+    return /winkel[\s\S]*(inlever|inname|inbreng|brengen)/i.test(head) ? '\nOpeningstijden winkel\n' + tbl.replace(new RegExp(`^(${DAYS_FULL})\\n(.+)\\n.+\\n`, 'gim'), '$1: $2\n') : '\n';
+  });
   const blocks = []; let cur = null;
   for (const m of text.matchAll(ENTRY)) {
     const e = entry(m); if (!e) continue;
@@ -52,7 +59,7 @@ export function parseHoursNL(text) {
     if (cur && gap.length < 40 && !/\p{L}{4,}/u.test(gap)) { cur.entries.push(e); cur.end = m.index + m[0].length; continue; }
     cur = { start: m.index, end: m.index + m[0].length, entries: [e] }; blocks.push(cur);
   }
-  const results = new Map();
+  const weeks = [];
   for (const b of blocks) {
     const lines = text.slice(Math.max(0, b.start - 200), b.start).split('\n').filter(l => l.trim()), inside = text.slice(b.start, b.end);
     // Staat er direct boven "Openingstijden", dan telt alleen die kop (een inbreng-zin daarboven gaat over iets anders).
@@ -61,6 +68,7 @@ export function parseHoursNL(text) {
     // Gaat de lijst verder met een dag die we niet konden lezen? Dan is hij half: liever niets dan "za dicht" terwijl ze open zijn.
     if (new RegExp(`^\\s*${D}\\b`, 'i').test(text.slice(b.end, b.end + 60))) continue;
     const header = /openingstijd|openingsuren|winkel|geopend/i.test(before);
+    if (!header && b.entries.some(e => e.loose)) continue;
     // "Let op: op woensdag zijn wij gesloten" net onder de lijst gaat voor.
     const note = text.slice(b.end, b.end + 250), shut = [];
     for (const m of note.matchAll(new RegExp(`${D}[^.!\\n]{0,30}?gesloten|gesloten op ${D}`, 'gi'))) shut.push(dayIdx(m[1] ?? m[2]));
@@ -69,12 +77,18 @@ export function parseHoursNL(text) {
     for (const d of shut) if (d >= 0) week[d] = 'off';
     const named = week.filter(Boolean).length;
     if (clash || named < (header ? 2 : 3) || !week.some(v => v && v !== 'off')) continue; // te weinig om op te bouwen
-    const parts = []; // opeenvolgende dagen met dezelfde tijden samen: Mo-Fr 09:30-16:00
-    for (let i = 0; i < 7;) { const v = week[i] ?? 'off'; let j = i; while (j + 1 < 7 && (week[j + 1] ?? 'off') === v) j++; if (v !== 'off') parts.push(`${OSM[i]}${j > i ? '-' + OSM[j] : ''} ${v}`); i = j + 1; }
-    results.set(parts.join('; '), named);
+    weeks.push(week);
   }
-  if (results.size !== 1) return null;
-  let oh = [...results.keys()][0];
+  if (!weeks.length) return null;
+  // Twee blokken mogen alleen samen als ze op elke dag die ze allebei noemen hetzelfde zeggen (tabel + "geopend van ma t/m za" in de tekst).
+  const week = Array(7).fill(null);
+  for (const [n, w] of weeks.entries()) {
+    if (n && !w.some((v, d) => v && week[d])) return null; // geen enkele dag gemeen: twee verschillende lijsten (winkel en iets anders)
+    for (let d = 0; d < 7; d++) if (w[d]) { if (week[d] && week[d] !== w[d]) return null; week[d] = w[d]; }
+  }
+  const parts = []; // opeenvolgende dagen met dezelfde tijden samen: Mo-Fr 09:30-16:00
+  for (let i = 0; i < 7;) { const v = week[i] ?? 'off'; let j = i; while (j + 1 < 7 && (week[j + 1] ?? 'off') === v) j++; if (v !== 'off') parts.push(`${OSM[i]}${j > i ? '-' + OSM[j] : ''} ${v}`); i = j + 1; }
+  let oh = parts.join('; ');
   if (/feestdagen[^.!\n]{0,60}gesloten|gesloten\s+op\s+(zon- en )?feestdagen/i.test(text)) oh += '; PH off';
   return { oh };
 }
