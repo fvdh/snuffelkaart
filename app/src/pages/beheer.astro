@@ -80,6 +80,42 @@ import Sprite from '../components/Sprite.astro';
       .adm-wide > * { max-width: 1000px }
       .adm-wide { grid-column: 2 / -1; padding: 18px 28px 48px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px }
       .adm-wide h3 { font-size: 1rem; font-weight: 700; margin-top: 16px }
+      /* Dashboard: kerncijfers met lijntje, heatmap, balkjes; rapport per organisator om te printen */
+      .dash > * { max-width: 1180px }
+      .ds-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap }
+      .ds-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px }
+      .ds-kpi { position: relative; overflow: hidden; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px 40px; display: flex; flex-direction: column; gap: 2px }
+      .ds-report .ds-kpi { padding-bottom: 14px }
+      .ds-kpi .ds-l { font-size: .8125rem; color: var(--fg-2); font-weight: 600 }
+      .ds-kpi b { font-size: 1.875rem; font-weight: 760; letter-spacing: -.02em; line-height: 1.1 }
+      .ds-d { font-size: .75rem; font-weight: 700; color: var(--fg-3) } .ds-d small { font-weight: 500 }
+      .ds-d.up { color: var(--open-ink) } .ds-d.down { color: var(--bad-ink) }
+      .ds-spark { position: absolute; left: 0; right: 0; bottom: 0; width: 100%; height: 32px }
+      .ds-spark .line { fill: none; stroke: var(--markt); stroke-width: 1.5; vector-effect: non-scaling-stroke }
+      .ds-spark .area { fill: var(--markt-soft); stroke: none }
+      .ds-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 12px }
+      .ds-card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; display: flex; flex-direction: column; gap: 8px; min-width: 0 }
+      .ds-card.wide { grid-column: 1 / -1 }
+      .ds-card h3 { margin: 0; font-size: .9375rem }
+      .ds-heat { display: flex; flex-direction: column; gap: 3px; overflow-x: auto }
+      .ds-heat .r { display: grid; grid-template-columns: 28px repeat(24, minmax(14px, 1fr)); gap: 3px; align-items: center }
+      .ds-heat .r > span { font-size: .75rem; color: var(--fg-3) }
+      .ds-heat i { display: block; height: 18px; border-radius: 4px; background: var(--ink) }
+      .ds-heat em { font-style: normal; font-size: .6875rem; color: var(--fg-3) }
+      .ds-bars { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; font-size: .8125rem }
+      .ds-bars li { display: grid; grid-template-columns: minmax(80px, 38%) 1fr auto; gap: 10px; align-items: center }
+      .ds-bars .k { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--fg-2) }
+      .ds-bars .bar { height: 10px; background: var(--surface-2); border-radius: 5px; overflow: hidden }
+      .ds-bars .bar i { display: block; height: 100%; background: var(--markt); border-radius: 5px }
+      .ds-bars .n { min-width: 3ch; text-align: right; font-weight: 650 }
+      .ds-facts { display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; margin: 0; font-size: .875rem } .ds-facts dd { margin: 0; font-weight: 700 }
+      .ds-low { color: var(--bad-ink); font-weight: 700 }
+      .ds-rhead { display: flex; gap: 14px; align-items: center } .ds-rhead .bh-mark { width: 40px; height: 40px; font-weight: 800; font-size: 1.125rem }
+      @media print {
+        body { background: #fff } .adm-nav, .ds-noprint, .adm-undo { display: none !important }
+        .admin { display: block; height: auto } .adm-wide { padding: 0; overflow: visible }
+        .ds-card, .ds-kpi { break-inside: avoid }
+      }
       .adm-table { border-collapse: collapse; font-size: .875rem; width: 100% }
       .adm-table th, .adm-table td { text-align: left; padding: 8px 14px 8px 0; border-bottom: 1px solid var(--line); vertical-align: top }
       .adm-table th { font-size: .75rem; color: var(--fg-3); font-weight: 650 }

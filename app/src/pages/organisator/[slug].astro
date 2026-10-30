@@ -15,11 +15,11 @@ const places = [...new Set(ms.map(m => m.place))];
 const title = `Markten van ${name}`;
 const description = `${ms.length} ${ms.length === 1 ? 'markt' : 'markten'} van ${name} in ${places.slice(0, 4).join(', ')}${places.length > 4 ? ` en nog ${places.length - 4} plaatsen` : ''}, met datum, tijden en entree. Elke nacht gecontroleerd op de site van de organisator.`;
 const url = `${SITE}/organisator/${slug}/`;
-const snippet = `<a href="${url}"><img src="${SITE}/badge.svg" alt="Onze markten staan op Snuffelkaart" width="200" height="48"></a>`;
+const snippet = `<a href="${url}?via=badge"><img src="${SITE}/badge.svg" alt="Onze markten staan op Snuffelkaart" width="200" height="48"></a>`;
 const ld = { '@context': 'https://schema.org', '@type': 'Organization', name, ...(site ? { url: site } : {}),
   event: ms.slice(0, 50).map(m => ({ '@type': 'Event', name: m.name, url: SITE + ix.url(m.id), startDate: m.date, location: { '@type': 'Place', name: m.venue ?? m.place, address: m.addr ?? m.place } })) };
 ---
-<Tekst title={title} description={description}>
+<Tekst title={title} description={description} tel={`org:${slug}`}>
   <script type="application/ld+json" slot="head" set:html={JSON.stringify(ld)} />
   <p class="tp-crumbs"><a href="/">Snuffelkaart</a> › <a href="/markten/">Markten</a> › {name}</p>
   <h1>{title}</h1>

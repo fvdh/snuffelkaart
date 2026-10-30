@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactElement } from 'react';
 import type { Item, LatLon, Place, Market } from '../lib/model';
 import { spotKey, dDay, dShort, dLong, fkm, hm, isoDay, addDays, dayStart, minutesOf, DAYS, DAYS_LONG, km, cap, CATS } from '../lib/model';
+import { tel, placeOf } from '../lib/klik';
 import { placeNow, placeDay, placeAt, marketStatus, week, isHoliday, openOn, intervals, type Status } from '../lib/hours';
 import { simulate, bestOrder, routeUrl, dayProposals } from '../lib/plan';
 import { groupRows, type Filters, type Group } from '../lib/filter';
@@ -187,7 +188,7 @@ export function ListView({ c, inView, list, total, limit, more, counts, nPlaces 
 /** Waar en wanneer: plek (je locatie, een plaats of postcode, recent) en moment (nu, of een dag + vertrektijd) op één scherm. */
 export function WaarView({ c, count }: { c: Ctx; count: number }) {
   const [q, setQ] = useState(''), spots = useSpots(q), today = isoDay(c.now);
-  const pick = (s: Spot) => { c.pickSpot(s); setQ(''); c.back(); }; // kiezen = klaar; de tijd kies je vooraf of via de pil (Freek, 30 okt)
+  const pick = (s: Spot) => { c.pickSpot(s); tel('plaats', placeOf(s)); setQ(''); c.back(); }; // kiezen = klaar; de tijd kies je vooraf of via de pil (Freek, 30 okt)
   const setDay = (d: string | null) => c.setWhen(d == null ? null : { day: d, start: c.live ? (d === today ? Math.min(1260, Math.ceil((minutesOf(c.now) + 30) / 30) * 30) : 600) : c.min });
   const step = (n: number) => c.setWhen({ day: c.day, start: Math.max(420, Math.min(1260, c.min + n)) });
   return (<div className="waar">
@@ -364,6 +365,7 @@ function Vertrek({ c, plan, setPlan }: { c: Ctx; plan: Plan; setPlan: (p: Partia
 
 export function PlanView({ c, items, plan, setPlan, optimizeSeen, onderweg, share }: { c: Ctx; items: Item[]; plan: Plan; setPlan: (p: Partial<Plan>) => void; optimizeSeen: boolean; onderweg: () => void; share: () => void }) {
   const byId = new Map(items.map(i => [i.id, i])), stops = plan.stops.map(id => byId.get(id)).filter(Boolean) as Item[], start = effStart(plan, c.now);
+  const telPlan = (actie: string) => tel('dagplan', `${actie}|${stops.length}|${stops.some(s => s.t === 'm') ? 'ja' : 'nee'}|${DAYS[dayStart(plan.day).getDay()]}`);
   const sim = simulate(stops, plan.day, start, c.origin), dayName = DAYS_LONG[dayStart(plan.day).getDay()];
   const [more, setMore] = useState(false);
   const best = useMemo(() => stops.length < 2 ? stops : bestOrder(stops, plan.day, start, c.origin), [plan.stops.join(), plan.day, start, c.origin.lat, c.origin.lon]);
@@ -406,14 +408,14 @@ export function PlanView({ c, items, plan, setPlan, optimizeSeen, onderweg, shar
       <div className="rc-bar" aria-hidden="true" /><p className="rc-foot">Fijne {dayName}!</p>
     </div></div>
     <div className="plan-actions">
-      <div className="row2 start">{plan.day === isoDay(c.now) ? <button className="btn primary" onClick={onderweg}><Ic n="play" />{plan.done?.length || plan.skip?.length ? 'Verder met mijn dag' : 'Start mijn dag'}</button> : <p className="src start-later"><Ic n="cal" /><span>Op {dayName} start je hier je dag; dan lopen we met je mee.</span></p>}
+      <div className="row2 start">{plan.day === isoDay(c.now) ? <button className="btn primary" onClick={() => { telPlan('start'); onderweg(); }}><Ic n="play" />{plan.done?.length || plan.skip?.length ? 'Verder met mijn dag' : 'Start mijn dag'}</button> : <p className="src start-later"><Ic n="cal" /><span>Op {dayName} start je hier je dag; dan lopen we met je mee.</span></p>}
         <button className="btn" aria-expanded={more} onClick={() => setMore(!more)}>Meer<Ic n={more ? 'chevu' : 'chevd'} /></button></div>
       {!isBest && !more && <button className="btn" onClick={() => setPlan({ stops: best.map(x => x.id) })}><Ic n="wand" />Slimste volgorde</button>}
       {more && <div className="more-acts">
         <button className="btn" disabled={isBest} onClick={() => setPlan({ stops: best.map(x => x.id) })}><Ic n={isBest ? 'check' : 'wand'} />{isBest ? 'Dit is al de slimste volgorde' : 'Slimste volgorde'}</button>
         <button className="btn" onClick={c.openDag}><Ic n="wand" />Ander voorstel</button>
-        <a className="btn" href={routeUrl(IOS ? 'apple' : 'google', c.me ?? c.origin, stops)} target="_blank" rel="noopener"><Ic n="ext" />Hele route in {IOS ? 'Apple Kaarten' : 'Google Maps'}</a>
-        <a className="btn" href={routeUrl(IOS ? 'google' : 'apple', c.me ?? c.origin, stops)} target="_blank" rel="noopener"><Ic n="ext" />In {IOS ? 'Google Maps' : 'Apple Kaarten'}</a></div>}
+        <a className="btn" href={routeUrl(IOS ? 'apple' : 'google', c.me ?? c.origin, stops)} target="_blank" rel="noopener" onClick={() => telPlan('route')}><Ic n="ext" />Hele route in {IOS ? 'Apple Kaarten' : 'Google Maps'}</a>
+        <a className="btn" href={routeUrl(IOS ? 'google' : 'apple', c.me ?? c.origin, stops)} target="_blank" rel="noopener" onClick={() => telPlan('route')}><Ic n="ext" />In {IOS ? 'Google Maps' : 'Apple Kaarten'}</a></div>}
     </div>
     {c.install && stops.length > 0 && <div className="install"><span className="brand-mark"><Ic n="tag" /></span><div><b>Zet Snuffelkaart op je beginscherm</b><p>Dan open je dit bonnetje ook zonder bereik, bijvoorbeeld in een sporthal.</p>
       <div className="btns"><button className="btn sm primary" onClick={c.install.add}>Toevoegen</button><button className="btn sm ghost" onClick={c.install.no}>Niet nu</button></div></div></div>}

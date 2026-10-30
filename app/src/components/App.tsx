@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
 import type { Item, LatLon, Market, Place } from '../lib/model';
-import { km, DEFAULT_CENTER, isoDay, addDays, DAYS_LONG, dayStart, hm, dShort, minutesOf } from '../lib/model';
+import { CATS, km, DEFAULT_CENTER, isoDay, addDays, DAYS_LONG, dayStart, hm, dShort, minutesOf } from '../lib/model';
 import { placeNow, openOn, setWindow } from '../lib/hours';
 import { visible, matches, groupOf, type Filters } from '../lib/filter';
 import { siteIndex } from '../lib/seo';
@@ -14,7 +14,7 @@ import { readSession, returnError, api, sendLink, userId, logout as authLogout, 
 import { applyStatus, type Live } from '../lib/markets';
 import { Ic, reduced } from './ui';
 import { watchErrors } from '../lib/errors';
-import { klik, linkKind } from '../lib/klik';
+import { klik, linkKind, tel, kmBucket, regio } from '../lib/klik';
 
 /** "Nu", met ?nu=2026-10-31T09:10 om tijdsbewust gedrag te testen. */
 function useNow(): [Date, boolean] {
@@ -118,14 +118,26 @@ export default function App() {
   const [bounds, setBounds] = useState<Bounds | null>(null);
   const inView = desktop && !!bounds && !f.q && !f.only;
   const list = useMemo(() => inView ? all.filter(({ it }) => it.lon >= bounds!.w && it.lon <= bounds!.e && it.lat >= bounds!.s && it.lat <= bounds!.n) : all, [all, inView, bounds]);
+  // Zoeken zonder resultaat: alleen dát het gebeurde (niet de tekst), één keer per zoekopdracht, pas als je even stopt met typen.
+  const leeg = useRef(new Set<string>());
+  useEffect(() => { const q = f.q.trim().toLowerCase(); if (q.length < 3 || list.length || leeg.current.has(q)) return; const t = setTimeout(() => { leeg.current.add(q); tel('zoekleeg'); }, 1500); return () => clearTimeout(t); }, [f.q, list.length]);
   const counts = useMemo(() => {
     // Tellers horen bij de kop "rond <plaats>": alleen binnen 25 km, niet heel Nederland (UX-review 28 okt).
     const near = (x: LatLon) => km(origin, x) < 25, g = items.filter(it => near(it) && matches(it, { ...f, open: false, q: '', only: null }, now, day, min)).map(it => groupOf(it, day, min));
     return { open: g.filter(x => x === 'open').length, later: g.filter(x => x === 'later').length, unknown: g.filter(x => x === 'unknown').length };
   }, [items, now, origin, day, min, f]);
 
-  const setF = useCallback((p: Partial<Filters>) => { setFState(o => ({ ...o, ...p })); setLimit(40); if (view !== 'list') { setView('list'); setSel(null); } }, [view]);
-  const go = (id: string) => { const it = byId.get(id); if (!it) return; if (id !== sel) klik(id, 'view'); setDir('fwd'); if (view !== 'detail') setPrev(view); setSel(id); setView('detail'); if (snap === 'collapsed') setSnap('half'); setFocus({ lat: it.lat, lon: it.lon, key: Date.now() }); scrollTop(); };
+  // Dashboard-tellers (anoniem, zie lib/klik): welk filter aangaat, wanneer de app open is, in welke regio gekeken wordt, zoeken zonder resultaat.
+  const telFilter = (p: Partial<Filters>) => {
+    if (p.type && p.type !== 'all') tel('filter', `type:${p.type}`, true);
+    for (const k of ['open', 'gratis', 'overdekt'] as const) if (p[k]) tel('filter', k, true);
+    if (p.hide?.length) CATS.filter(c => !p.hide!.includes(c)).forEach(c => tel('filter', `cat:${c}`, true));
+    if (p.only) tel('filter', 'bewaard', true);
+  };
+  useEffect(() => { const d = new Date(); tel('uur', `${d.getDay()}-${d.getHours()}`, true); }, []);
+  useEffect(() => { if (me || spot) tel('regio', regio(me ?? spot!), true); }, [me, spot]);
+  const setF = useCallback((p: Partial<Filters>) => { telFilter(p); setFState(o => ({ ...o, ...p })); setLimit(40); if (view !== 'list') { setView('list'); setSel(null); } }, [view]);
+  const go = (id: string) => { const it = byId.get(id); if (!it) return; if (id !== sel) { klik(id, 'view'); if (me || spot) tel('afstand', `${id}|${kmBucket(km(origin, it))}`); } setDir('fwd'); if (view !== 'detail') setPrev(view); setSel(id); setView('detail'); if (snap === 'collapsed') setSnap('half'); setFocus({ lat: it.lat, lon: it.lon, key: Date.now() }); scrollTop(); };
   // Doorklikken vanuit een detail (route, website/organisator, bellen) tellen: één luisteraar voor alle links met een [data-item] erboven.
   useEffect(() => {
     const on = (e: MouseEvent) => { const a = (e.target as Element).closest?.('a[href]'), id = a?.closest('[data-item]')?.getAttribute('data-item'), k = a && linkKind(a.getAttribute('href')!); if (id && k) klik(id, k); };

@@ -2,5 +2,7 @@ User-agent: *
 Disallow: /beheer
 Disallow: /data/
 Disallow: /*?
+# Badge-links van organisatoren (?via=badge) wel volgen: die link moet meetellen.
+Allow: /organisator/
 
 Sitemap: https://snuffelkaart.nl/sitemap.xml

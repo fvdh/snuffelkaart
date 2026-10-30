@@ -5,7 +5,7 @@ import Sprite from '../components/Sprite.astro';
 import Meten from '../components/Meten.astro';
 import Deel from '../components/Deel.astro';
 import { SITE } from '../lib/sitedata';
-const { title, description, wide = false } = Astro.props;
+const { title, description, wide = false, tel } = Astro.props; // tel: sleutel voor de paginateller (winkel- of markt-id, org:<slug>)
 const canonical = SITE + Astro.url.pathname;
 ---
 <html lang="nl">
@@ -60,7 +60,7 @@ const canonical = SITE + Astro.url.pathname;
       .tp-foot a { color: var(--fg-2); font-weight: 500 }
     </style>
   </head>
-  <body>
+  <body data-tel={tel}>
     <Sprite />
     <main class={`tp${wide ? ' wide' : ''}`}>
       <div class="tp-top"><a class="tp-brand" href="/"><span class="tp-mark"><svg class="i" aria-hidden="true"><use href="#i-tag" /></svg></span>Snuffelkaart</a><a class="tp-back" href="/">Naar de kaart</a></div>
@@ -70,4 +70,14 @@ const canonical = SITE + Astro.url.pathname;
     {/* Links naar andere sites (organisator, winkel, OSM) in een nieuw tabblad, zodat je Snuffelkaart niet kwijtraakt. Route en bellen niet. */}
     <script is:inline>document.querySelectorAll('a[href^="http"]').forEach(a => { if (a.host !== location.host && !/google\.com\/maps/.test(a.href)) { a.target = '_blank'; a.rel = `${a.rel} noopener`.trim(); } });</script>
   </body>
+<script>
+  // Anonieme paginateller (rpc tel, zie migratie tellers): alleen dát deze pagina bekeken is, en of je via de badge van een organisator kwam.
+  declare const __SB_URL__: string, __SB_KEY__: string;
+  const key = document.body.dataset.tel, post = (metric: string, k: string) => fetch(`${__SB_URL__}/rest/v1/rpc/tel`, { method: 'POST', keepalive: true,
+    headers: { apikey: __SB_KEY__, 'Content-Type': 'application/json' }, body: JSON.stringify({ metric, key: k }) }).catch(() => {});
+  if (key && __SB_URL__ && !import.meta.env.DEV) {
+    post('pagina', key);
+    if (new URLSearchParams(location.search).get('via') === 'badge' && key.startsWith('org:')) { post('badge', key.slice(4)); history.replaceState(null, '', location.pathname); }
+  }
+</script>
 </html>

@@ -7,6 +7,7 @@ import { CATS, type Cat } from '../lib/model';
 import { queue, alerts, parseLatLon, type MRow, type Judged, type Run } from '../lib/beheer';
 import { CAT, Ic } from './ui';
 import { SB, KEY, readSession, sendLink, logout, fresh, api as authApi, type Session } from '../lib/auth';
+import { Dashboard } from './Dashboard';
 import { watchErrors } from '../lib/errors';
 
 type Row = { id: string; status: string; locked: string[]; data: Record<string, any>; date?: string; updated_at?: string };
@@ -50,12 +51,12 @@ function Login() {
   </form></main>);
 }
 
-type View = 'wachtrij' | 'bijdragen' | 'meldingen' | 'kandidaten' | 'week' | 'winkels' | 'bronnen' | 'klikken' | 'log';
-const NAV: [View, string][] = [['wachtrij', 'Wachtrij'], ['bijdragen', 'Bijdragen'], ['meldingen', 'Meldingen'], ['kandidaten', 'Kandidaten'], ['week', 'Markten deze week'], ['winkels', 'Winkels'], ['bronnen', 'Bronnen'], ['klikken', 'Klikken'], ['log', 'Moderatielog']];
+type View = 'dashboard' | 'wachtrij' | 'bijdragen' | 'meldingen' | 'kandidaten' | 'week' | 'winkels' | 'bronnen' | 'klikken' | 'log';
+const NAV: [View, string][] = [['dashboard', 'Dashboard'], ['wachtrij', 'Wachtrij'], ['bijdragen', 'Bijdragen'], ['meldingen', 'Meldingen'], ['kandidaten', 'Kandidaten'], ['week', 'Markten deze week'], ['winkels', 'Winkels'], ['bronnen', 'Bronnen'], ['klikken', 'Klikken'], ['log', 'Moderatielog']];
 const STATUS: Record<string, string> = { org: 'Bevestigd door organisator', chk: 'Gecontroleerd', unconf: 'Nog niet bevestigd', cancel: 'Afgelast', kandidaat: 'Kandidaat', afgewezen: 'Afgewezen' };
 
 function Panel({ s, out }: { s: Session; out: () => void }) {
-  const [view, setView] = useState<View>('wachtrij'), [rows, setRows] = useState<MRow[] | null>(null), [err, setErr] = useState('');
+  const [view, setView] = useState<View>('dashboard'), [rows, setRows] = useState<MRow[] | null>(null), [err, setErr] = useState('');
   // ponytail: alle markten vanaf vandaag in één keer (±300; PostgREST geeft er max. 1000). Pagineren als het er meer worden.
   useEffect(() => { api(s, `markets?select=id,date,status,locked,data,updated_at&date=gte.${today()}&order=date,id`).then(setRows).catch(e => setErr(e.message)); }, []);
   const [undo, setUndo] = useState<{ before?: Row; what: string; revert?: () => Promise<unknown> } | null>(null);
@@ -106,6 +107,7 @@ function Panel({ s, out }: { s: Session; out: () => void }) {
       : view === 'winkels' ? <Shops s={s} />
       : view === 'bronnen' ? <Sources s={s} runs={runs} warn={warn} rows={rows ?? []} />
       : view === 'klikken' ? <Clicks s={s} />
+      : view === 'dashboard' ? <Dashboard s={s} />
       : <Log s={s} />}
     </main>
     {undo && <div className="adm-undo" role="status"><span>{undo.what}</span><button className="btn sm" onClick={revert}>Ongedaan maken <span className="kbd">Z</span></button></div>}

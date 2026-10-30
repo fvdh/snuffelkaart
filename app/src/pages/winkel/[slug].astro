@@ -32,7 +32,7 @@ const ld = { '@context': 'https://schema.org', '@type': 'Store', name: p.name, u
   ...(reviews.length ? { aggregateRating: { '@type': 'AggregateRating', ratingValue: rating, reviewCount: reviews.length, bestRating: 5, worstRating: 1 } } : {}),
   ...(photos.length ? { image: photos.slice(0, 3).map(f => f.url) } : {}) };
 ---
-<Tekst title={title} description={description}>
+<Tekst title={title} description={description} tel={p.id}>
   <script type="application/ld+json" slot="head" set:html={JSON.stringify(ld)} />
   {thin(p) && <meta name="robots" content="noindex, follow" slot="head" />}
   <p class="tp-crumbs"><a href="/">Snuffelkaart</a> › {cityUrl ? <a href={cityUrl}>{p.place}</a> : (p.place ?? 'Winkel')}</p>

@@ -30,7 +30,7 @@ const ld = { '@context': 'https://schema.org', '@type': 'Event', name: m.name, u
   location: { '@type': 'Place', name: m.venue ?? m.place, address: { '@type': 'PostalAddress', streetAddress: m.addr ?? undefined, addressLocality: m.place, addressCountry: 'NL' }, geo: { '@type': 'GeoCoordinates', latitude: m.lat, longitude: m.lon } },
   organizer: { '@type': 'Organization', name: m.org, ...(m.url ? { url: m.url } : {}) }, ...(m.entree === 'gratis' ? { isAccessibleForFree: true } : {}) };
 ---
-<Tekst title={title} description={description}>
+<Tekst title={title} description={description} tel={m.id}>
   <script type="application/ld+json" slot="head" set:html={JSON.stringify(ld)} />
   <p class="tp-crumbs"><a href="/">Snuffelkaart</a> › <a href="/markten/">Markten</a> › {cityUrl ? <a href={cityUrl}>{m.place}</a> : m.place}</p>
   <p class="eyebrow" style="margin-top:12px"><span class="tile m" style="width:24px;height:24px"><svg class="i" aria-hidden="true" style="width:14px;height:14px"><use href="#i-kraam" /></svg></span>{m.kind}{m.indoor !== undefined && ` · ${m.indoor ? 'binnen' : 'buiten'}`}</p>

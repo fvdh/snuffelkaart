@@ -252,3 +252,9 @@ describe('markten op andere dagen', () => {
     expect(g.find(x => x.g === 'other')!.rows.map(x => x.it.id)).toEqual(['ver-vroeg', 'dicht-laat']);
   });
 });
+
+it('tellers: afstandsgroepen en regio-vakken', async () => {
+  const { kmBucket, regio } = await import('./klik');
+  expect([0.3, 5, 14.9, 29, 80].map(kmBucket)).toEqual(['0-5', '5-15', '5-15', '15-30', '30+']);
+  expect(regio({ lat: 52.0912, lon: 5.1214 })).toBe('52.1,5.1');
+});
