@@ -317,7 +317,10 @@ Ontwerp `ontwerp/lus/` (canvas "Snuffelkaart: de snuffellus"), na de UX-synthese
     - Search Console aanmelden en de sitemap insturen.
     - www doorsturen naar de kale domeinnaam.
     - Bing Webmaster Tools via import uit Search Console.
-  - **Code:**
-    - 's-Gravenhage/Den Haag en 's-Hertogenbosch/Den Bosch zijn dubbele stadspagina's; die samenvoegen.
-    - Oude marktpagina's doorsturen naar de stadspagina.
+  - **Code, gedaan:** de dubbele plaatsnamen zijn samengevoegd in `toFiles` (`placeNames`).
+    - Andere namen gaan naar de naam die mensen zoeken: 's-Gravenhage en The Hague worden Den Haag, 's-Hertogenbosch wordt Den Bosch, Driebergen wordt Driebergen-Rijsenburg.
+    - Verder wint per plaats de meest gebruikte schrijfwijze met hoofdletters.
+    - 88 oude adressen sturen met een 301 door via `public/_redirects`.
+    - ponytail: de lijst van `_redirects` is één keer gemaakt; een nieuwe alias vraagt een nieuwe regel.
+  - **Code, nog te doen:** oude marktpagina's doorsturen naar de stadspagina.
     - Organisatoren vragen om naar hun pagina te linken (backlinks).

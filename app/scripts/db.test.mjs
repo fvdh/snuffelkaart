@@ -1,5 +1,5 @@
 import { it, expect } from 'vitest';
-import { merge, vanished, toFiles, placeRows, toExtra } from './db.mjs';
+import { merge, vanished, toFiles, placeRows, toExtra, placeNames } from './db.mjs';
 
 it('import laat met de hand gezette velden en status staan', () => {
   const old = { id: 'a', status: 'cancel', locked: ['status', 'name'], data: { name: 'Goede naam', place: 'Oud' } };
@@ -49,4 +49,13 @@ it('extra.json: alleen goedgekeurd, jongste tijden winnen, schermnaam erbij', ()
   expect(x.hours.p).toMatchObject({ checked: '2026-10-25', by: 'Marieke' });
   expect(x.reviews.p).toEqual([{ name: 'Marieke', stars: 4, text: undefined, month: '2026-09' }]);
   expect(x.photos.p[0]).toMatchObject({ url: 'https://x/fotos/u/a.webp', name: 'Een bezoeker' });
+});
+
+it('één schrijfwijze per plaats: andere namen en hoofdletters samen', () => {
+  const n = placeNames(["'s-Gravenhage", 'Den Haag', 'The Hague', 'Bergen op Zoom', 'Bergen op Zoom', 'Bergen Op Zoom', "'s-Hertogenbosch", 'Zwolle']);
+  expect(["'s-Gravenhage", 'The Hague', 'Den Haag'].map(n)).toEqual(['Den Haag', 'Den Haag', 'Den Haag']);
+  expect(n('Bergen Op Zoom')).toBe('Bergen op Zoom');
+  expect(n("'s-Hertogenbosch")).toBe('Den Bosch');
+  expect(n('Zwolle')).toBe('Zwolle');
+  expect(n(null)).toBe(null);
 });

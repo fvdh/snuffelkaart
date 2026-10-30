@@ -24,6 +24,17 @@ export function vanished(existing, incomingIds, freshSources, today) {
     .map(r => ({ ...r, status: 'unconf', data: { ...r.data, vanished: today } }));
 }
 
+/** Eén schrijfwijze per plaats, anders krijgt een stad twee pagina's die met elkaar concurreren in Google (SEO, 30 okt).
+ *  Bekende andere namen → de naam die mensen zoeken; verder wint per plaats de meest gebruikte hoofdletters ("Bergen op Zoom").
+ *  Oude adressen staan in public/_redirects. ponytail: vaste lijst; groeit hij, dan een tabel in /beheer. */
+const ALIAS = { "'s-Gravenhage": 'Den Haag', 'The Hague': 'Den Haag', "'s-Hertogenbosch": 'Den Bosch', 'Driebergen': 'Driebergen-Rijsenburg' };
+export function placeNames(names) {
+  const count = new Map(), best = new Map();
+  for (const n of names) if (n) { const a = ALIAS[n] ?? n; count.set(a, (count.get(a) ?? 0) + 1); }
+  for (const [n, c] of count) { const k = n.toLowerCase(), b = best.get(k); if (!b || c > count.get(b)) best.set(k, n); }
+  return n => (n ? best.get((ALIAS[n] ?? n).toLowerCase()) ?? n : n);
+}
+
 /** Rijen → bestanden voor de app (zelfde vorm als vroeger, zodat de app niet verandert). */
 export function toFiles(places, markets, from) {
   const p = places.filter(r => r.status === 'actief').map(({ id, data: { oh, ...d } }) => {
@@ -32,6 +43,8 @@ export function toFiles(places, markets, from) {
   });
   const m = markets.filter(r => PUBLIC.includes(r.status) && r.date >= from).map(({ id, status, data }) => ({ ...data, id, status }))
     .sort((a, b) => a.date.localeCompare(b.date) || a.start - b.start);
+  const name = placeNames([...p, ...m].map(x => x.place));
+  for (const x of [...p, ...m]) if (x.place) x.place = name(x.place);
   const generated = new Date().toISOString();
   return {
     places: { generated, source: '© OpenStreetMap-bijdragers (ODbL); Overture Maps Foundation (CDLA Permissive 2.0)', from, days: DAYS_AHEAD, holidays: holidays(from), places: p },
