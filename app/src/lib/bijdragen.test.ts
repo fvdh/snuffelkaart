@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest';
-import { toOh, prefill, applyExtra, errText, avg, type Day } from './bijdragen';
+import { toOh, ohText, prefill, applyExtra, errText, avg, type Day } from './bijdragen';
 import { setWindow } from './hours';
 import type { Place } from './model';
 
@@ -31,4 +31,9 @@ test('foutmelding uit de database leesbaar', () => {
 
 test('bezette schermnaam: Nederlandse zin, ook als PostgREST JSON stuurt', () => {
   expect(errText(new Error('409: {"code":"23505","message":"duplicate key value violates unique constraint \\"profiles_name_key\\""}'))).toBe('Deze schermnaam is al bezet.');
+});
+
+test('opening_hours leesbaar in Mijn bijdragen', () => {
+  expect(ohText('Mo-Fr 10:00-17:00; Sa 10:00-16:00; Su off')).toBe('ma t/m vr 10:00–17:00 · za 10:00–16:00 · zo dicht');
+  expect(ohText('Mo off; Tu,We 13:00-17:00')).toBe('ma dicht · di en wo 13:00–17:00');
 });

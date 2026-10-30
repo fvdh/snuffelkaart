@@ -17,7 +17,7 @@ const around = near(city, markets, from, 15, 10);
 const [sat, sun] = weekendOf(dayStart(from));
 const idx = (iso: string) => Math.round((dayStart(iso).getTime() - dayStart(from).getTime()) / 864e5);
 const openOn = (iso: string) => city.shops.filter(p => p.h?.[idx(iso)]?.length);
-const satOpen = openOn(sat), sunOpen = openOn(sun);
+const satOpen = openOn(sat), sunOpen = openOn(sun), dayOk = (xs: typeof satOpen) => xs.filter(p => DAY_CATS.includes(catOf(p)));
 const hours = (p: (typeof city.shops)[number], iso: string) => p.h![idx(iso)].map(([a, b]) => `${hm(a)}–${hm(b % 1440)}`).join(', ');
 // Kringlopen e.d. met bekende tijden eerst; sloop, opkoop en "tijden onbekend" onderaan (UX-test 30 okt: niet bovenaan een autodemontagebedrijf).
 const rank = (p: (typeof city.shops)[number]) => (DAY_CATS.includes(catOf(p)) ? 0 : 2) + (p.h ? 0 : 1);
@@ -28,7 +28,10 @@ const updated = dLong(generated.slice(0, 10)).toLowerCase();
 const parts = [city.shops.length && `${city.shops.length} ${city.shops.length === 1 ? 'tweedehandswinkel' : 'tweedehandswinkels'}${kring ? ` (waarvan ${kring} ${kring === 1 ? 'kringloop' : 'kringlopen'})` : ''}`, around.length && `${around.length} ${around.length === 1 ? 'markt' : 'markten'} in de buurt`].filter(Boolean);
 const title = `Kringlopen en rommelmarkten in ${city.name}`;
 const description = `${parts.join(' en ')} in ${city.name}, met openingstijden en de markten van de komende weken. Bijgewerkt op ${updated}.`;
-const list = (xs: { name: string }[]) => xs.length <= 3 ? xs.map(x => x.name).join(', ').replace(/, ([^,]*)$/, ' en $1') : `${xs.slice(0, 3).map(x => x.name).join(', ')} en nog ${xs.length - 3}`;
+// Dezelfde naam twee keer ("Kringloop Zwolle" ×3): straat erbij, anders kun je ze niet uit elkaar houden (UX-test 30 okt).
+const dup = new Set(city.shops.map(p => p.name).filter((n, i, a) => a.indexOf(n) !== i));
+const label = (p: (typeof city.shops)[number]) => dup.has(p.name) && p.addr ? `${p.name} (${p.addr.split(',')[0]})` : p.name;
+const list = (xs: (typeof city.shops)[number][]) => xs.length <= 3 ? xs.map(label).join(', ').replace(/, ([^,]*)$/, ' en $1') : `${xs.slice(0, 3).map(label).join(', ')} en nog ${xs.length - 3}`;
 const ld = { '@context': 'https://schema.org', '@type': 'ItemList', name: title, itemListElement: [...city.shops, ...around].slice(0, 50).map((it, i) => ({ '@type': 'ListItem', position: i + 1, url: SITE + ix.url(it.id), name: it.name })) };
 ---
 <Tekst title={title} description={description} wide>
@@ -43,7 +46,7 @@ const ld = { '@context': 'https://schema.org', '@type': 'ItemList', name: title,
     <h2>Open dit weekend</h2>
     <div class="tp-weekend">{[weekendDay(sat, satOpen), weekendDay(sun, sunOpen)].map(({ iso, open }) => <div>
       <h3>{dLong(iso)}</h3>
-      {open.length ? <ul class="tp-links" style="flex-direction:column">{open.map(p => <li><a href={ix.url(p.id)}>{p.name}</a> <span style="color:var(--fg-3)">{hours(p, iso)}</span></li>)}</ul> : <p>Geen kringloop open waarvan we de tijden kennen.</p>}
+      {open.length ? <ul class="tp-links" style="flex-direction:column">{open.map(p => <li><a href={ix.url(p.id)}>{label(p)}</a> <span style="color:var(--fg-3)">{hours(p, iso)}</span></li>)}</ul> : <p>Geen kringloop open waarvan we de tijden kennen.</p>}
     </div>)}</div>
   </section>}
 
@@ -59,8 +62,8 @@ const ld = { '@context': 'https://schema.org', '@type': 'ItemList', name: title,
 
   {city.shops.some(p => p.h) && <section>
     <h2>Veelgestelde vragen</h2>
-    <p><b>Welke kringloop of tweedehandswinkel in {city.name} is op zondag open?</b><br />{sunOpen.length ? `Op zondag ${dLong(sun).replace(/^Zondag /, '')} zijn open: ${list(sunOpen)}.` : `Op zondag ${dLong(sun).replace(/^Zondag /, '')} is geen enkele winkel in ${city.name} open waarvan we de tijden kennen.`}</p>
-    <p><b>Welke winkels zijn op zaterdag open?</b><br />{satOpen.length ? `Op zaterdag ${dLong(sat).replace(/^Zaterdag /, '')}: ${list(satOpen)}.` : `Op zaterdag ${dLong(sat).replace(/^Zaterdag /, '')} is geen winkel open waarvan we de tijden kennen.`}</p>
+    <p><b>Welke kringloop in {city.name} is op zondag open?</b><br />{dayOk(sunOpen).length ? `Op zondag ${dLong(sun).replace(/^Zondag /, '')} zijn open: ${list(dayOk(sunOpen))}.` : `Op zondag ${dLong(sun).replace(/^Zondag /, '')} is geen kringloop in ${city.name} open waarvan we de tijden kennen.`}</p>
+    <p><b>Welke kringlopen zijn op zaterdag open?</b><br />{dayOk(satOpen).length ? `Op zaterdag ${dLong(sat).replace(/^Zaterdag /, '')}: ${list(dayOk(satOpen))}.` : `Op zaterdag ${dLong(sat).replace(/^Zaterdag /, '')} is geen kringloop open waarvan we de tijden kennen.`}</p>
     <p style="font-size:.875rem;color:var(--fg-3)">Van {city.shops.filter(p => !p.h).length} van de {city.shops.length} winkels weten we de tijden niet; bel die even.</p>
   </section>}
 

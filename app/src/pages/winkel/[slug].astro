@@ -20,7 +20,8 @@ const osm = /^osm-([nwr])(\d+)$/.exec(p.id), osmUrl = osm ? `https://www.openstr
 const mk = near(p, markets, from, 10, 4);
 const route = `https://www.google.com/maps/dir/?api=1&destination=${p.lat.toFixed(5)},${p.lon.toFixed(5)}`; // iPhone opent dit ook netjes
 const checked = p.checked ? dLong(p.checked).toLowerCase() : null;
-const others = places.filter(o => o !== p && km(p, o) < 5 && DAY_CATS.includes(catOf(o))) // geen sloop, opkoop of pandjeshuis bij "meer tweedehands".sort((a, b) => km(p, a) - km(p, b)).slice(0, 6);
+// Geen sloop, opkoop of pandjeshuis bij "meer tweedehands"; dichtstbij eerst.
+const others = places.filter(o => o !== p && km(p, o) < 5 && DAY_CATS.includes(catOf(o))).sort((a, b) => km(p, a) - km(p, b)).slice(0, 6);
 const reviews = extra.reviews[p.id] ?? [], photos = extra.photos[p.id] ?? [], rating = avg(reviews);
 const MONTHS = ['januari', 'februari', 'maart', 'april', 'mei', 'juni', 'juli', 'augustus', 'september', 'oktober', 'november', 'december'];
 const title = `${p.name}${p.place ? `, ${p.place}` : ''}`;
@@ -63,7 +64,9 @@ const ld = { '@context': 'https://schema.org', '@type': 'Store', name: p.name, u
   {others.length > 0 && <section><h2>Meer tweedehands in de buurt</h2><ul class="rows">{others.map(o => <ItemRow it={o} note={`${o.place ?? ''} · ${km(p, o).toFixed(1).replace('.', ',')} km`} />)}</ul></section>}
 
   <section>
-    <p style="font-size:.875rem;color:var(--fg-3)">{p.src === 'osm' ? <>Gegevens: © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap-bijdragers</a> (ODbL). Klopt er iets niet? <a href={osmUrl!}>Pas het aan op OpenStreetMap</a>.</> : <>Gegevens: © Overture Maps Foundation (CDLA Permissive 2.0). Nog niet door ons gecontroleerd.</>}</p>
+    <p style="font-size:.875rem;color:var(--fg-3)">{p.src === 'osm' ? <>Gegevens: © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap-bijdragers</a> (ODbL). Zelf aanpassen kan op <a href={osmUrl!}>OpenStreetMap</a>.</> : <>Gegevens: © Overture Maps Foundation (CDLA Permissive 2.0). Nog niet door ons gecontroleerd.</>}</p>
+    <p><a class="btn" href={`/?open=${encodeURIComponent(p.id)}`}>Review, foto of tijden doorgeven</a></p>
+    <p style="font-size:.875rem;color:var(--fg-3)">Klopt er iets niet? Open de winkel in de app en tik onderaan op <b>Klopt er iets niet?</b>.</p>
   </section>
   <script is:inline>
     (() => {

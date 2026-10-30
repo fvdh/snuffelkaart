@@ -206,7 +206,8 @@ export default function App() {
       .catch(() => setToast('Opslaan in je account lukte niet. Op dit apparaat staat het wel.'));
   };
   const openMe = () => { setDir('fwd'); setPrev(view); setView('me'); setSnap('full'); scrollTop(); }; // groot paneel: op mobiel het hele scherm
-  const showFavs = () => { const pts = favs.map(id => byId.get(id)).filter(Boolean) as Item[]; setFState(o => ({ ...o, only: favs, open: false, q: '' })); setDir('back'); setView('list'); setSel(null); if (pts.length) setFit({ pts, key: Date.now() }); if (!desktop) setSnap('collapsed'); };
+  // Bewaard op de kaart: alle andere filters uit, anders zie je maar een deel (UX-test 30 okt).
+  const showFavs = () => { const pts = favs.map(id => byId.get(id)).filter(Boolean) as Item[]; setFState(o => ({ ...o, only: favs, open: false, q: '', type: 'all', hide: [], gratis: false, overdekt: false })); setDir('back'); setView('list'); setSel(null); if (pts.length) setFit({ pts, key: Date.now() }); if (!desktop) setSnap('collapsed'); };
   // Delen: een winkel via zijn eigen pagina (vast adres, ook vindbaar), een markt via de app; het systeemmenu, anders kopiëren.
   const shareIdx = useMemo(() => places ? siteIndex(places, allMarkets.filter(m => m.date >= (dataFrom ?? '').slice(0, 10))) : null, [places, allMarkets, dataFrom]); // zelfde adressen als de statische pagina's
   const shareLink = (title: string, text: string, url: string) => {
@@ -215,7 +216,7 @@ export default function App() {
   };
   const shareItem = (it: Item) => { klik(it.id, 'share'); const st = statusFor(it, now, day, nowMode ? undefined : min); shareLink(it.name, `${it.name}${it.place ? `, ${it.place}` : ''} · ${st.txt}`, location.origin + (shareIdx?.url(it.id) ?? `/?open=${encodeURIComponent(it.id)}`)); };
   const sharePlan = () => { const q = new URLSearchParams({ dag: plan.day, v: String(effStart(plan, now)), s: plan.stops.join(',') }); shareLink(`Mijn ${DAYS_LONG[dayStart(plan.day).getDay()]}`, `Mijn ${DAYS_LONG[dayStart(plan.day).getDay()]} op Snuffelkaart: ${plan.stops.length} ${plan.stops.length === 1 ? 'stop' : 'stops'}.`, `${location.origin}/?${q}`); };
-  const logout = () => { authLogout(sess); setSess(null); setToast('Uitgelogd. Je favorieten blijven op dit apparaat.'); };
+  const logout = () => { authLogout(sess); setSess(null); setToast('Uitgelogd. Je bewaarde plekken en je dagplan blijven op dit apparaat staan.'); };
   const download = () => {
     const blob = new Blob([JSON.stringify({ email: sess?.email, favorieten: favs.map(id => ({ id, naam: byId.get(id)?.name ?? null })), schermnaam: name, bijdragen: mine.map(({ id, ...c }) => ({ ...c, winkel: byId.get(c.item_id)?.name ?? null })), gedownload: new Date().toISOString() }, null, 2)], { type: 'application/json' });
     const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'snuffelkaart-mijn-gegevens.json'; a.click(); URL.revokeObjectURL(a.href);

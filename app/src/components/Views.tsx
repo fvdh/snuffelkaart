@@ -131,6 +131,8 @@ export function ListView({ c, inView, list, total, limit, more, counts, nPlaces 
   const FOLD: Group[] = ['unknown', 'closed'], fold = (g: Group) => FOLD.includes(g) && !all.includes(g) && !f.q;
   const isToday = day === isoDay(c.now), openLbl = c.live ? 'Alleen wat nu open is' : `Alleen open om ${hm(c.min)}`;
   const P = (b: boolean) => ({ 'aria-pressed': b });
+  // Alleen markten, maar geen op de gekozen dag: zeg dat, in plaats van stilletjes de eerstvolgende te tonen (UX-test 30 okt).
+  const noMarket = f.type === 'm' && !list.some(r => r.it.t === 'm' && (r.it as Market).date === day), dayTxt = isToday ? 'vandaag' : `op ${dShort(day)}`;
   const extra = (f.hide.length ? 1 : 0) + (f.gratis ? 1 : 0) + (f.overdekt ? 1 : 0) + (f.open ? 1 : 0);
   return (<>
     <div className="lv-head" data-drag>
@@ -160,6 +162,7 @@ export function ListView({ c, inView, list, total, limit, more, counts, nPlaces 
       {isHoliday(day) && <Banner kind="warn" icon="cal"><b>{isToday ? 'Het is een feestdag.' : `${cap(DAYS_LONG[dayStart(day).getDay()])} is een feestdag.`}</b> Kringlopen hebben dan vaak andere tijden. Bel even voordat je gaat.</Banner>}
       {c.locDenied && !c.me ? <Banner icon="pin"><b>Je locatie staat uit.</b> Geen probleem: <button className="link" onClick={c.openWaar}>kies een plaats</button>. Wil je hem toch aanzetten, dan kan dat in de instellingen van je browser.</Banner>
         : !c.me && !c.spot && !c.locating && !f.q && <Banner icon="pin"><b>We tonen nu Amersfoort.</b> <button className="link" onClick={() => c.locate()}>Gebruik mijn locatie</button> of <button className="link" onClick={c.openWaar}>kies een plaats</button>.</Banner>}
+      {noMarket && list.length > 0 && <Banner icon="cal"><b>Geen markten {dayTxt} in de buurt.</b> Hieronder de eerstvolgende.</Banner>}
       {inView && list.length > 0 && <p className="lv-loc" aria-live="polite"><Ic n="search" />{list.length === 1 ? '1 plek' : `${list.length} plekken`} in beeld op de kaart</p>}
     </div>
     <div className="rows-wrap" ref={flip as unknown as React.Ref<HTMLDivElement>}>
@@ -167,10 +170,11 @@ export function ListView({ c, inView, list, total, limit, more, counts, nPlaces 
         <h3 className="sec" id={`sec-${s.g}`}><span>{SEC[s.g](c.live, day, c.min)}</span><span className="tnum">{s.rows.length}</span></h3>
         <ul className="rows">{(fold(s.g) ? s.rows.slice(0, 3) : s.rows).map(x => <Row key={x.it.id} it={x.it} d={x.d} c={c} />)}</ul>
         {fold(s.g) && s.rows.length > 3 && <button className="fold" onClick={() => setAll([...all, s.g])}>Nog {s.rows.length - 3} {s.g === 'unknown' ? 'zonder bekende tijden' : 'die dan dicht zijn'}<Ic n="chevd" /></button>}</section>)
-        : inView ? <div className="empty"><h3>Niets op dit stuk van de kaart</h3><p>{!f.open && !f.hide.length && !f.gratis && !f.overdekt ? 'Verschuif de kaart of zoom uit.' : 'Verschuif de kaart, zoom uit, of zet een filter uit.'}</p>
+        : inView ? <div className="empty"><h3>{noMarket ? `Geen markten ${dayTxt} op dit stuk van de kaart` : 'Niets op dit stuk van de kaart'}</h3><p>{!f.open && !f.hide.length && !f.gratis && !f.overdekt ? 'Verschuif de kaart of zoom uit.' : 'Verschuif de kaart, zoom uit, of zet een filter uit.'}</p>
           <div className="btns"><button className="btn sm primary" onClick={inView.nearest}>Toon de dichtstbijzijnde</button>{f.open && <button className="btn sm" onClick={() => c.setF({ open: false })}>Toon ook wat dicht is</button>}</div></div>
         : <div className="empty"><h3>{f.q ? `Niets gevonden voor “${f.q}”` : 'Geen resultaten met deze filters'}</h3><p>{f.q ? 'Zoek op de naam van een winkel of markt. Een plaats kies je bovenaan.' : 'Zet een filter uit.'}</p>
-          <div className="btns">{f.q && <button className="btn sm" onClick={() => c.setF({ q: '' })}>Wis zoekopdracht</button>}{f.q && <button className="btn sm" onClick={c.openWaar}>Kies een plaats</button>}<button className="btn sm primary" onClick={() => c.setF({ open: false, gratis: false, overdekt: false, hide: [], only: null, q: '' })}>Toon alles</button></div></div>}
+          <div className="btns">{f.q && <button className="btn sm" onClick={() => c.setF({ q: '' })}>Wis zoekopdracht</button>}{f.q && <button className="btn sm" onClick={c.openWaar}>Kies een plaats</button>}<button className="btn sm primary" onClick={() => c.setF({ open: false, gratis: false, overdekt: false, hide: [], only: null, q: '' })}>Toon alles</button></div>
+          {f.q && <p className="src"><Ic n="info" /><span>Mis je een kringloop of markt? <a href="mailto:info@freekvanderhorst.com?subject=Plek%20voor%20Snuffelkaart">Mail hem door</a>, dan zetten we hem erop.</span></p>}</div>}
       {total > limit && <button className="more" onClick={more}>Toon meer, iets verder weg</button>}
       <nav className="src seo-nav" aria-label="Kringlopen per plaats"><span>Kringlopen in {BIG.map(([n, s], i) => <span key={s}>{i ? ' · ' : ''}<a href={`/${s}/`}>{n}</a></span>)} · <a href="/plaatsen/">alle plaatsen</a>. <a href="/markten/">Alle rommelmarkten en vlooienmarkten</a>.</span></nav>
       <p className="src" style={{ marginTop: 18 }}><Ic n="info" /><span>{nPlaces} winkels uit © OpenStreetMap-bijdragers en © Overture Maps Foundation, heel Nederland. De winkelgegevens zijn vrij te gebruiken onder de <a href="https://opendatacommons.org/licenses/odbl/1-0/" target="_blank" rel="noopener">ODbL</a> (<a href="/data/places.json">download</a>). Markten uit de eigen agenda van organisatoren; bij elke markt staat welke. <a href="/plaatsen/">Alle plaatsen</a> · <a href="/hoe-we-controleren">Hoe we controleren</a> · <a href="/privacy">Privacy</a> · <a href="/voorwaarden">Voorwaarden</a> · <a href="/colofon">Colofon</a></span></p>
@@ -252,35 +256,45 @@ function PlaceDetail({ p, c, top, d, actions }: { p: Place; c: Ctx; top: ReactEl
       {p.website && <div className="inforow"><Ic n="globe" /><a href={webUrl(p.website)} target="_blank" rel="noopener">{p.website.replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '')}</a></div>}
     </section>
     <ReviewsSection p={p} b={c.bij} />
-    <footer className="dv-foot"><Report id={p.id} what={SHOP_WHAT} />
-      {p.h && <button className="report-btn" onClick={() => c.bij.go('suggest', p.id)}><Ic n="edit" />Openingstijden aanpassen</button>}
+    <footer className="dv-foot"><Report id={p.id} what={SHOP_WHAT} suggest={() => c.bij.go('suggest', p.id)} />
       {osm ? <a className="report-btn" href={osm} target="_blank" rel="noopener"><Ic n="edit" />Zelf aanpassen op OpenStreetMap</a>
       : <><p className="src"><Ic n="info" /><span>Bron: © Overture Maps Foundation (CDLA Permissive 2.0). Nog niet gecontroleerd.</span></p>
         <a className="report-btn" href={`https://www.openstreetmap.org/edit#map=19/${p.lat}/${p.lon}`} target="_blank" rel="noopener"><Ic n="edit" />Ken je deze winkel? Zet hem op OpenStreetMap</a></>}</footer>
   </article>);
 }
 
-const SHOP_WHAT: [string, string][] = [['dicht', 'Gesloten of bestaat niet meer'], ['tijden', 'Andere openingstijden'], ['plek', 'Verkeerde plek of adres'], ['anders', 'Iets anders']];
+const SHOP_WHAT: [string, string][] = [['dicht', 'Was dicht of bestaat niet meer'], ['tijden', 'Andere openingstijden'], ['plek', 'Verkeerde plek of adres'], ['anders', 'Iets anders']];
 const MARKET_WHAT: [string, string][] = [['afgelast', 'Gaat niet door'], ['tijden', 'Andere datum of tijden'], ['plek', 'Verkeerde plek'], ['anders', 'Iets anders']];
 
-/** "Klopt er iets niet?": melding zonder account, komt in /beheer (rpc report; zie migratie meldingen). */
-function Report({ id, what }: { id: string; what: [string, string][] }) {
+/** Eerdere meldingen, alleen op dit apparaat (de melding zelf is anoniem): { id: [datum, wat] }. */
+const SENT = 'snuffel-meldingen';
+const sentAll = (): Record<string, [string, string]> => { try { return JSON.parse(localStorage.getItem(SENT) ?? '{}'); } catch { return {}; } };
+
+/** "Klopt er iets niet?": melding zonder account, komt in /beheer (rpc report; zie migratie meldingen).
+ *  Al eens gemeld: dat zie je hier, zodat je niet twee keer meldt (UX-test 30 okt). suggest: winkel met de tijden-editor. */
+function Report({ id, what, suggest }: { id: string; what: [string, string][]; suggest?: () => void }) {
   const [open, setOpen] = useState(false), [w, setW] = useState(''), [note, setNote] = useState(''), [state, setState] = useState<'' | 'busy' | 'done' | string>('');
+  const [sent, setSent] = useState(() => sentAll()[id]);
   const send = async (e: React.FormEvent) => {
     e.preventDefault(); setState('busy');
     try {
       const r = await fetch(`${SB}/rest/v1/rpc/report`, { method: 'POST', headers: { apikey: KEY, 'Content-Type': 'application/json' }, body: JSON.stringify({ item_id: id, what: w, note: note.trim() || null }) });
       if (!r.ok) throw new Error((await r.json().catch(() => null))?.message ?? '');
-      setState('done');
+      const at = isoDay(new Date()), all = sentAll(); all[id] = [at, w];
+      try { localStorage.setItem(SENT, JSON.stringify(all)); } catch { /* privémodus */ }
+      setSent([at, w]); setState('done');
     } catch (x) { setState(x instanceof TypeError || !(x as Error).message ? 'Versturen lukte niet: geen verbinding. Probeer het straks nog eens.' : `Versturen lukte niet: ${(x as Error).message}`); }
   };
   if (state === 'done') return <p className="src"><Ic n="check" /><span><b>Bedankt!</b> We kijken ernaar; een correctie staat meestal binnen een dag op de kaart.</span></p>;
-  if (!open) return <button className="report-btn" onClick={() => setOpen(true)}><Ic n="flag" />Klopt er iets niet?</button>;
+  const tijden = suggest && <button className="report-btn" onClick={suggest}><Ic n="edit" />Openingstijden aanpassen</button>;
+  if (!open) return <>{sent && <p className="src"><Ic n="check" /><span>Je meldde hier op {dShort(sent[0]).toLowerCase()}: {(what.find(x => x[0] === sent[1])?.[1] ?? 'iets anders').toLowerCase()}. We kijken ernaar.</span></p>}
+    <button className="report-btn" onClick={() => setOpen(true)}><Ic n="flag" />{sent ? 'Nog iets melden' : 'Klopt er iets niet?'}</button>{tijden}</>;
   return (<form className="login-card report" onSubmit={send}>
     <b>Wat klopt er niet?</b>
     <div className="btns" role="group" aria-label="Wat klopt er niet?">{what.map(([k, l]) => <button key={k} type="button" className="chip" aria-pressed={w === k} onClick={() => setW(k)}>{l}</button>)}</div>
+    {w === 'tijden' && suggest && <p className="src"><Ic n="info" /><span>Weet je de juiste tijden? <button type="button" className="link" onClick={suggest}>Vul ze zelf in</button>, dan staan ze er sneller op en met jouw naam erbij.</span></p>}
     <textarea className="textarea" maxLength={500} placeholder="Wat weet je? Bijv. de nieuwe tijden of waar je het zag (mag leeg)" value={note} onChange={e => setNote(e.target.value)} aria-label="Toelichting" />
-    <p className="src"><Ic n="info" /><span>Anoniem: we bewaren alleen je melding, niet wie je bent.</span></p>
+    <p className="src"><Ic n="info" /><span>Anoniem, ook als je bent ingelogd: we bewaren alleen je melding, niet wie je bent.</span></p>
     {state && state !== 'busy' && <p role="alert" style={{ color: 'var(--bad-ink)', fontSize: '.875rem' }}>{state}</p>}
     <div className="btns"><button className="btn primary sm" disabled={!w || state === 'busy' || !SB}>Versturen</button><button type="button" className="btn sm" onClick={() => setOpen(false)}>Annuleren</button></div>
   </form>);
@@ -552,11 +566,12 @@ export function MeView({ c, items, showFavs, login, logout, download, remove }: 
     </div>
 
     <footer className="me-foot">
-      {c.user && <div className="me-acc"><span className="tnum">{c.user}</span><button className="link" onClick={logout}>Uitloggen</button><button className="link" onClick={download}>Mijn gegevens downloaden</button>
-        {!sure && <button className="link danger" onClick={() => setSure(true)}>Account verwijderen</button>}</div>}
+      {/* Uitloggen en verwijderen niet naast elkaar (UX-test 30 okt): verwijderen staat apart, onder de rest. */}
+      {c.user && <div className="me-acc"><span className="me-mail">Ingelogd als <b>{c.user}</b></span><div className="btns"><button className="btn sm" onClick={logout}>Uitloggen</button><button className="btn sm ghost" onClick={download}>Mijn gegevens downloaden</button></div>
+        {!sure && <button className="link danger me-del" onClick={() => setSure(true)}>Account verwijderen</button>}</div>}
       {sure && <div className="unknown-box"><p><b>Account echt verwijderen?</b> Je e-mailadres, je favorieten in je account en je schermnaam gaan weg. Wat op dit apparaat bewaard is, blijft hier staan.</p>
         <div className="btns"><button className="btn sm" style={{ background: 'var(--bad)', borderColor: 'var(--bad)', color: 'oklch(0.99 0 0)' }} onClick={() => remove().finally(() => setSure(false))}>Verwijderen</button><button className="btn sm" onClick={() => setSure(false)}>Toch niet</button></div></div>}
-      <nav aria-label="Over Snuffelkaart"><a href="/hoe-we-controleren">Hoe we controleren</a><a href="/privacy">Privacy</a><a href="/voorwaarden">Voorwaarden</a><a href="/colofon">Colofon en contact</a></nav>
+      <nav aria-label="Over Snuffelkaart"><a href="mailto:info@freekvanderhorst.com?subject=Plek%20voor%20Snuffelkaart">Mis je een plek?</a><a href="/hoe-we-controleren">Hoe we controleren</a><a href="/privacy">Privacy</a><a href="/voorwaarden">Voorwaarden</a><a href="/colofon">Colofon en contact</a></nav>
     </footer>
   </div>);
 }

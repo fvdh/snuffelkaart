@@ -3,7 +3,7 @@
 import { useState, type ReactNode } from 'react';
 import type { Item, Place } from '../lib/model';
 import { isoDay } from '../lib/model';
-import { prefill, toOh, avg, shrink, errText, monthNow, DAYS_NL, type Contribution, type Day, type Kind, type Review, type Photo, type Extra } from '../lib/bijdragen';
+import { prefill, toOh, ohText, avg, shrink, errText, monthNow, DAYS_NL, type Contribution, type Day, type Kind, type Review, type Photo, type Extra } from '../lib/bijdragen';
 import { Ic } from './ui';
 
 export type BijView = 'review' | 'photo' | 'suggest' | 'contrib';
@@ -26,11 +26,14 @@ function Done({ title, text, onBack, label }: { title: string; text: string; onB
   return <div className="dv-head" data-peek><div className="success"><span className="ok-ic"><Ic n="check" /></span><h3>{title}</h3><p>{text}</p><button className="btn" onClick={onBack}>{label}</button></div></div>;
 }
 
+const NAME_RULE = '3 tot 30 tekens: letters, cijfers, spatie, punt, - of _, en begin en eindig met een letter of cijfer.';
 /** Schermnaam bij de eerste bijdrage: wat anderen bij je review of foto zien. */
 export function NameField({ value, set }: { value: string; set: (v: string) => void }) {
   return <div className="field"><label htmlFor="bij-naam">Je schermnaam</label>
-    <input className="input" id="bij-naam" required minLength={3} maxLength={30} pattern="[A-Za-z0-9À-ž][A-Za-z0-9À-ž ._\-]{1,28}[A-Za-z0-9À-ž]" value={value} onChange={e => set(e.target.value)} placeholder="Bijv. Marieke of snuffelaar_utrecht" autoComplete="nickname" />
-    <span className="help">Deze naam staat bij je reviews en foto's. Gebruik liever niet je volledige naam.</span></div>;
+    {/* Eigen melding i.p.v. de kale browserballon (UX-test: "Plaats review" leek niets te doen bij een naam met "[") */}
+    <input className="input" id="bij-naam" required minLength={3} maxLength={30} pattern="[A-Za-z0-9À-ž][A-Za-z0-9À-ž ._\-]{1,28}[A-Za-z0-9À-ž]" value={value} placeholder="Bijv. Marieke of snuffelaar_utrecht" autoComplete="nickname" aria-describedby="bij-naam-help"
+      onChange={e => { e.currentTarget.setCustomValidity(''); set(e.target.value); }} onInvalid={e => e.currentTarget.setCustomValidity(NAME_RULE)} />
+    <span className="help" id="bij-naam-help">{NAME_RULE} Deze naam staat bij je reviews en foto's; gebruik liever niet je volledige naam.</span></div>;
 }
 
 /** Gemeenschappelijk: verzenden met schermnaam (als die er nog niet is), fout tonen, daarna het bedankscherm. */
@@ -159,7 +162,7 @@ export function ContribView({ b, items, back, open }: { b: Bij; items: Item[]; b
   const byId = new Map(items.map(i => [i.id, i.name])), [err, setErr] = useState('');
   const detail = (c: Contribution): ReactNode => c.status === 'afgewezen' ? c.reason
     : c.kind === 'review' ? `${c.data.stars} ster${c.data.stars > 1 ? 'ren' : ''} · ingestuurd ${new Date(c.created_at).toLocaleDateString('nl-NL', { day: 'numeric', month: 'short' })}`
-    : c.kind === 'tijden' ? c.data.oh : `Ingestuurd ${new Date(c.created_at).toLocaleDateString('nl-NL', { day: 'numeric', month: 'short' })}`;
+    : c.kind === 'tijden' ? ohText(c.data.oh) :`Ingestuurd ${new Date(c.created_at).toLocaleDateString('nl-NL', { day: 'numeric', month: 'short' })}`;
   return (<>
     <Head back="Jij" title="Mijn bijdragen" sub={`Alles wordt gecontroleerd voordat het online komt.${b.name ? ` Je schermnaam: ${b.name}.` : ''}`} onBack={back} />
     {err && <p role="alert" style={{ color: 'var(--bad-ink)', fontSize: '.875rem' }}>{err}</p>}

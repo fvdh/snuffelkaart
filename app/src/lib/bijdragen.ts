@@ -31,6 +31,12 @@ export function toOh(days: Day[]): string {
   return out.join('; ');
 }
 
+/** Wat toOh maakte, weer leesbaar voor mensen (Mijn bijdragen): "ma t/m vr 10:00–17:00 · za 10:00–16:00 · zo dicht". */
+export const ohText = (oh: string) => oh.split('; ').map(r => r
+  .replace(/^(\w\w)([-,])(\w\w)/, (_, a, s, b) => `${a}${s === '-' ? ' t/m ' : ' en '}${b}`)
+  .replace(/\b(Mo|Tu|We|Th|Fr|Sa|Su)\b/g, d => DUTCH[d]).replace(/(\d\d:\d\d)-(\d\d:\d\d)/g, '$1–$2').replace(/ off$/, ' dicht')).join(' · ');
+const DUTCH: Record<string, string> = { Mo: 'ma', Tu: 'di', We: 'wo', Th: 'do', Fr: 'vr', Sa: 'za', Su: 'zo' };
+
 /** Formulier vooraf invullen met wat we nu weten (eerste blok per dag; een feestdag slaan we over). Onbekend: alle dagen uit, zodat
  *  niemand met één tik een gok bevestigt (UX-review 29 okt); wie een dag aanzet, begint bij 10–17. */
 export function prefill(p: Place, today: string): Day[] {
