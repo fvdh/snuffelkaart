@@ -107,6 +107,19 @@ Dashboard, wachtrij, bijdragen, meldingen, kandidaten (Gemeenteblad), markten de
 - **Met de hand uitrollen:** eerst `git pull --rebase` (CI commit verse data), dan `cd app && npm run build && npx wrangler deploy`, dan pushen. Rond :00/:15/:30/:45 kan een CI-deploy die vóór je push begon er ná jou overheen gaan: check `npx wrangler deployments list` en rol zo nodig opnieuw uit.
 - Supabase-migraties: `set -a; . app/.env; set +a; npx supabase db push --linked --yes`. Auth-config: `npx supabase config push --yes`.
 
+## Juridisch en privacy (stand 30 okt; geen juridische toets gedaan)
+Licenties per databron staan in `LICENTIES.md`; dit gaat over de verantwoordelijkheid voor bezoekers en hun gegevens.
+| Onderwerp | Waar | Stand |
+|---|---|---|
+| Privacyverklaring | `/privacy` | Wie, wat per situatie (zonder account, melden, fouten, tellen, account, bijdragen), diensten, rechten, klacht bij de AP |
+| Voorwaarden | `/voorwaarden` | Account, meldingen, bijdragen en moderatie (reden bij afwijzen, bezwaar), hergebruik data, winkeleigenaren/organisatoren |
+| Verwerkingsverantwoordelijke | `/privacy`, `/colofon` | Freek als persoon, contact info@freekvanderhorst.com (ook voor autoriteiten). KvK en adres zodra er een onderneming is |
+| Bewaartermijnen | `/privacy` | Fouten 30 dagen; account, favorieten en bijdragen tot je het account verwijdert (foto's binnen een dag weg); meldingen zonder persoonsgegevens; tellers zijn alleen aantallen. **Gat:** back-ups (30 dagen, versleuteld) staan niet in de privacytekst |
+| Verwijderen en inzage | app (Jij) + mail | Zelf: account verwijderen en gegevens downloaden. Bijdrage intrekken bij Mijn bijdragen. Winkel of markt eraf: meldknop of mail. Geen vaste reactietermijn vastgelegd (AVG: binnen een maand) |
+| Aansprakelijkheid | `/voorwaarden` | Tijden en datums zijn een hulpmiddel, geen garantie; niet aansprakelijk voor bv. een vergeefse rit, tenzij de wet anders zegt |
+| Verwerkers | — | Supabase, Cloudflare, Resend (EU waar mogelijk). **Open:** verwerkersovereenkomsten (DPA's) niet expliciet gecontroleerd of vastgelegd |
+| Register van verwerkingen | — | **Open:** niet gemaakt (klein, maar wel aan te raden zodra er een onderneming is) |
+
 ## Werkafspraken
 - Freek schrijft Nederlands; antwoorden in het Nederlands. Freek beslist over product, juridisch, accounts, domein, moderatie en contact met buitenstaanders (agent stelt teksten op, Freek verstuurt).
 - **Secrets** plakt Freek zelf (in `.env` of GitHub/Cloudflare). Nooit in chat, nooit in de repo, nooit door een agent in een webveld.
