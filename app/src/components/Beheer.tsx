@@ -339,7 +339,10 @@ async function authApiBlob(s: Session, path: string) {
 const catOfData = (d: Record<string, any>): Cat => (d.kind === 'tweedehands' ? d.sub ?? 'tweedehands' : 'kringloop');
 
 function Shops({ s }: { s: Session }) {
-  const [q, setQ] = useState(''), [rows, setRows] = useState<Row[]>([]), [err, setErr] = useState(''), [sel, setSel] = useState(0);
+  const [q, setQ] = useState(''), [rows, setRows] = useState<Row[]>([]), [err, setErr] = useState(''), [sel, setSel] = useState(0), [dead, setDead] = useState<Row[] | null>(null), [onlyDead, setOnlyDead] = useState(false);
+  // Winkels waarvan de website al een week echt weg is (domein bestaat niet meer, 404): misschien gestopt.
+  const loadDead = () => api(s, 'places?select=id,status,locked,data&status=eq.actief&data->>siteDead=not.is.null&order=id&limit=1000').then(r => setDead(r)).catch(e => setErr(e.message));
+  useEffect(() => { loadDead(); }, []);
   useEffect(() => {
     if (q.trim().length < 2) return setRows([]);
     const t = setTimeout(() => { const w = `*${q.trim().replace(/[,()*]/g, ' ')}*`; api(s, `places?select=id,status,locked,data&or=(data->>name.ilike.${encodeURIComponent(w)},data->>place.ilike.${encodeURIComponent(w)})&order=id&limit=50`).then(r => { setRows(r); setSel(0); }).catch(e => setErr(e.message)); }, 250);
@@ -351,15 +354,16 @@ function Shops({ s }: { s: Session }) {
   };
   const setCat = (r: Row, c: Cat) => { const { sub, ...d } = r.data; save(r, { data: c === 'kringloop' ? { ...d, kind: 'kringloop' } : { ...d, kind: 'tweedehands', ...(c === 'tweedehands' ? {} : { sub: c }) }, locked: lock(r, 'kind', 'sub') }); };
   const [pin, setPin] = useState(''), spot = parseLatLon(pin);
-  const r = rows[sel], site = r?.data.website && (/^https?:/.test(r.data.website) ? r.data.website : `https://${r.data.website}`);
+  const list = onlyDead ? dead ?? [] : rows, r = list[sel], site = r?.data.website && (/^https?:/.test(r.data.website) ? r.data.website : `https://${r.data.website}`);
   return (<>
     <section className="adm-q" aria-label="Winkels">
-      <header><h2>Winkels</h2><label className="search"><Ic n="search" /><input type="search" placeholder="Zoek op naam of plaats" value={q} onChange={e => setQ(e.target.value)} autoFocus /></label></header>
+      <header><h2>Winkels</h2><label className="search"><Ic n="search" /><input type="search" placeholder="Zoek op naam of plaats" value={q} onChange={e => { setQ(e.target.value); setOnlyDead(false); }} autoFocus /></label>
+        {!!dead?.length && <button className={`btn sm${onlyDead ? ' primary' : ''}`} onClick={() => { setQ(''); setOnlyDead(true); setSel(0); }}>Website weg ({dead.length})</button>}</header>
       {err && <p className="bh-err">{err}</p>}
-      {rows.length ? <ul className="adm-list">{rows.map((x, i) => <li key={x.id}><button className={`adm-item${i === sel ? ' on' : ''}${x.status === 'verborgen' ? ' off' : ''}`} onClick={() => { setSel(i); setPin(''); }}>
+      {list.length ? <ul className="adm-list">{list.map((x, i) => <li key={x.id}><button className={`adm-item${i === sel ? ' on' : ''}${x.status === 'verborgen' ? ' off' : ''}`} onClick={() => { setSel(i); setPin(''); }}>
         <span className={`tile c-${catOfData(x.data)}`}><Ic n={CAT[catOfData(x.data)][2]} /></span>
-        <span><b>{x.data.name}</b><span>{x.data.addr ?? x.data.place}</span>{x.status === 'verborgen' && <span className="bh-st cancel">{x.data.gone ? 'Niet meer in de bron' : 'Verborgen'}</span>}</span><time>{x.data.place}</time></button></li>)}</ul>
-        : <p className="adm-empty">{q.trim().length < 2 ? 'Typ minstens twee letters.' : 'Niets gevonden.'}</p>}
+        <span><b>{x.data.name}</b><span>{x.data.addr ?? x.data.place}</span>{x.status === 'verborgen' ? <span className="bh-st cancel">{x.data.gone ? 'Niet meer in de bron' : 'Verborgen'}</span> : x.data.siteDead && <span className="bh-st unconf">Website weg</span>}</span><time>{x.data.place}</time></button></li>)}</ul>
+        : <p className="adm-empty">{onlyDead ? 'Alles bekeken.' : q.trim().length < 2 ? 'Typ minstens twee letters.' : 'Niets gevonden.'}</p>}
     </section>
     {r ? <aside className="adm-detail" aria-label="Details">
       <div><p className="eyebrow"><span className={`tile c-${catOfData(r.data)}`}><Ic n={CAT[catOfData(r.data)][2]} /></span>{CAT[catOfData(r.data)][0]}</p><h3>{r.data.name}</h3><p className="adm-sub">{r.data.addr ?? r.data.place}</p></div>
@@ -377,7 +381,10 @@ function Shops({ s }: { s: Session }) {
       </form>
       <p className="src"><Ic n="info" /><span>Wat je hier zet, overschrijft een import niet meer. Zichtbaar binnen ±15 minuten.</span></p>
       {r.data.gone && <p className="src"><Ic n="alert" /><span>Verborgen door de import van {r.data.gone}: staat niet meer in OpenStreetMap of Overture. Bestaat hij nog? Dan kun je hem weer tonen (en het liefst op OSM zetten).</span></p>}
-      <div className="adm-btns"><button className="btn" onClick={() => { const { gone, ...data } = r.data; save(r, { status: r.status === 'verborgen' ? 'actief' : 'verborgen', data, locked: lock(r, 'status') }); }}>{r.status === 'verborgen' ? 'Weer tonen' : 'Verbergen'}</button></div>
+      {r.data.siteDead && r.status !== 'verborgen' && <p className="src"><Ic n="alert" /><span>De website bestaat sinds {r.data.siteDead} niet meer (domein weg of pagina verdwenen). Misschien is de winkel gestopt. Zoek hem even op: bestaat hij nog, kies dan "Klopt nog".</span></p>}
+      <div className="adm-btns"><button className="btn" onClick={() => { const { gone, ...data } = r.data; save(r, { status: r.status === 'verborgen' ? 'actief' : 'verborgen', data, locked: lock(r, 'status') }).then(loadDead); }}>{r.status === 'verborgen' ? 'Weer tonen' : 'Verbergen'}</button>
+        {/* ponytail: vastgezet, dus een volgende keer dat de site wegvalt zie je het niet meer; ontgrendelen als dat gaat schuren */}
+        {r.data.siteDead && r.status !== 'verborgen' && <button className="btn" onClick={() => { const { siteDead, ...data } = r.data; save(r, { data, locked: lock(r, 'siteDead') }).then(loadDead); }}>Klopt nog</button>}</div>
     </aside> : <aside className="adm-detail" />}
   </>);
 }

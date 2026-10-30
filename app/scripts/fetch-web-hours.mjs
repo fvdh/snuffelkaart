@@ -82,9 +82,14 @@ async function read(key, url) {
     }
     // Postcodes op de pagina (4 cijfers): staat de winkel er niet tussen, dan is het misschien een andere winkel (zie fetch-osm).
     if (hit) { res.oh = hit.oh; res.page = at; res.pc = [...new Set([...toText(html).matchAll(/\b([1-9]\d{3})\s?[A-Z]{2}\b/g)].map(m => m[1]))].slice(0, 12); } else res.note = 'geen tijden gevonden';
-  } catch (e) { res.note = `fout: ${e.message ?? e.name}`; }
+  } catch (e) {
+    res.note = `fout: ${e.message ?? e.name}`;
+    // Echt weg (domein bestaat niet meer, of 404/410), niet even onbereikbaar: onthoud sinds wanneer. Een vorige fout telt als eerste keer.
+    if (gone(e)) { const prev = cache[key]; res.dead = prev?.dead ?? (prev?.note?.startsWith('fout') ? prev.read : res.read); }
+  }
   return res;
 }
+const gone = e => e.cause?.code === 'ENOTFOUND' || /status 40[4]|status 410/.test(e.message); // verlopen certificaat, 403, 5xx: kan tijdelijk zijn
 
 const hosts = [...byHost.values()]; let done = 0, found = 0;
 const save = () => fs.writeFileSync(OUT, JSON.stringify(cache));

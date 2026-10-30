@@ -141,10 +141,15 @@ if (fs.existsSync(OV)) {
 places.forEach(refine); // soort pas nu: de website kan uit Overture komen
 
 // ---------- Openingstijden van de eigen website van de winkel (fetch-web-hours.mjs) ----------
-const WEB = new URL('../data-raw/web-hours.json', import.meta.url), webStat = { used: 0, shared: 0, market: 0, otherShop: 0 };
+const WEB = new URL('../data-raw/web-hours.json', import.meta.url), webStat = { used: 0, shared: 0, market: 0, otherShop: 0, dead: 0 };
 if (fs.existsSync(WEB)) {
   const web = JSON.parse(fs.readFileSync(WEB, 'utf8')), uses = new Map();
   for (const p of places) if (p.website) { const k = siteKey(p.website); uses.set(k, (uses.get(k) ?? 0) + 1); }
+  for (const p of places) {
+    // Website al minstens een week echt weg (twee wekelijkse rondes): misschien gestopt. Beheer kijkt (Winkels → Website weg).
+    const d = p.website && web[siteKey(p.website)]?.dead;
+    if (d && Date.now() - Date.parse(d) > 6 * 864e5) { p.siteDead = d.slice(0, 10); webStat.dead++; }
+  }
   for (const p of places) {
     const k = !p.h && p.website && siteKey(p.website), w = k && web[k];
     if (!w?.oh) continue;
@@ -172,6 +177,6 @@ console.log(`  met controledatum: ${count(p => p.checked)}  adres: ${pct(count(p
 console.log(`  weggelaten: buiten regio ${dropped.region}, geen tweedehands ${dropped.notSecondHand}, handmatig ${dropped.manual}`);
 console.log(`  soort: kringloop ${count(p => p.kind === 'kringloop')}, goede doelen ${count(p => p.kind === 'goede-doelen')}, tweedehands (soort onbekend of geen kringloop) ${count(p => p.kind === 'tweedehands')}`);
 if (ovStat.release) console.log(`  Overture ${ovStat.release}: ${ovStat.rows} plekken → ${ovStat.added} toegevoegd (dubbel met OSM/Overture ${ovStat.dup}, waarvan ${ovStat.enriched} OSM-winkels aangevuld met website/telefoon, buiten regio ${ovStat.region}, gesloten ${ovStat.closed}, geen tweedehands ${ovStat.notSecondHand}); alleen in OSM: ${ovStat.osmOnly}`);
-if (fs.existsSync(WEB)) console.log(`  tijden van eigen website: ${webStat.used} winkels (overgeslagen: ${webStat.shared} gedeelde ketenpagina, ${webStat.otherShop} andere postcode op de pagina, ${webStat.market} vaste markt)`);
+if (fs.existsSync(WEB)) console.log(`  tijden van eigen website: ${webStat.used} winkels (overgeslagen: ${webStat.shared} gedeelde ketenpagina, ${webStat.otherShop} andere postcode op de pagina, ${webStat.market} vaste markt); website al een week weg: ${webStat.dead}`);
 console.log(`  bron: OSM ${count(p => p.src === 'osm')}, Overture ${count(p => p.src === 'overture')}`);
 console.log(`  geschreven: ${OUT.pathname} (${(fs.statSync(OUT).size / 1024).toFixed(0)} kB)\n`);
