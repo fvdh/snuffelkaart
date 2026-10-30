@@ -279,11 +279,11 @@ export default function App() {
   const tab = PLANISH.includes(view as never) ? 'dag' : ['me', 'login', 'contrib'].includes(view) ? 'jij' : 'kaart';
   const goTab = (t: string) => { if (t === 'kaart') { setDir('back'); setView('list'); setSel(null); scrollTop(); if (!desktop && snap === 'full') setSnap('half'); } else if (t === 'dag') { if (wide) setAside(aside ? null : 'plan'); else openPlanish('plan'); } else openMe(); };
   const nav = <nav className="tabs" aria-label="Hoofdmenu">
-    {topNav && <a className="brand" href="/" aria-label="Snuffelkaart, naar het begin"><span className="brand-mark"><Ic n="tag" /></span>Snuffelkaart</a>}
+    {topNav && <a className="brand" href="/" aria-label="Snuffelkaart, naar het begin"><span className="brand-mark"><Ic n="tag" /></span><span className="brand-t">Snuffelkaart</span></a>}
     {([['kaart', 'map', 'Kaart'], ['dag', 'bon', 'Mijn dag'], ['jij', 'user', 'Jij']] as const).map(([k, icon, label]) => {
       const on = k === 'dag' && wide ? !!aside : tab === k;
       return <button key={k} className="tab" aria-current={on ? 'page' : undefined} aria-pressed={k === 'dag' && wide ? on : undefined} onClick={() => goTab(k)}>
-        <span className="tab-ic">{k === 'jij' && sess ? <span className="me-av in">{(name ?? sess.email)[0].toUpperCase()}</span> : <Ic n={icon} />}{k === 'dag' && plan.stops.length > 0 && <i className="tab-n tnum">{plan.stops.length}</i>}</span>{label}</button>; })}
+        <span className="tab-ic">{k === 'jij' && sess ? <span className="me-av in">{(name ?? sess.email)[0].toUpperCase()}</span> : <Ic n={icon} />}{k === 'dag' && plan.stops.length > 0 && <i className="tab-n tnum">{plan.stops.length}</i>}</span><span className="tab-l">{label}</span></button>; })}
   </nav>;
 
   // ---------- bottom sheet (mobiel) ----------
