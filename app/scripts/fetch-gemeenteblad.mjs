@@ -7,7 +7,7 @@ import { all, upsert, req } from './db.mjs';
 import { todayIso } from './hours-precompute.mjs';
 
 const SRU = 'https://repository.overheid.nl/sru', UA = 'Snuffelkaart/0.2 (gemeenteblad; freek@draad.nu)';
-const TERMS = { rommelmarkt: 'Rommelmarkt', vlooienmarkt: 'Vlooienmarkt', kofferbakmarkt: 'Kofferbakmarkt', kofferbakverkoop: 'Kofferbakmarkt', braderie: 'Braderie', vrijmarkt: 'Vrijmarkt', garagesale: 'Garagesale', 'garage sale': 'Garagesale', snuffelmarkt: 'Snuffelmarkt' };
+const TERMS = { rommelmarkt: 'Rommelmarkt', vlooienmarkt: 'Vlooienmarkt', snuffelmarkt: 'Snuffelmarkt', kofferbakmarkt: 'Kofferbakmarkt', kofferbakverkoop: 'Kofferbakmarkt', vrijmarkt: 'Vrijmarkt', garagesale: 'Garagesale', 'garage sale': 'Garagesale', braderie: 'Braderie' }; // braderie als laatste: alleen als er niets beters staat
 const RULES = /verordening|beleidsregel|ruimtelijk plan|omgevingsdocument|algemene strekking/i; // regelgeving: de term staat in een opsomming
 const MONTHS = ['jan', 'feb', 'mrt|maa', 'apr', 'mei', 'jun', 'jul', 'aug', 'sep', 'okt', 'nov', 'dec'];
 const month = s => MONTHS.findIndex(m => new RegExp(`^(${m})`, 'i').test(s)) + 1;
@@ -27,9 +27,11 @@ export function dates(text) {
 }
 /** Eerste tijdvak ("9.00 tot 16.00", "10:00 uur tot 13:00 uur", "Tijd van: 09.00 Tijd tot: 16.30") in minuten. */
 export function times(text) {
-  const m = /\b(\d{1,2})[.:](\d{2})\s*(?:uur)?\s*(?:tot|-|–|en|Tijd tot:)\s*(\d{1,2})[.:](\d{2})/i.exec(text);
+  const m = /\b(\d{1,2})[.:](\d{2})\s*(?:uur)?\s*(?:tot(?: en met)?|-|–|en|Tijd tot:)\s*(\d{1,2})[.:](\d{2})/i.exec(text);
   return m ? [+m[1] * 60 + +m[2], +m[3] * 60 + +m[4]] : null;
 }
+/** "Heuvel 11 te Gerwen", "Arevenlaan 3 in Heythuysen", "Hoge Land 19 te Berkel en Rodenrijs" → de plaats. */
+export const placeIn = text => /\b\d+[a-z]?\s+(?:te|in)\s+([A-Z][a-zà-ÿ'’]+(?:(?: en | |-)[A-Z][a-zà-ÿ'’]+){0,2})/.exec(text)?.[1] ?? null;
 const stage = s => /melding/i.test(s) ? 'melding' : /aanvraag|aangevraagd|ontvangen|kennisgeving/i.test(s) ? 'aanvraag' : 'verleend';
 
 /** Eén publicatie → kandidaat-edities (één per toekomstige datum, hooguit ruim een jaar vooruit). */
@@ -37,11 +39,17 @@ export function editions(rec, today, pdokPlace = null) {
   if (RULES.test(rec.rubriek)) return [];
   const all = `${rec.title} ${rec.tekst}`.toLowerCase(), term = Object.keys(TERMS).find(t => all.includes(t));
   if (!term) return [];
+  // Braderie alleen met tweedehands erbij; anders kramen met nieuwe spullen (beoordeling 30 okt: 9 van de 9 afgewezen).
+  if (term === 'braderie' && !/tweedehands|curiosa/.test(all)) return [];
+  // Verzamelpublicatie ("* Aanvraag … voor Sinterklaas … * Aanvraag … voor Vlooienmarkt …"): alleen het item met de markt,
+  // anders krijgt de markt de datum, tijd en plek van een ander evenement (Landgraaf, De Ronde Venen, 30 okt).
+  const items = rec.tekst.split(/\s[*•]\s/), body = items.length > 2 ? items.filter(p => p.toLowerCase().includes(term)).join(' ') : rec.tekst;
   const until = iso(+today.slice(0, 4) + 1, +today.slice(5, 7), 28);
-  const ds = dates(`${rec.title} ${rec.tekst}`).filter(d => d >= today && d <= until);
+  const ds = dates(items.length > 2 ? body : `${rec.title} ${rec.tekst}`).filter(d => d >= today && d <= until);
   const [lat, lon] = rec.punt ? rec.punt.split(' ').map(Number) : [pdokPlace?.lat, pdokPlace?.lon];
   if (!ds.length || !Number.isFinite(lat)) return [];
-  const t = times(rec.tekst), place = rec.woonplaats || rec.gemeente;
+  // Plaats: uit de metadata, anders "Heuvel 11 te Gerwen" in de tekst, en pas dan de gemeente ("Nuenen, Gerwen en Nederwetten").
+  const t = times(body), place = rec.woonplaats || placeIn(body) || rec.gemeente;
   return ds.map(date => ({
     id: `${rec.id}-${date}`, date, status: 'kandidaat', source: 'gemeenteblad',
     data: {

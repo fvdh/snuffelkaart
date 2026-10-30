@@ -1,6 +1,6 @@
 import { it, expect } from 'vitest';
 import fs from 'node:fs';
-import { dates, times, editions, dupOf } from './fetch-gemeenteblad.mjs';
+import { dates, times, editions, dupOf, placeIn } from './fetch-gemeenteblad.mjs';
 
 const recs = Object.fromEntries(JSON.parse(fs.readFileSync(new URL('./fixtures/gemeenteblad.json', import.meta.url), 'utf8')).map(r => [r.id, r]));
 const today = '2026-10-28';
@@ -42,4 +42,13 @@ it('een inzagedatum met "ter inzage" erna is geen marktdag (Schiedam)', () => {
   const tekst = 'evenement Society Bazaar te Schiedam op 17 oktober 2026 van 14.00 uur tot 22.00 uur en 18 oktober 2026 van 12.00 uur tot 21.00 uur. Braderie voor families. Vanaf 28 oktober 2026 ligt een afschrift van de verleende vergunning, gedurende zes weken gerekend vanaf de datum van het besluit, ter inzage bij het Stadskantoor.';
   expect(dates(tekst)).toEqual(['2026-10-17', '2026-10-18']);
   expect(editions({ id: 'gmb-x', rubriek: 'Overig', title: 'Braderie Schiedam', tekst, punt: '51.92 4.38', woonplaats: 'Schiedam' }, '2026-10-20').map(e => e.date)).toEqual([]);
+});
+
+it('beoordeling 30 okt: tijd met "tot en met", plaats uit de tekst, braderie zonder tweedehands, alleen het item met de markt', () => {
+  expect(times('van 09:00 uur tot en met 16:00 uur')).toEqual([540, 960]);
+  expect(['bij MFA d’n Heuvel aan Heuvel 11 te Gerwen', 'aan de Arevenlaan 3 in Heythuysen', 'aan Hoge Land 19 te Berkel en Rodenrijs', 'zonder adres'].map(placeIn)).toEqual(['Gerwen', 'Heythuysen', 'Berkel en Rodenrijs', null]);
+  const rec = (tekst) => ({ id: 'gmb-x', title: 'Evenementen', tekst, rubriek: 'evenementenvergunning', gemeente: 'Landgraaf', punt: '50.9 6.0', link: '' });
+  expect(editions(rec('Braderie op 14 november 2026 in het centrum'), today)).toEqual([]);
+  const eds = editions(rec('Week 40 * Aanvraag van Stichting X voor Sinterklaas op 22 november 2026 van 18:00 tot 21:00 * Aanvraag van Z-N B.V voor Vlooienmarkt op 20 december 2026 van 9.00 tot 16.00 * Aanvraag voor Vrijwilligersavond op 7 december 2026'), today);
+  expect(eds.map(e => [e.date, e.data.start])).toEqual([['2026-12-20', 540]]);
 });
