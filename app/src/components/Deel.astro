@@ -1,0 +1,16 @@
+---
+// Wat een link laat zien als je hem deelt (WhatsApp, Signal, sociale media): titel, beschrijving en het deelplaatje (scripts/og).
+import { SITE } from '../lib/sitedata';
+const { title, description, url } = Astro.props;
+---
+<meta property="og:type" content="website" />
+<meta property="og:site_name" content="Snuffelkaart" />
+<meta property="og:locale" content="nl_NL" />
+<meta property="og:title" content={title} />
+<meta property="og:description" content={description} />
+<meta property="og:url" content={url} />
+<meta property="og:image" content={`${SITE}/og.png`} />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta property="og:image:alt" content="Snuffelkaart: kringlopen en rommelmarkten op één kaart" />
+<meta name="twitter:card" content="summary_large_image" />

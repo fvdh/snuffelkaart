@@ -3,6 +3,7 @@
 import '../styles/design.css';
 import Sprite from '../components/Sprite.astro';
 import Meten from '../components/Meten.astro';
+import Deel from '../components/Deel.astro';
 import { SITE } from '../lib/sitedata';
 const { title, description, wide = false } = Astro.props;
 const canonical = SITE + Astro.url.pathname;
@@ -16,9 +17,7 @@ const canonical = SITE + Astro.url.pathname;
     <title>{title} · Snuffelkaart</title>
     <meta name="description" content={description} />
     <link rel="canonical" href={canonical} />
-    <meta property="og:title" content={title} />
-    <meta property="og:description" content={description} />
-    <meta property="og:url" content={canonical} />
+    <Deel title={title} description={description} url={canonical} />
     <Meten />
     <slot name="head" />
     <style is:global>

@@ -1,0 +1,51 @@
+<!doctype html>
+<!-- Deelplaatje (og:image, 1200×630) voor alle pagina's. Opnieuw maken:
+     "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --headless --hide-scrollbars --window-size=1200,630 \
+       --screenshot=public/og.png scripts/og/deelplaatje.html   (vanuit app/) -->
+<html lang="nl"><head><meta charset="utf-8"><style>
+@font-face { font-family: Figtree; src: url(../../public/fonts/figtree.woff2) format("woff2"); font-weight: 300 900 }
+:root { --paper: oklch(0.978 0.012 88); --fg: oklch(0.24 0.012 260); --fg-2: oklch(0.43 0.012 260); --ink: oklch(0.25 0.015 262); --on-ink: oklch(0.985 0.003 85);
+  --markt: oklch(0.78 0.15 70); --kring: oklch(0.47 0.15 262); --tweede: oklch(0.48 0.11 330); --antiek: oklch(0.45 0.08 45); --open: oklch(0.62 0.16 150);
+  --land: oklch(0.958 0.006 95); --road: oklch(0.995 0.002 90); --water: oklch(0.87 0.035 230); --park: oklch(0.925 0.035 145); --surface: oklch(0.995 0.002 85) }
+* { box-sizing: border-box; margin: 0 }
+body { width: 1200px; height: 630px; overflow: hidden; background: var(--paper); font-family: Figtree, sans-serif; color: var(--fg); position: relative }
+.map { position: absolute; inset: 0 0 0 560px; background: var(--land); border-left: 1px solid oklch(0.89 0.006 85) }
+.map svg { position: absolute; inset: 0 }
+.txt { position: absolute; left: 72px; top: 0; bottom: 0; width: 470px; display: flex; flex-direction: column; justify-content: center; gap: 26px }
+.brand { display: flex; align-items: center; gap: 16px; font-size: 30px; font-weight: 780; letter-spacing: -.015em }
+.mark { width: 56px; height: 56px; border-radius: 15px; background: var(--ink); display: grid; place-items: center }
+h1 { font-size: 58px; line-height: 1.02; font-weight: 820; letter-spacing: -.035em }
+p { font-size: 27px; line-height: 1.35; color: var(--fg-2); font-weight: 500 }
+.pin { position: absolute; width: 50px; height: 50px; margin: -25px; display: grid; place-items: center; border: 4px solid var(--surface);
+  box-shadow: 0 2px 4px oklch(0.2 0.02 260 / .22), 0 6px 16px oklch(0.2 0.02 260 / .16); color: white }
+.pin svg { width: 25px; height: 25px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round }
+.k { border-radius: 14px } .m { border-radius: 50%; background: var(--markt); color: oklch(0.3 0.06 60) }
+.dot { position: absolute; top: -6px; right: -6px; width: 17px; height: 17px; border-radius: 50%; background: var(--open); border: 3px solid var(--surface) }
+.tag { position: absolute; left: 50%; top: 58px; transform: translateX(-50%); white-space: nowrap; background: var(--surface); color: var(--fg); font-size: 19px; font-weight: 680;
+  padding: 7px 14px; border-radius: 11px; box-shadow: 0 2px 10px oklch(0.2 0.02 260 / .14) }
+.tag b { color: oklch(0.45 0.14 150); font-weight: 720 }
+</style></head><body>
+<div class="map">
+  <svg width="640" height="630" viewBox="0 0 640 630">
+    <path d="M-10 470 C120 430 200 520 330 480 S560 400 660 430 L660 640 L-10 640Z" fill="var(--water)" />
+    <path d="M380 40 C450 20 540 60 560 130 C575 190 500 220 440 200 C380 180 340 90 380 40Z" fill="var(--park)" />
+    <g stroke="var(--road)" stroke-linecap="round" fill="none">
+      <path d="M-10 150 L660 230" stroke-width="22" /><path d="M140 -10 L250 640" stroke-width="18" />
+      <path d="M-10 330 C150 300 300 360 660 300" stroke-width="14" /><path d="M430 -10 C400 160 470 300 420 470" stroke-width="12" />
+      <path d="M40 -10 L90 470" stroke-width="9" /><path d="M260 210 L560 520" stroke-width="9" />
+    </g>
+  </svg>
+  <div class="pin k" style="left:200px;top:250px;background:var(--kring)"><svg viewBox="0 0 24 24"><path d="M4 9.5 5.5 4.5h13L20 9.5M4 9.5V20h16V9.5M4 9.5h16"/><path d="M10 20v-5h4v5"/></svg><span class="dot"></span>
+    <span class="tag">Kringloop · <b>open tot 17:00</b></span></div>
+  <div class="pin m" style="left:470px;top:345px"><svg viewBox="0 0 24 24"><path d="M3 9.5 5 4h14l2 5.5"/><path d="M3 9.5a2.25 2.25 0 0 0 4.5 0 2.25 2.25 0 0 0 4.5 0 2.25 2.25 0 0 0 4.5 0 2.25 2.25 0 0 0 4.5 0"/><path d="M5 12v8M19 12v8M3.5 20h17"/><path d="M9 20v-4h6v4"/></svg></div>
+  <div class="pin k" style="left:345px;top:120px;background:var(--tweede)"><svg viewBox="0 0 24 24"><path d="M10 6.5a2 2 0 1 1 2.6 1.9c-.4.1-.6.5-.6.9V10"/><path d="M12 10 3.6 15.6A1.2 1.2 0 0 0 4.3 17.8h15.4a1.2 1.2 0 0 0 .7-2.2z"/></svg><span class="dot"></span></div>
+  <div class="pin k" style="left:95px;top:420px;background:var(--antiek)"><svg viewBox="0 0 24 24"><path d="M10 2v5.6c0 .4-.3.8-.7 1A6 6 0 0 0 6 14c0 4 3 7 5 8M10 5H8a2 2 0 0 0 0 4h.7M14 2v5.6c0 .4.3.8.7 1A6 6 0 0 1 18 14c0 4-3 7-5 8M14 5h2a2 2 0 0 1 0 4h-.7M18 22H6M9 2h6"/></svg></div>
+  <div class="pin k" style="left:560px;top:190px;background:var(--kring)"><svg viewBox="0 0 24 24"><path d="M4 9.5 5.5 4.5h13L20 9.5M4 9.5V20h16V9.5M4 9.5h16"/><path d="M10 20v-5h4v5"/></svg></div>
+  <div class="pin m" style="left:300px;top:530px"><svg viewBox="0 0 24 24"><path d="M3 9.5 5 4h14l2 5.5"/><path d="M3 9.5a2.25 2.25 0 0 0 4.5 0 2.25 2.25 0 0 0 4.5 0 2.25 2.25 0 0 0 4.5 0 2.25 2.25 0 0 0 4.5 0"/><path d="M5 12v8M19 12v8M3.5 20h17"/><path d="M9 20v-4h6v4"/></svg></div>
+</div>
+<div class="txt">
+  <div class="brand"><span class="mark"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#fbfaf8" stroke-width="1.9" stroke-linejoin="round"><path d="M3.5 12.2V4.5a1 1 0 0 1 1-1h7.7l8.3 8.3a1.5 1.5 0 0 1 0 2.1l-6.6 6.6a1.5 1.5 0 0 1-2.1 0z"/><circle cx="8.2" cy="8.2" r="1.6"/></svg></span>Snuffelkaart</div>
+  <h1>Kringlopen en rommelmarkten op één kaart</h1>
+  <p>Zie wat er nu open is en plan je snuffeldag.</p>
+</div>
+</body></html>
