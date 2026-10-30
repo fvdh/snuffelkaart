@@ -69,6 +69,7 @@ describe('schema.org in de pagina', () => {
     expect(hoursLD(ld({ '@graph': [{ '@type': 'LocalBusiness', openingHours: ['Mo-Fr 09:30-17:00', 'Sa 10:00-16:00'] }] }))?.oh).toBe('Mo-Fr 09:30-17:00; Sa 10:00-16:00');
     expect(hoursLD(ld({ openingHours: 'Mo-Su 00:00-23:59' }))).toBeNull();
     expect(hoursLD(ld({ openingHours: 'Mo,Tu,We,Th,Fr,Sa,Su 09:00-17:00' }))).toBeNull();
+    expect(hoursLD(ld({ openingHours: 'Mo-Fr 09:30-12:00; Mo-Fr 13:00-17:00; Sa 10:00-12:00' }))?.oh).toBe('Mo-Fr 09:30-12:00,13:00-17:00; Sa 10:00-12:00'); // anders betekent het in OSM alleen 13-17
     expect(hoursLD(ld({ openingHoursSpecification: { dayOfWeek: 'Monday', opens: '00:00', closes: '23:59' } }))).toBeNull();
   });
   it('keten met twee winkels en andere tijden: twijfel', () => {
@@ -96,5 +97,20 @@ describe('schema.org in de pagina', () => {
   it('"dinsdags", "zaterdags" (Geurden)', () => {
     expect(oh('Geopend: Maandag 9 uur tot 18 uur\nDinsdags 9 uur tot 18 uur\nWoensdag 9 uur tot 18 uur\nDonderdags Gesloten\nVrijdags 9 uur tot 18 uur\nZaterdags 9 uur tot 16 uur\nOf op afspraak'))
       .toBe('Mo-We 09:00-18:00; Fr 09:00-18:00; Sa 09:00-16:00');
+  });
+  it('dag met ochtend en middag onder elkaar (Rooie Ben); overlappende kolommen zonder kop: twijfel', () => {
+    expect(oh('Openingstijden\nmaandag\n08:30–12:00\n12:30–17:30\ndinsdag\n08:30–12:00\n12:30–17:30\nwoensdag\n08:30–12:00\n12:30–17:30\nzaterdag\nGesloten\nzondag\nGesloten\nContact'))
+      .toBe('Mo-We 08:30-12:00,12:30-17:30');
+    expect(oh('Openingstijden winkel\nDag\nOchtend\nMiddag\nMaandag\nGesloten\n14.00 –16.00\nDinsdag\n09.00 –11.00\n14.00 –16.00\nWoensdag\n09.00 –11.00\n14.00 –16.00\nZondag\nGESLOTEN\n'))
+      .toBe('Mo 14:00-16:00; Tu-We 09:00-11:00,14:00-16:00');
+    expect(oh('Openingstijden\nMaandag\n09:30 - 17:30\n09:30 - 17:00\nDinsdag\n09:30 - 17:30\n09:30 - 17:00\nWoensdag\n09:30 - 17:30\n09:30 - 17:00\n')).toBeNull();
+  });
+  it('lange zin over inleveren tussen kop en lijst telt niet (Woord & Daad)', () => {
+    expect(oh('Openingstijden\nU kunt van woensdag t/m vrijdag tussen 10.00 en 11.30 uur uw goederen inleveren. De vrachtwagen rijdt in principe alleen op donderdag.\nWoensdag\n10:00 – 16:00\nDonderdag\n10:00 – 16:00\nVrijdag\n10:00 – 16:00\nZaterdag\n10:00 – 16:00\nVolg ons'))
+      .toBe('We-Sa 10:00-16:00');
+  });
+  it('botsende lijsten: die met de kop "winkel" (In de Vrijloop)', () => {
+    expect(oh('Openingstijden Verenigingsruimtes:\nMaandag t/m donderdag van 09:00 – 12:00 en van 13:30 – 17:00 uur.\nVrijdags van 09:00 - 12:00 uur.\nEtages zijn bereikbaar door middel van (trap)liften.\nOpeningstijden Kringloopwinkel:\nIn principe dinsdags, woensdags, donderdags en vrijdags van 13:30 tot 16:30 uur.\n'))
+      .toBe('Tu-Fr 13:30-16:30');
   });
 });

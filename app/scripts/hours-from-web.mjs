@@ -47,9 +47,17 @@ function entry(m) {
 /** Tekst → { oh, days } of null. Kiest het enige winkelblok; twee verschillende blokken = twijfel = null. */
 export function parseHoursNL(text) {
   // Tabel met twee kolommen (dag, winkel, inleveren onder elkaar, zoals bij Het Goed): alleen de eerste kolom als de kop zegt dat dat de winkel is.
-  text = text.replace(COLS, (tbl, ...a) => {
-    const at = a.at(-2), head = text.slice(Math.max(0, at - 80), at);
-    return /winkel[\s\S]*(inlever|inname|inbreng|brengen)/i.test(head) ? '\nOpeningstijden winkel\n' + tbl.replace(new RegExp(`^(${DAYS_FULL})\\n(.+)\\n.+\\n`, 'gim'), '$1: $2\n') : '\n';
+  text = text.replace(COLS, (tbl, at) => {
+    const head = text.slice(Math.max(0, at - 80), at), rows = [...tbl.matchAll(/^(\S+)\n(.+)\n(.+)$/gm)];
+    if (/winkel[\s\S]*(inlever|inname|inbreng|brengen)/i.test(head)) return '\nOpeningstijden winkel\n' + rows.map(r => `${r[1]}: ${r[2]}\n`).join(''); // eigen kop: de kolomkoppen noemen "inleveren"
+    // Anders ochtend en middag (Rooie Ben, "Dag | Ochtend | Middag"). Overlappen de kolommen, dan zijn het twee lijsten (zomer en winter, winkel en inname): twijfel.
+    const out = [];
+    for (const [, d, a, b] of rows) {
+      const t = [a, b].filter(c => !/gesloten|dicht/i.test(c)), at2 = c => c.match(/\d{1,2}[:.]\d{2}/g).map(x => mins(...x.split(/[:.]/)));
+      if (t.length === 2 && at2(t[1])[0] < at2(t[0])[1]) return '\n';
+      out.push(`${d}: ${t.length ? t.join(' en ') : 'gesloten'}\n`);
+    }
+    return '\n' + out.join('');
   });
   const blocks = []; let cur = null;
   for (const m of text.matchAll(ENTRY)) {
@@ -61,9 +69,12 @@ export function parseHoursNL(text) {
   }
   const weeks = [];
   for (const b of blocks) {
-    const lines = text.slice(Math.max(0, b.start - 200), b.start).split('\n').filter(l => l.trim()), inside = text.slice(b.start, b.end);
-    // Staat er direct boven "Openingstijden", dan telt alleen die kop (een inbreng-zin daarboven gaat over iets anders).
-    const before = /^\s*openings/i.test(lines.at(-1) ?? '') ? lines.at(-1) : lines.slice(-3).join(' ');
+    const lines = text.slice(Math.max(0, b.start - 400), b.start).split('\n').filter(l => l.trim()), inside = text.slice(b.start, b.end);
+    const near = text.slice(Math.max(0, b.start - 200), b.start).split('\n').filter(l => l.trim()).slice(-3); // zonder kop: alleen vlak erboven kijken
+    // Kop "Openingstijden" vlak boven de lijst: alleen die kop en korte tussenkoppen tellen ("Spullen inleveren:"), geen lange zin
+    // erboven of ertussen ("U kunt woensdag tot vrijdag uw goederen inleveren.") die over iets anders gaat.
+    const hi = lines.slice(-3).findLastIndex(l => /^\s*openings/i.test(l)), tail = lines.slice(-3);
+    const before = hi >= 0 ? [tail[hi], ...tail.slice(hi + 1).filter(l => l.length <= 60)].join(' ') : near.join(' ');
     if (NOT_SHOP.test(before) || NOT_SHOP.test(inside)) continue;
     // Gaat de lijst verder met een dag die we niet konden lezen? Dan is hij half: liever niets dan "za dicht" terwijl ze open zijn.
     if (new RegExp(`^\\s*${D}\\b`, 'i').test(text.slice(b.end, b.end + 60))) continue;
@@ -77,15 +88,20 @@ export function parseHoursNL(text) {
     for (const d of shut) if (d >= 0) week[d] = 'off';
     const named = week.filter(Boolean).length;
     if (clash || named < (header ? 2 : 3) || !week.some(v => v && v !== 'off')) continue; // te weinig om op te bouwen
-    weeks.push(week);
+    weeks.push(Object.assign(week, { shop: /winkel|kringloop/i.test(before) }));
   }
-  if (!weeks.length) return null;
   // Twee blokken mogen alleen samen als ze op elke dag die ze allebei noemen hetzelfde zeggen (tabel + "geopend van ma t/m za" in de tekst).
-  const week = Array(7).fill(null);
-  for (const [n, w] of weeks.entries()) {
-    if (n && !w.some((v, d) => v && week[d])) return null; // geen enkele dag gemeen: twee verschillende lijsten (winkel en iets anders)
-    for (let d = 0; d < 7; d++) if (w[d]) { if (week[d] && week[d] !== w[d]) return null; week[d] = w[d]; }
-  }
+  // Botsen ze, maar heeft precies één de kop "winkel" ("Openingstijden Kringloopwinkel" onder "… Verenigingsruimtes"), dan die.
+  const merged = ws => {
+    const week = Array(7).fill(null);
+    for (const [n, w] of ws.entries()) {
+      if (n && !w.some((v, d) => v && week[d])) return null; // geen enkele dag gemeen: twee verschillende lijsten (winkel en iets anders)
+      for (let d = 0; d < 7; d++) if (w[d]) { if (week[d] && week[d] !== w[d]) return null; week[d] = w[d]; }
+    }
+    return week;
+  };
+  const shops = weeks.filter(w => w.shop), week = weeks.length ? merged(weeks) ?? (shops.length === 1 ? shops[0] : null) : null;
+  if (!week) return null;
   const parts = []; // opeenvolgende dagen met dezelfde tijden samen: Mo-Fr 09:30-16:00
   for (let i = 0; i < 7;) { const v = week[i] ?? 'off'; let j = i; while (j + 1 < 7 && (week[j + 1] ?? 'off') === v) j++; if (v !== 'off') parts.push(`${OSM[i]}${j > i ? '-' + OSM[j] : ''} ${v}`); i = j + 1; }
   let oh = parts.join('; ');
@@ -109,26 +125,30 @@ export function hoursLD(html) {
         if (!(a >= 360 && b <= 1380 && b > a)) return; // 00:00-23:59 is een standaardwaarde van een thema, geen tijd
         for (const d of [s.dayOfWeek].flat()) { const i = LD_DAY[String(d).split('/').pop().toLowerCase()]; if (i >= 0) week[i] = [week[i], `${hhmm(a)}-${hhmm(b)}`].filter(Boolean).join(','); }
       }
+      if (!week.some(Boolean) && (typeof x.openingHours === 'string' || Array.isArray(x.openingHours))) {
+        // Al OSM-achtig ("Mo-Fr 09:00-17:00"); alleen als elk deel dat ook echt is. Via de week, zodat "Mo-Fr 9-12; Mo-Fr 13-17" één dag wordt.
+        for (const part of [x.openingHours].flat().join(';').split(/\s*;\s*/).filter(Boolean)) {
+          const m = /^((?:Mo|Tu|We|Th|Fr|Sa|Su)(?:[-,](?:Mo|Tu|We|Th|Fr|Sa|Su))*) ((?:[0-2]\d:[0-5]\d-[0-2]\d:[0-5]\d,?)+)$/.exec(part.trim()); if (!m) return;
+          const days = new Set(); for (const g of m[1].split(',')) { const [a, b = a] = g.split('-').map(d => OSM.indexOf(d)); for (let i = a; ; i = (i + 1) % 7) { days.add(i); if (i === b) break; } }
+          for (const t of m[2].split(',').filter(Boolean)) { const [a, b] = t.split('-').map(v => mins(...v.split(':'))); if (!(a >= 360 && b <= 1380 && b > a)) return; for (const d of days) week[d] = [week[d], t].filter(Boolean).join(','); }
+        }
+      }
       if (week.some(Boolean)) {
         const parts = [];
         for (let i = 0; i < 7;) { const v = week[i]; let j = i; while (j + 1 < 7 && week[j + 1] === v) j++; if (v) parts.push(`${OSM[i]}${j > i ? '-' + OSM[j] : ''} ${v}`); i = j + 1; }
         found.add(parts.join('; '));
-      } else if (typeof x.openingHours === 'string' || Array.isArray(x.openingHours)) {
-        const oh = [x.openingHours].flat().join('; ').trim();
-        // Al OSM-achtig ("Mo-Fr 09:00-17:00"); alleen overnemen als elk deel dat ook echt is.
-        if (oh && oh.split(/\s*;\s*/).every(p => /^(Mo|Tu|We|Th|Fr|Sa|Su)([-,](Mo|Tu|We|Th|Fr|Sa|Su))* ([0-2]\d:[0-5]\d-[0-2]\d:[0-5]\d,?)+$/.test(p)) && !/00:00-23:59|00:00-24:00/.test(oh)) found.add(oh);
       }
       Object.values(x).forEach(v => typeof v === 'object' && walk(v));
     };
     walk(data);
   }
   // Elke dag van de week precies dezelfde tijden is bijna altijd de standaardwaarde van een plugin, geen echte winkel.
-  for (const oh of found) if (/^Mo-Su |^Mo,Tu,We,Th,Fr,Sa,Su /.test(oh) && !oh.includes(';')) found.delete(oh);
+  for (const oh of found) if (/^Mo-Su /.test(oh) && !oh.includes(';')) found.delete(oh);
   return found.size === 1 ? { oh: [...found][0] } : null; // twee winkels met andere tijden (keten): twijfel
 }
 
-/** Tijden van een pagina: eerst schema.org, dan de tekst. */
-export const hoursFromHtml = html => hoursLD(html) ?? parseHoursNL(toText(html));
+/** Tijden van een pagina: eerst wat de winkel zichtbaar op de pagina zet, dan schema.org (onzichtbaar, vaker verouderd). */
+export const hoursFromHtml = html => parseHoursNL(toText(html)) ?? hoursLD(html);
 
 /** Sleutel voor de cache: host + pad, zonder www en slash. Winkels van één keten op één pagina delen hem. */
 export const siteKey = u => { try { const x = new URL(/^https?:/i.test(u) ? u : 'https://' + u); return x.host.replace(/^www\./, '').toLowerCase() + x.pathname.replace(/\/$/, ''); } catch { return null; } };
