@@ -349,3 +349,10 @@ Vier testers met elk een eigen ingang: Google naar een stad, de homepage met "nu
   - afgekapte plaatsnamen op een smal scherm;
   - "Dit weekend" als één keuze;
   - de entree bij markten uit het Gemeenteblad.
+
+## Dashboard en anonieme tellers (30 okt 2026)
+Freek wil zo veel mogelijk anonieme data, voor overzichten en om organisatoren te benaderen. Gekozen: alleen tellers per dag
+(tabel `tellers`, naast `clicks`): paginabezoek, badge, afstand (4 groepen), gekozen plaats (alleen plaatsnaam), regio (vak van 0,1 graad),
+filters, uur van openen, dagplan (actie, stops, markt, dag), zoeken zonder resultaat (niet de tekst). Bewust niet: IP, account, getypte
+tekst, exacte plek, terugkerende bezoekers herkennen (dat vraagt opslag op het apparaat en dus een cookiebanner). In het rapport per
+organisator staan aantallen onder de 5 als "<5". Badge-links (`?via=badge`) zijn in robots.txt toegestaan, anders telt de link niet mee.
