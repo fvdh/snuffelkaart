@@ -52,3 +52,8 @@ it('beoordeling 30 okt: tijd met "tot en met", plaats uit de tekst, braderie zon
   const eds = editions(rec('Week 40 * Aanvraag van Stichting X voor Sinterklaas op 22 november 2026 van 18:00 tot 21:00 * Aanvraag van Z-N B.V voor Vlooienmarkt op 20 december 2026 van 9.00 tot 16.00 * Aanvraag voor Vrijwilligersavond op 7 december 2026'), today);
   expect(eds.map(e => [e.date, e.data.start])).toEqual([['2026-12-20', 540]]);
 });
+
+it('reeks met het jaar alleen achteraan (Katwijk), ook over de jaargrens', () => {
+  expect(dates('Kofferbakverkoop op 22 mei, 5 juni, 3 juli en 4 september 2027 aan Marktplein')).toEqual(['2027-05-22', '2027-06-05', '2027-07-03', '2027-09-04']);
+  expect(dates('op 27 december en 3 januari 2027')).toEqual(['2026-12-27', '2027-01-03']);
+});

@@ -22,6 +22,13 @@ const NOT_EVENT_AFTER = /^[^.•]{0,120}\b(ter inzage|afschrift|bezwaar)/i;
 export function dates(text) {
   const out = new Set(), keep = m => !NOT_EVENT.test(text.slice(Math.max(0, m.index - 90), m.index)) && !NOT_EVENT_AFTER.test(text.slice(m.index + m[0].length));
   for (const m of text.matchAll(/\b(\d{1,2})\s+(jan|feb|mrt|maart|apr|mei|jun|jul|aug|sep|okt|nov|dec)[a-z]*\.?\s+(20\d\d)\b/gi)) if (keep(m)) out.add(iso(m[3], month(m[2]), m[1]));
+  // Reeks met het jaar alleen achteraan: "op 22 mei, 5 juni, 3 juli en 4 september 2027" (Katwijk). Een maand na de laatste hoort bij het jaar ervoor.
+  const MON = '(jan|feb|mrt|maart|apr|mei|jun|jul|aug|sep|okt|nov|dec)[a-z]*\\.?';
+  for (const m of text.matchAll(new RegExp(`((?:\\b\\d{1,2}\\s+${MON}\\s*(?:,|en)\\s*)+)\\d{1,2}\\s+${MON}\\s+(20\\d\\d)\\b`, 'gi'))) {
+    if (!keep(m)) continue;
+    const y = +m.at(-1), last = month(m[0].match(new RegExp(`(\\d{1,2})\\s+${MON}\\s+20\\d\\d`, 'i'))[2]);
+    for (const p of m[1].matchAll(new RegExp(`(\\d{1,2})\\s+${MON}`, 'gi'))) { const mo = month(p[2]); out.add(iso(mo > last ? y - 1 : y, mo, p[1])); }
+  }
   for (const m of text.matchAll(/\b(\d{1,2})-(\d{1,2})-(20\d\d)\b/g)) if (+m[2] >= 1 && +m[2] <= 12 && keep(m)) out.add(iso(m[3], m[2], m[1]));
   return [...out].filter(d => !isNaN(new Date(d))).sort();
 }
