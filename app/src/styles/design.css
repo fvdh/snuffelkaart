@@ -685,6 +685,8 @@ h3.sec .tnum{letter-spacing:0}
 .rc-mv button:disabled{opacity:.25}
 .rc-mv svg{width:16px;height:16px}
 .rc-fix{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;font-family:var(--font)}
+/* Lange winkelnaam in "Vervang door …": afbreken binnen de bon, niet eruit lopen */
+.rc-fix .btn{height:auto;min-height:36px;padding:8px 12px;max-width:100%;white-space:normal;text-align:left;line-height:1.25}
 
 .onderweg{display:flex;flex-direction:column;gap:14px;padding-bottom:20px}
 .ow-n{font-size:.875rem;color:var(--fg-2)}
