@@ -121,8 +121,8 @@ export function Dashboard({ s }: { s: Session }) {
         <dl className="ds-facts"><dt>Gestart of als route geopend</dt><dd className="tnum">{nl(d.plans.n)}</dd><dt>Gemiddeld aantal stops</dt><dd className="tnum">{d.plans.stops.toFixed(1).replace('.', ',')}</dd><dt>Met een markt erin</dt><dd className="tnum">{d.plans.markt}%</dd></dl>
         <Bars rows={d.plans.dagen} /></div>
     </div>
-    <div className="ds-card"><h3>Organisatoren</h3><p className="adm-sub">Klik voor een rapport om mee te sturen.</p>
-      <table className="adm-table"><thead><tr><th>Organisator</th><th className="tnum">Pagina's</th><th className="tnum">Geopend</th><th className="tnum">Dagplan</th><th className="tnum">Doorgeklikt</th><th className="tnum">Via badge</th></tr></thead>
+    <div className="ds-card"><h3>Organisatoren</h3><p className="adm-sub">Hoe vaak hun markten bekeken en gebruikt zijn in de gekozen periode. Klik voor een rapport om mee te sturen.</p>
+      <table className="adm-table"><thead><tr><th>Organisator</th><th className="tnum">Bekeken op de site</th><th className="tnum">Geopend in de app</th><th className="tnum">Dagplan</th><th className="tnum">Doorgeklikt</th><th className="tnum">Via badge</th></tr></thead>
         <tbody>{d.orgs.map(([o, r]) => <tr key={o}><td><button className="link" onClick={() => setOrg(o)}>{o}</button></td><td className="tnum">{nl(r.pagina ?? 0)}</td><td className="tnum">{nl(r.view ?? 0)}</td><td className="tnum">{nl(r.plan ?? 0)}</td><td className="tnum">{nl((r.route ?? 0) + (r.site ?? 0) + (r.tel ?? 0))}</td><td className="tnum">{nl(r.badge ?? 0)}</td></tr>)}</tbody></table>
       {!d.orgs.length && <p className="adm-sub">Nog niets geteld.</p>}</div>
   </section>);
