@@ -1,166 +1,161 @@
 # Snuffelkaart · overdracht
 
-Stand 29 oktober 2026 (laatste commit `2bbbf9f`). Voor wie het project oppakt: wat er is, hoe het draait, wat nog openstaat.
+Stand 30 oktober 2026 (commit `5e41cb6`). Voor wie het project oppakt: wat er is, hoe het draait, wat nog openstaat.
 Details en het waarom staan in `DECISIONS.md`; dit document vat samen en verwijst.
 
 ## In één alinea
-Snuffelkaart is een PWA met alle kringlopen, tweedehandswinkels en rommelmarkten van Nederland op één kaart, met openingstijden die kloppen voor de dag dat je gaat en een dagplan als kassabon. Eigenaar en beslisser: Freek. Status: alles van M0 t/m M6 is gebouwd behalve de lancering zelf; draait als preview zonder eigen domein en is nog niet vindbaar.
+Snuffelkaart is een PWA met alle kringlopen, tweedehandswinkels en rommelmarkten van Nederland op één kaart, met openingstijden die kloppen voor de dag dat je gaat en een dagplan als kassabon. Eigenaar en beslisser: Freek. Status: **live op https://snuffelkaart.nl**, geïndexeerd (Google Search Console en Bing, sitemap ingediend), automatisch elke nacht en elk kwartier ververst. Fase nu: wachten op bezoekers en zoekdata; verdienen pas later (passief, geen ads; zie memory `verdienmodel`).
 
-- **Preview:** https://snuffelkaart.ironfront-relay.workers.dev (open link, noindex)
-- **Repo:** deze map; de app staat in `app/`
-- **Lokaal:** `cd app && npm install && npm run dev` → http://localhost:4321. `?nu=2026-10-31T09:10` zet de klok vast (de app is tijdsbewust).
+- **Live:** https://snuffelkaart.nl (www → 301 naar het hoofddomein). `snuffelkaart.ironfront-relay.workers.dev` blijft bereikbaar met noindex.
+- **Repo:** deze map, GitHub `fvdh/snuffelkaart`; de app staat in `app/`
+- **Lokaal:** `cd app && npm install && npm run dev` → http://localhost:4321. `?nu=2026-10-31T09:10` zet de klok vast (de app is tijdsbewust). Voor testen liever `npx astro preview --port 43xx --host 127.0.0.1` na een build (dev-server hydrateert soms oude modules).
 
 ## Documenten in de repo
 | Bestand | Wat |
 |---|---|
 | `snuffelkaart-pva.md` | Plan van aanpak: doelen, mijlpalen M0–M7, besluiten D1–D9 |
 | `DECISIONS.md` | Alle keuzes met reden, nieuwste onderaan. Bijwerken bij elke keuze |
-| `BACKLOG.md` | Taken ronde 1–2 (verouderd na ronde 2; deze handoff is actueler) |
+| `BACKLOG.md` | Verouderd; de backlog hieronder is actueel |
 | `PRODUCT.md`, `DESIGN.md` | Product, toon, ontwerptokens. Bron voor de UI |
-| `ontwerp/` | Oorspronkelijk ontwerp (`snuffelkaart-ontwerp.html`), testscript, en `voorstel/` (canvas met 6 schermen, zie onder) |
-| `LICENTIES.md` | Licentie per datastroom (ODbL, Overture CDLA, organisatoren) |
-| `SEO-GEO-PLAN.md` | Plan voor vindbaarheid in Google en AI-antwoorden |
-| `M0-RAPPORT.md` | Uitkomst proof of concept |
-| `sources/` | Per marktorganisator: voorwaarden, robots.txt, hoe de uitlezer werkt |
+| `ontwerp/` | Oorspronkelijk ontwerp, testscript, `voorstel/` (canvas) |
+| `LICENTIES.md` | Licentie per datastroom (ODbL, Overture CDLA, organisatoren, Gemeenteblad CC-0) |
+| `SEO-GEO-PLAN.md` | Plan voor vindbaarheid; fase 0, 1 en een deel van 2 zijn gedaan (zie onder) |
+| `sources/` | Per marktorganisator: voorwaarden, robots.txt, hoe de uitlezer werkt; `organisatoren.md` = wie nog niet |
 | `app/README.md` | Alle commando's |
 
 ## Stack
-- **Astro 6** (statisch) + één **React**-eiland (`App.tsx`) voor kaart, lijst, detail, dagplan en Jij. Geen Tailwind, geen Motion, geen supabase-js: CSS-tokens uit het ontwerp, Web Animations, `fetch`.
-- **MapLibre 6** met OpenFreeMap-tegels (positron) en eigen kleuren; clustering met `supercluster`.
-- **Supabase** (eu-west-1, gratis plan) als bron van waarheid: winkels, markten, favorieten, meldingen, bijdragen, beheerders, importlog, fouten. RLS op alles, getest.
-- **Cloudflare Workers** met statische bestanden + een cron-Worker (`app/worker/klok.js`).
-- **GitHub Actions** voor import, export, build en deploy.
-- **Resend** voor inlogmails (tijdelijk vanaf `snuffelkaart@runebinder.app`).
-- Node 22.22 lokaal; daarom Astro 6 en niet 7 (vraagt ≥ 22.23.4). Vite 7 vastgezet via `overrides`.
+- **Astro 6** (statisch) + één **React**-eiland (`App.tsx`) voor kaart, lijst, detail, dagplan en Jij; `/beheer` is een tweede eiland. Geen Tailwind, geen supabase-js: CSS-tokens uit het ontwerp, `fetch`.
+- **MapLibre 6** met OpenFreeMap-tegels (positron); pins als DOM-markers, groepjes met `supercluster`, markten op dezelfde plek gestapeld (`stackMarkets`, badge met aantal).
+- **Supabase** (eu-west-1, gratis plan): winkels, markten, favorieten, meldingen, bijdragen, beheerders, importlog, fouten, klikteller, tellers. RLS op alles.
+- **Cloudflare Workers**: statische bestanden + cron (`app/worker/klok.js`). Zone snuffelkaart.nl in Cloudflare (Always HTTPS, min. TLS 1.2, redirect-regel www → root). `not_found_handling: 404-page`.
+- **GitHub Actions** voor import, export, build en deploy (gestart door de klok).
+- **Resend** voor inlogmails vanaf `inloggen@snuffelkaart.nl` (domein geverifieerd, EU).
+- **Cloudflare Web Analytics** (cookieloos; token `CF_BEACON` in `app/.env` en als GitHub-variabele).
+- Node 22.22 lokaal; daarom Astro 6. Vite 7 vastgezet via `overrides`.
 
 ## Code: waar zit wat
 ```
-app/src/lib/          alle logica, met tests (vitest; 87+ tests)
+app/src/lib/          logica, met tests (vitest; 106 tests: npx vitest run)
   hours.ts            openingstijden: status nu / op een dag, intervallen
-  filter.ts           filters (soort, open op de gekozen dag, gratis, overdekt, zoeken)
-  plan.ts             dagplan: aankomsttijden, slimste volgorde, dagvoorstellen (dayProposals)
-  model.ts            types, winkelsoorten (catOf)
-  auth.ts             inloggen met code/link, sessie verversen
-  bijdragen.ts        reviews, foto's, tijden insturen; Nederlandse foutteksten (errText)
+  filter.ts           filters, zoeken op naam én soort (KIND_WORDS), groupRows, stackMarkets
+  plan.ts             dagplan: aankomsttijden (km incl. terugweg), slimste volgorde, dagvoorstellen
+  model.ts            types, winkelsoorten (catOf), spotKey
+  auth.ts             inloggen met code, sessie; api() wil het hele pad (rest/v1/…)
+  bijdragen.ts        reviews, foto's, tijden; ohText (tijden leesbaar), errText
+  klik.ts             klikteller (count_click) + anonieme tellers (tel, kmBucket, regio, placeOf)
   beheer.ts           voorbeoordeling wachtrij
-  seo.ts, sitedata.ts statische pagina's, SITE-adres
+  seo.ts              siteIndex (winkels, markten, plaatsen, organisatoren), thin(), PROVINCES, MARKET_KINDS
+  sitedata.ts         data voor de statische build, SITE, prov (provincie per plaats)
 app/src/components/
-  App.tsx             state: dag, filters, plan, view, sessie; kaart + paneel
-  Views.tsx           ListView, DetailView, PlanView, DagView, MeView (Snuffelpas), DayPick
+  App.tsx             state: dag, filters, plan, view, sessie, tellers; kaart + paneel
+  Views.tsx           ListView, DetailView (meldknop onthoudt melding), PlanView, MeView (Snuffelpas)
   MapView.tsx         kaart, pins, groepjes, route
-  Bijdragen.tsx       formulieren review/foto/tijden, schermnaam
-  Beheer.tsx          /beheer
-app/src/styles/design.css   alle UI-CSS (uit het ontwerp)
-app/scripts/          imports: OSM, Overture, websitetijden, markten, Gemeenteblad, db push/export
-app/public/data/      places.json, markets.json, extra.json (gegenereerd door de export)
-supabase/migrations/  schema; supabase/tests/rls.sql (npm run test:rls)
+  Bijdragen.tsx       review/foto/tijden, schermnaam (regel zichtbaar, NL-melding)
+  Beheer.tsx          /beheer (tabbladen); Dashboard.tsx = dashboard + rapport per organisator
+  MarktAgenda.astro   marktlijst (dit weekend + per maand + zoeken) voor de statische pagina's
+  Soort.astro, ItemRow.astro
+app/src/pages/        index, [stad], winkel/, markt/, organisator/, provincie/, markten, rommelmarkt-dit-weekend,
+                      vlooienmarkten, rommelmarkten, kofferbakmarkten, sitemap.xml.ts, 404, privacy, voorwaarden, …
+app/src/styles/       design.css (app) en app.css; beheer-stijlen staan in pages/beheer.astro
+app/scripts/          imports: OSM, Overture, websitetijden, markten (14 organisatoren), Gemeenteblad, provincies, db push/export
+app/public/data/      places.json, markets.json, extra.json, provincies.json (gegenereerd; CI commit ze)
+app/public/           _headers (noindex alleen op workers.dev), _redirects (88× 301), robots.txt, badge.svg, og.png
+supabase/migrations/  schema; supabase/tests/rls.sql
 .github/workflows/    nachtelijk, winkels, controle, backup
 ```
 
 ## Gegevens
-- **Winkels:** 3701 (OSM 1049 + Overture 2652, ontdubbeld; OSM heeft voorrang). 1106 met bekende openingstijden (OSM, eigen website van de winkel, of doorgegeven door bezoekers). Soorten: kringloop, antiek, kleding/vintage, sloop, pandjeshuis/opkoop, vaste vlooienmarkt, overige tweedehands.
-- **Markten:** 195 komende, uit de agenda's van 14 organisatoren (zie `sources/`) plus Gemeenteblad-kandidaten die in /beheer gekeurd worden. Status: bevestigd / gecontroleerd / nog niet bevestigd / afgelast.
-- **Openingstijden 21 dagen vooruitgerekend** bij de export; de browser laadt geen tijdenbibliotheek. Zonder verse build worden tijden na 21 dagen "onbekend".
-- **Statusbestand** (`rpc/market_status`): afgelastingen en verborgen winkels binnen minuten in de app, ook op een oude build.
-- **Imports overschrijven nooit met de hand vastgezette velden** (`locked`). Veilige import: veel minder dan vorige keer → oude stand blijft.
+- **Winkels:** 3694 (OSM 1042 + Overture 2652). 1104 met openingstijden (OSM, eigen website, of bezoekers). Dubbelen met dezelfde naam op (bijna) dezelfde plek worden bij de export samengevoegd (`dedupe` in `scripts/db.mjs`).
+- **Markten:** 274 komende: 14 organisatoren (zie `sources/`) + 78 uit het Gemeenteblad (gekeurd in /beheer). Entree uitgelezen bij o.a. Don Events en IJ-Hallen; Animo noemt geen bezoekersprijs.
+- **Plaatsnamen samengevoegd** (`placeNames`): 's-Gravenhage → Den Haag e.d.; oude adressen in `_redirects`.
+- **Provincie per plaats** via PDOK reverse (`scripts/provincies.mjs`, nachtelijk alleen nieuwe plaatsen).
+- **Openingstijden 21 dagen vooruitgerekend** bij de export.
+- **Statusbestand** (`rpc/market_status`): afgelastingen binnen minuten zichtbaar, ook op een oude build.
+- **Imports overschrijven nooit met de hand vastgezette velden** (`locked`).
 
 ## Wat de app kan (bezoeker)
-- Kaart + lijst (bottom sheet op mobiel, versleepbare zijbalk op desktop; op desktop volgt de lijst de kaart).
-- **De snuffellus** (29 okt, zie DECISIONS): tabbalk Kaart / Mijn dag / Jij; bovenaan de pil "Rond Zwolle · Nu" voor plek en moment (nu, of een dag + tijd binnen twee weken); de lijst op afstand, in secties (nu open, gaat nog open, tijden onbekend…). Het dagplan heeft een eigen dag, tijd en vertrekpunt. Desktop ≥ 1200 px: lijst, kaart en Mijn dag naast elkaar; iPad staand: zwevend paneel.
-- Zoeken op naam; plaats of postcode (PDOK) via "Waar en wanneer", met recente plekken; filters open, soort, gratis, overdekt.
-- Detail winkel/markt met tijden per dag, bron + controledatum, meldknop "Klopt er iets niet?" (zonder account).
-- **Dagplan als kassabon**: vertrekblok, stops verplaatsen, dichte stop vervangen, terug rond, slimste volgorde, route naar Google/Apple, delen als link, en een onderweg-stand (volgende stop, hier ben ik, overslaan).
-- **"Maak een dag voor me"**: tot 4 snuffelwinkels binnen 20 km die die dag zeker open zijn, geclusterd, "Ander voorstel" bladert. Startpunt: je locatie, anders gekozen plaats, anders Amersfoort. Geen sloop, opkoop of winkels die aan hun naam iets anders zijn.
-- **Jij = Snuffelpas**: stempelkaart voor bijdragen, schermnaam kiezen/wijzigen, bewaarde plekken, mini-bon van het dagplan, gegevens downloaden, account verwijderen.
-- Inloggen met een code van 8 cijfers per mail; favorieten synchroniseren.
-- Bijdragen: reviews, foto's (verkleind, zonder EXIF) en openingstijden, via een wachtrij in /beheer.
-- PWA, offline met de laatst geladen stand. Toegankelijkheid: axe 0 bevindingen.
-- Statische pagina's: 537 plaatsen, 3701 winkels, 195 markten, sitemap, JSON-LD. Privacy, voorwaarden, colofon, "Hoe we controleren".
+- Kaart + lijst (bottom sheet op mobiel, versleepbare zijbalk op desktop; tabbalk past zich aan de breedte aan).
+- Pil "Rond Zwolle · Nu" voor plek en moment; lijst op afstand in secties (nu open, markten, tijden onbekend met oproep om tijden door te geven). Regel: status · plaats (of straat als de plaats al bekend is) · soort.
+- Zoeken op naam of soort ("antiek", "vintage", "kofferbak"); plaats of postcode via Waar (PDOK). Filters: soort (tik = alleen deze), alleen open, gratis, overdekt, bewaard.
+- Detail winkel/markt: tijden, bron + controledatum, route/bel/website, "Ook op deze plek" bij markten, meldknop (anoniem; onthoudt op het apparaat dat je al meldde).
+- Dagplan als kassabon, "Maak een dag voor me", onderweg-stand. Deeplink `/?open=<id>&plan=1` zet een plek in Mijn dag.
+- Jij = Snuffelpas: stempels voor bijdragen, schermnaam, bewaard, mini-bon, account (uitloggen en verwijderen apart), "Mis je een plek?" (mail).
+- Inloggen met een code per mail; favorieten synchroniseren. Bijdragen: reviews, foto's, openingstijden via /beheer.
+- PWA, offline met de laatst geladen stand.
+
+## Statische pagina's (SEO)
+- ±530 plaatsen (met "Open dit weekend"), 3694 winkels (live open/dicht, route, "Plan in Mijn dag", "Review, foto of tijden doorgeven"), 274 markten (Event-JSON-LD).
+- `/markten/`, `/rommelmarkt-dit-weekend/` (per provincie), `/provincie/<naam>/` (12), `/vlooienmarkten/`, `/rommelmarkten/`, `/kofferbakmarkten/`, `/organisator/<naam>/` (14, met badge).
+- Dunne winkelpagina's (Overture zonder tijden/website/telefoon, sloop, pandjeshuis: 497) hebben noindex en staan niet in de sitemap; op de kaart wel.
+- Sitemap 4045 adressen; robots.txt sluit `/beheer`, `/data/` en `/*?` uit, behalve `/organisator/` (badge-links `?via=badge`).
+- Links naar andere sites openen in een nieuw tabblad (route en bellen niet).
+- Lighthouse (mobiel): statische pagina's 99; de kaart-app op de voorpagina ±48–70 (MapLibre en 3700 winkels omrekenen). Echte winst vraagt server-side lijst en pins als kaartlaag; pas doen als Search Console erom vraagt.
+
+## Meten (alles anoniem, zie privacy "Wat we tellen" en DECISIONS)
+- **Klikteller** (`clicks`, rpc `count_click`): per dag en plek: bekeken, in dagplan, gedeeld, route, website, gebeld.
+- **Tellers** (`tellers`, rpc `tel`): paginabezoek, badge, afstand (4 groepen), gekozen plaats, regio (vak 0,1°), filters, uur van openen, dagplan, zoeken zonder resultaat. Nooit IP, account, getypte tekst of exacte plek; niets op het apparaat om te herkennen.
+- **Dashboard** in /beheer (eerste tabblad): kerncijfers met verloop, heatmap uur × dag, regio's met aanbod, plaatsen, afstand, filters, dagplannen, organisatoren → rapport per organisator om te printen (aantallen onder 5 als "<5"). Leest via rpc `beheer_tellers` (alleen beheerders).
 
 ## Beheer (`/beheer`)
-Wachtrij (Gemeenteblad-kandidaten, verdwenen markten), markten, winkels (soort, verbergen, pin verplaatsen), meldingen, bijdragen, bronnen (kapotte uitlezers, fouten bij bezoekers), moderatielog. Beheerders in tabel `admins`.
-**Let op:** elke letter is een sneltoets (A = goedkeuren). Nooit typen zonder gefocust invoerveld. Z of de balk onderin draait een besluit 10 s terug.
+Dashboard, wachtrij, bijdragen, meldingen, kandidaten (Gemeenteblad), markten deze week, winkels, bronnen, klikken, moderatielog. Beheerders in tabel `admins`.
+**Let op:** elke letter is een sneltoets (A = goedkeuren). Nooit typen zonder gefocust invoerveld. Z draait een besluit 10 s terug.
 
 ## Uitrollen en automatisering
-- **Push rolt niet uit.** Met de hand: `cd app && npm run build && npx wrangler deploy`.
-- Workflows (alleen via `workflow_dispatch`, gestart door de klok):
-  - `nachtelijk.yml`: 02:30 UTC markten → Supabase → export → test → build → deploy; elk kwartier alleen export+deploy als er in beheer iets veranderde.
-  - `winkels.yml`: maandag, OSM + Overture + websitetijden → Supabase.
-  - `controle.yml`: elk half uur, site en data van buitenaf controleren.
-  - `backup.yml`: 02:00, versleutelde dump als GitHub-artifact (30 dagen). Herstel geoefend.
-- **De klok draait nog niet**: de Worker mist secret `GITHUB_TOKEN`. Tot die er is, gebeurt er niets automatisch; data veroudert en tijden lopen na 21 dagen af.
-- GitHub's eigen `schedule` startte in deze repo nooit; daarom de Cloudflare-cron.
+- **Klok** (`worker/klok.js`, cron elk kwartier) start de workflows via `workflow_dispatch` met secret `GITHUB_TOKEN` (draait sinds 30 okt).
+  - `nachtelijk.yml`: 02:30 UTC alles (markten → Supabase → Gemeenteblad → export → provincies → test → build → deploy); elk kwartier alleen export + deploy als er in beheer iets veranderde. Data-commit met rebase-en-opnieuw bij een geweigerde push.
+  - `winkels.yml`: maandag, OSM + Overture + websitetijden. `controle.yml`: elk half uur van buitenaf. `backup.yml`: 02:00.
+- **Met de hand uitrollen:** eerst `git pull --rebase` (CI commit verse data), dan `cd app && npm run build && npx wrangler deploy`, dan pushen. Rond :00/:15/:30/:45 kan een CI-deploy die vóór je push begon er ná jou overheen gaan: check `npx wrangler deployments list` en rol zo nodig opnieuw uit.
+- Supabase-migraties: `set -a; . app/.env; set +a; npx supabase db push --linked --yes`. Auth-config: `npx supabase config push --yes`.
 
 ## Werkafspraken
-- Freek schrijft Nederlands; antwoorden in het Nederlands. Freek beslist over product, juridisch, accounts, domein en contact met buitenstaanders (agent stelt teksten op, Freek verstuurt).
+- Freek schrijft Nederlands; antwoorden in het Nederlands. Freek beslist over product, juridisch, accounts, domein, moderatie en contact met buitenstaanders (agent stelt teksten op, Freek verstuurt).
 - **Secrets** plakt Freek zelf (in `.env` of GitHub/Cloudflare). Nooit in chat, nooit in de repo, nooit door een agent in een webveld.
 - **Geen diensten die een creditcard vragen** (dus geen R2).
-- In tests: nooit globaal uitloggen via `/auth/v1/logout`; geen echte gegevens van Freek wijzigen; localStorage (`snuffel-plan`) na afloop herstellen.
-- Preview blijft noindex tot het eigen domein.
-- Elke keuze in `DECISIONS.md`. Klein houden: ponytail-opmerkingen markeren bewuste vereenvoudigingen en wanneer ze te upgraden.
-
-## Ontwerpvoorstel (canvas)
-Canvas op claude.ai (Design-artifact, versie 9): https://claude.ai/artifact/Fr75URXfGfJEqXbdANLVjs. Bestanden in `ontwerp/voorstel/project/*.dc.html` (Main, Desktop, DesktopJij, Dag, …). Gebouwd: dagkeuze, Jij als groot paneel / Snuffelpas, "Maak een dag voor me". Nog niet gebouwd: zie backlog.
+- In tests: nooit globaal uitloggen via `/auth/v1/logout` op Freeks account; localStorage vooraf bewaren en daarna herstellen (en nooit sessiewaarden tonen); eigen tab en eigen preview-poort. Testaccounts alleen na akkoord, en daarna opruimen (account + bijdragen + foto's + meldingen).
+- UX: rustig en passend, ook bij smalle zijbalk; nieuwe labels mogen het niet drukker maken.
+- Elke keuze in `DECISIONS.md`. Ponytail-opmerkingen markeren bewuste vereenvoudigingen.
 
 ---
 
 ## Backlog
 
-### Wacht op Freek (accounts, secrets, besluiten)
-| Wat | Waarom het ertoe doet |
+### Wacht op Freek
+| Wat | Waarom |
 |---|---|
-| `GITHUB_TOKEN` op de klok-Worker (fine-grained, alleen deze repo, Actions read/write) | Zonder dit draait niets automatisch |
-| Secrets in GitHub: `RESEND_API_KEY` (dagelijkse mail), `SUPABASE_ACCESS_TOKEN` (back-up + RLS-test), `BACKUP_WACHTWOORD` | Back-up en mail slaan zichzelf nu over |
-| snuffelkaart.nl: nameservers bij Strato naar Cloudflare | Daarna: app koppelen, mail van eigen domein, Cloudflare Access voor /beheer, SEO fase 0 |
-| SSO: Google- en Apple-login aanzetten in Supabase | Verschijnt dan vanzelf in de app |
-| Testronde met 3–5 personen (`ontwerp/snuffelkaart-testronde.html`) | Bewijs voor M1/M3; nog nooit gedraaid |
-| SEO-besluiten: AI-crawlers (zoek-bots toelaten, trainings-bots blokkeren?), Cloudflare Web Analytics aan?, adresstructuur vastleggen | Nodig vóór het domein live gaat |
-| Thomas09 en Supervlooi: toestemming vragen? (disclaimer verbiedt overnemen) | Agent schrijft de mail, Freek verstuurt |
-| Foursquare OS Places: Hugging Face-account | Derde bron voor winkels |
-| KvK en adres in het colofon zodra er een onderneming is | Wettelijk (art. 3:15d BW) |
+| Organisatoren mailen over de badge | **Bewust uitgesteld** tot het dashboard echte aantallen per organisator laat zien (teksten liggen klaar) |
+| Thomas09 en Supervlooi om toestemming vragen | ±70 markten/jaar in Friesland; los van de badge, kan nu al |
+| Kandidaten in /beheer blijven keuren | Gemeenteblad levert elke nacht nieuwe aan |
+| SSO (Google/Apple) aanzetten in Supabase | Verschijnt dan vanzelf in de app |
+| HSTS aanzetten in Cloudflare | Lastig terug te draaien; pas als alles een tijd stabiel draait |
+| KvK en adres in het colofon zodra er een onderneming is | Wettelijk |
 
-### Ontwerpvoorstel afbouwen (volgende stap in de app)
-- **Plaatsoverzicht**: blok bovenaan de lijst met soortchips en aantallen per plaats.
-- **Plaatskiezer in de kop** met recente plaatsen (localStorage).
-- **Lijstsecties** "Nu open" / "Tijden onbekend".
-- Dagvoorstel ook **op de kaart** tonen (pins + route).
-- Vlag in /beheer om een winkel uit dagvoorstellen te houden (nu alleen soort + naamregels).
-- Weekend als twee dagen tegelijk kiezen (pas als za/zo los kiezen onhandig blijkt).
-
-### P2 uit de UX-review
-- Rustiger kaart.
-- Markten sorteren op datum en herhalingen samenvoegen.
-- Dubbele winkels OSM/Overture die de ontdubbeling mist.
-- **Gemeenteblad-uitlezer: datumfout** (inzagedatum wordt als marktdatum gelezen).
+### Eerstvolgende controles
+- Nachtelijke verversing 31 okt: dubbelen weg, entree bij Don Events/IJ-Hallen, filtertelling in `tellers`.
+- Over 1–2 weken Search Console: welke pagina's opgenomen, op welke zoektermen, 404's van voorbije markten (zo ja: doorsturen naar de stadspagina).
+- Dashboard na een week: regio's met veel kijkers en weinig markten.
 
 ### Data
-- Meer organisatoren (14 van ±20, lijst in `sources/organisatoren.md`).
-- Winkelimport via het Geofabrik-extract in plaats van Overpass.
-- `payment:*` uit OSM → pin-filter terug.
-- Gemeenteblad: verzamellijsten geven ook andere evenementen; AI-extractie pas als afwijzen te veel werk wordt.
+- Gemeenteblad-uitlezer (30 okt verbeterd: braderie alleen met tweedehands, alleen het item met de markt, plaats uit "te Gerwen", "tot en met", reeksen met het jaar achteraan). Nog: ontdubbelen op zaaknummer (aanvraag + besluit met andere datum).
+- Meer organisatoren: de bruikbare zijn aangesloten; zie `sources/organisatoren.md`.
+- Winkels zonder tijden (±2600): websitetijden lopen wekelijks; meer vraagt uitlezers per site.
+- Foursquare OS Places als derde bron (Hugging Face-account nodig).
 
-### Community (M5-rest)
-- Sterren in de lijst.
-- AI-voorbeoordeling van bijdragen (§7.2 plan) als losse, testbare module met testset.
-- Winkel of markt toevoegen door bezoekers; aanmeldformulier voor organisatoren.
-- Reviews voor markten (D6: voorlopig niet).
-- Turnstile pas bij spam.
+### Product
+- "Markten bij jou dit weekend" als wekelijkse mail of push: pas als er bezoekers zijn om terug te halen.
+- Snelheid voorpagina: lijst server-side, pins als kaartlaag (zie Lighthouse hierboven).
+- "Dit weekend" als één keuze in Waar: besproken, voorlopig niet.
+- Dagvoorstel op de kaart; vlag in /beheer om een winkel uit dagvoorstellen te houden.
+- Sterren in de lijst; AI-voorbeoordeling van bijdragen; winkel/markt toevoegen door bezoekers; aanmeldformulier voor organisatoren.
 
 ### SEO / GEO (`SEO-GEO-PLAN.md`)
-- Fase 0 zodra het domein werkt: `SITE` aanpassen, noindex en `Disallow` weg, Search Console + Bing, IndexNow, og:image per pagina.
-- Fase 1: openingHoursSpecification, BreadcrumbList, dateModified, WebSite/Organization; validatie in CI.
-- Fase 2 (nov–dec): plaats + dag (`/utrecht/zondag/`), plaats + soort, provincie, markten dit weekend, feestdagen; Koningsdag-pagina's vanaf maart 2027.
-- Fase 3–4: citeerbare openingszinnen, `/llms.txt`, open-datapagina, outreach (branche, gemeenten, communities, OSM-NL).
+- Gedaan: domein, indexeren, Search Console + Bing, og:image, openingHoursSpecification, plaatsen/provincies/soorten/dit weekend/organisatoren.
+- Nog: plaats + dag (`/utrecht/zondag/`), plaats + soort, feestdagen en Koningsdag (vanaf maart 2027), BreadcrumbList, IndexNow, `/llms.txt`, open-datapagina, outreach.
 
 ### Techniek en klein
 - Astro 7 zodra Node ≥ 22.23.4.
-- Eigen kaarttegels (D2, Protomaps) — alleen zonder creditcard-dienst.
-- Offline-detectie bij slecht bereik (nu alleen `navigator.onLine`).
-- Favoriet offline gewijzigd terwijl ingelogd gaat verloren bij sync.
-- Focus terug naar de rij waar je vandaan kwam (nu naar de lijsttitel).
+- Twee plaatsen met dezelfde naam (Hengelo Ov/Gld) vallen samen.
+- Offline-detectie bij slecht bereik; favoriet offline gewijzigd terwijl ingelogd gaat verloren bij sync.
 - VoiceOver met de hand testen: bottom sheet en kaartpins.
-- Statische pagina's: geen kaartje op de stadspagina, twee plaatsen met dezelfde naam vallen samen.
-- Niet geverifieerd in de laatste ronde: "vervang bestaand plan"-bevestiging in Maak een dag voor me.
 
 ### Later (M7)
-Markten landelijk, België (Vlaanderen), Koningsdag-campagne, ads op publieke pagina's, winkels/organisatoren laten claimen, vertrouwde bijdragers.
+België (Vlaanderen), Koningsdag-campagne, winkels/organisatoren laten claimen, vertrouwde bijdragers.
