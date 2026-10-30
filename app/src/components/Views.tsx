@@ -54,8 +54,12 @@ export function shortStatus(st: Status): string | null {
 
 export function Row({ it, d, c }: { it: Item; d: number; c: Ctx }) {
   const st = c.st(it), inPlan = c.planStops.includes(it.id), cancel = it.t === 'm' && it.status === 'cancel', short = shortStatus(st);
-  // Tweede regel: status · soort · plaats (alleen als die anders is dan waar je zoekt).
-  const parts = [it.t === 'm' ? it.kind.toLowerCase() : kindLabel(it).toLowerCase(), it.place && it.place !== c.originLabel ? it.place : null].filter(Boolean) as string[];
+  // Tweede regel: status · plaats · soort. De plaats (alleen als die anders is dan waar je zoekt) gaat voor de soort: wordt de regel te lang,
+  // dan valt de soort weg en niet de plaats (UX-test 30 okt). De soort niet herhalen als hij al in de naam staat ("Vlooienmarkt Baarn").
+  const kind = (it.t === 'm' ? it.kind : kindLabel(it)).toLowerCase();
+  const parts: [string, string][] = [];
+  if (it.place && it.place !== c.originLabel) parts.push(['r-plaats', it.place]);
+  if (!it.name.toLowerCase().includes(kind)) parts.push(['r-kind', kind]);
   return (
     <li className="rowli" data-key={it.id}>
       <button className="row" onClick={e => c.open(it.id, e.currentTarget.querySelector<HTMLElement>('.r-name'))} aria-label={`${it.name}, ${st.txt}, ${fkm(d)} kilometer`}>
@@ -63,11 +67,11 @@ export function Row({ it, d, c }: { it: Item; d: number; c: Ctx }) {
         <span className="r-main">
           <span className={`r-name${cancel ? ' strike' : ''}`}>{it.name}</span>
           <span className="r-meta">{short && <span className={`st-i ${st.cls}`}>{short}</span>}{it.t === 'm' && it.status === 'unconf' && <Conf it={it} />}
-            {parts.map((p, i) => <span key={i}>{(i > 0 || short || it.t === 'm') && <span aria-hidden="true">· </span>}{p}</span>)}</span>
+            {parts.map(([cls, p], i) => <span key={cls} className={cls}>{(i > 0 || short || (it.t === 'm' && it.status === 'unconf')) && <span aria-hidden="true">· </span>}{p}</span>)}</span>
         </span>
         <span className="r-km">{fkm(d)} km</span>
       </button>
-      <button className="add" onClick={e => { if (!inPlan) pop(e.currentTarget); c.toggleStop(it.id); }} aria-pressed={inPlan} disabled={cancel} aria-label={`${inPlan ? 'Haal uit' : 'Zet in'} mijn dagplan`}><span><Ic n={inPlan ? 'check' : 'plus'} /></span></button>
+      <button className="add" onClick={e => { if (!inPlan) pop(e.currentTarget); c.toggleStop(it.id); }} aria-pressed={inPlan} disabled={cancel} aria-label={`${inPlan ? 'Haal uit' : 'Zet in'} mijn dagplan`}><span><Ic n={inPlan ? 'check' : 'plus'} /></span><small aria-hidden="true">Mijn dag</small></button>
     </li>
   );
 }

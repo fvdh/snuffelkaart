@@ -751,3 +751,17 @@ details.sugg[open] summary svg{transform:rotate(180deg)}
 /* Alleen voor schermlezers en zoekmachines (de kop van de homepage; de app zelf toont de kaart) */
 .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0}
 .seo-nav{margin-top:18px}
+
+/* Plusknop met een klein label eronder (zoals de tabs): wie niet plant, snapt zo waar hij voor is (UX-test 30 okt). Even breed als eerst. */
+.add{height:auto;min-height:44px;flex-direction:column;gap:2px;padding:4px 0}
+.add span{width:28px;height:28px}
+.add svg{width:16px;height:16px}
+.add small{font-size:.625rem;font-weight:650;color:var(--fg-3);line-height:1;white-space:nowrap;letter-spacing:.01em}
+.add[aria-pressed="true"] small{color:var(--fg)}
+/* Smal paneel: de soort valt weg (het icoon zegt het al), de plaats blijft */
+.rowli{container-type:inline-size}
+.r-meta>span{flex:none}
+.r-meta .r-kind{flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis}
+@container (max-width:320px){.r-meta .r-kind{display:none}}
+/* Heel smal (zijpaneel naar links gesleept): geen tegel, dan blijft de naam leesbaar */
+@container (max-width:290px){.row{grid-template-columns:minmax(0,1fr) auto;gap:8px;padding-left:2px}.row>.tile{display:none}}
