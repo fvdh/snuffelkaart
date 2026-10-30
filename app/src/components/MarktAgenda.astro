@@ -1,0 +1,41 @@
+---
+// Marktenlijst voor de statische pagina's: dit weekend voorop, daarna per maand, met zoeken op plaats in de browser.
+// Gedeeld door /markten/, de provinciepagina's en de pagina's per soort markt.
+import ItemRow from './ItemRow.astro';
+import type { Market } from '../lib/model';
+import { weekendOf, dayStart, dShort, MON_LONG } from '../lib/model';
+import { from } from '../lib/sitedata';
+interface Props { markets: Market[]; search?: boolean; empty?: string }
+const { markets, search = true, empty = 'Dit weekend staan er geen markten in onze agenda.' } = Astro.props;
+const [sat, sun] = weekendOf(dayStart(from));
+const all = markets.filter(m => m.date >= from).sort((a, b) => a.date.localeCompare(b.date) || a.start - b.start || a.name.localeCompare(b.name));
+const weekend = all.filter(m => m.date === sat || m.date === sun), later = all.filter(m => m.date > sun);
+const months = Object.entries(Object.groupBy(later, m => m.date.slice(0, 7)));
+const monthName = (ym: string) => `${MON_LONG[+ym.slice(5) - 1][0].toUpperCase()}${MON_LONG[+ym.slice(5) - 1].slice(1)} ${ym.slice(0, 4)}`;
+---
+{search && all.length > 12 && <>
+  <label class="search tp-filter"><svg class="i" aria-hidden="true"><use href="#i-search" /></svg><span class="sr">Zoek op plaats</span><input class="zoek" type="search" placeholder="Zoek op plaats, bijv. Eindhoven" autocomplete="off" /></label>
+  <p class="geen" hidden>Geen markten gevonden voor deze plaats. Probeer een plaats in de buurt, of <a href="/">kijk op de kaart</a>: die toont ook markten in de omgeving.</p>
+</>}
+<section class="agenda">
+  <h2>Dit weekend ({dShort(sat).toLowerCase()} en {dShort(sun).toLowerCase()})</h2>
+  {weekend.length ? <ul class="rows">{weekend.map(m => <ItemRow it={m} />)}</ul> : <p>{empty}</p>}
+</section>
+{months.map(([ym, ms]) => <section class="agenda">
+  <h2>{monthName(ym)}</h2>
+  <ul class="rows">{ms!.map(m => <ItemRow it={m} />)}</ul>
+</section>)}
+<script is:inline>
+  (() => {
+    const q = document.querySelector('.zoek'), geen = document.querySelector('.geen'), norm = s => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+    q?.addEventListener('input', () => {
+      const t = norm(q.value.trim()); let n = 0;
+      document.querySelectorAll('section.agenda').forEach(sec => {
+        const rows = sec.querySelectorAll('li.rowli'); if (!rows.length) return; let k = 0;
+        rows.forEach(li => { const hit = !t || norm(li.textContent).includes(t); li.hidden = !hit; if (hit) k++; });
+        sec.hidden = !!t && !k; n += k;
+      });
+      geen.hidden = !t || n > 0;
+    });
+  })();
+</script>

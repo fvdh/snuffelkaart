@@ -1,15 +1,14 @@
 ---
 // Alle rommel- en vlooienmarkten van de komende weken: dit weekend voorop, daarna per maand. Voor "rommelmarkt dit weekend" en "vlooienmarkt".
 import Tekst from '../layouts/Tekst.astro';
-import ItemRow from '../components/ItemRow.astro';
-import { weekendOf, dayStart, dShort, MON_LONG } from '../lib/model';
+import MarktAgenda from '../components/MarktAgenda.astro';
+import { PROVINCES, MARKET_KINDS } from '../lib/seo';
+import { weekendOf, dayStart, dShort } from '../lib/model';
 import { ix, markets, from, SITE } from '../lib/sitedata';
 
 const [sat, sun] = weekendOf(dayStart(from));
 const all = markets.filter(m => m.date >= from).sort((a, b) => a.date.localeCompare(b.date) || a.start - b.start || a.name.localeCompare(b.name));
-const weekend = all.filter(m => m.date === sat || m.date === sun), later = all.filter(m => m.date > sun);
-const months = Object.entries(Object.groupBy(later, m => m.date.slice(0, 7)));
-const monthName = (ym: string) => `${MON_LONG[+ym.slice(5) - 1][0].toUpperCase()}${MON_LONG[+ym.slice(5) - 1].slice(1)} ${ym.slice(0, 4)}`;
+const weekend = all.filter(m => m.date === sat || m.date === sun);
 const places = new Set(all.map(m => m.place)).size;
 const title = 'Rommelmarkten en vlooienmarkten in Nederland';
 const description = `${all.length} rommelmarkten, vlooienmarkten en snuffelmarkten in ${places} plaatsen, met datum, tijden, entree en of ze doorgaan. ${weekend.length ? `Dit weekend: ${weekend.length} ${weekend.length === 1 ? 'markt' : 'markten'}.` : ''}`.trim();
@@ -20,34 +19,12 @@ const ld = { '@context': 'https://schema.org', '@type': 'ItemList', name: title,
   <p class="tp-crumbs"><a href="/">Snuffelkaart</a> › Markten</p>
   <h1>{title}</h1>
   <p class="lede">{description} Of <a href="/">bekijk ze op de kaart</a>, samen met de kringlopen in de buurt.</p>
-  {/* 199 markten in één lijst is te veel om te scrollen (UX-test 30 okt): filteren op plaats of naam, in de browser. */}
-  <label class="search tp-filter"><svg class="i" aria-hidden="true"><use href="#i-search" /></svg><span class="sr">Zoek op plaats</span><input id="zoek" type="search" placeholder="Zoek op plaats, bijv. Eindhoven" autocomplete="off" /></label>
-  <p id="geen" hidden>Geen markten gevonden voor deze plaats. Probeer een plaats in de buurt, of <a href="/">kijk op de kaart</a>: die toont ook markten in de omgeving.</p>
-  <section>
-    <h2>Dit weekend ({dShort(sat).toLowerCase()} en {dShort(sun).toLowerCase()})</h2>
-    {weekend.length ? <ul class="rows">{weekend.map(m => <ItemRow it={m} />)}</ul> : <p>Dit weekend staan er geen markten in onze agenda.</p>}
-  </section>
-  {months.map(([ym, ms]) => <section>
-    <h2>{monthName(ym)}</h2>
-    <ul class="rows">{ms!.map(m => <ItemRow it={m} />)}</ul>
-  </section>)}
+  <p>Dit weekend: <a href="/rommelmarkt-dit-weekend/">alle markten per provincie</a>. Per soort: {MARKET_KINDS.map((k, i) => <>{i ? ' · ' : ''}<a href={`/${k.slug}/`}>{k.title.toLowerCase()}</a></>)}.</p>
+  <p>Per provincie: {PROVINCES.map((p, i) => <>{i ? ' · ' : ''}<a href={`/provincie/${p.slug}/`}>{p.name}</a></>)}</p>
+  <MarktAgenda markets={all} />
   <section>
     <h2>Per organisator</h2>
     <ul class="tp-links">{[...ix.orgs].sort((a, b) => a[1].name.localeCompare(b[1].name, 'nl')).map(([slug, o]) => <li><a href={`/organisator/${slug}/`}>{o.name}</a> <span style="color:var(--fg-3)">{o.markets.length}</span></li>)}</ul>
   </section>
   <p style="color:var(--fg-3)">Markten komen uit de agenda's van de organisatoren en worden elke nacht gecontroleerd. <a href="/hoe-we-controleren/">Hoe we controleren</a> · <a href="/plaatsen/">Kringlopen per plaats</a></p>
-  <script is:inline>
-    (() => {
-      const q = document.getElementById('zoek'), geen = document.getElementById('geen'), norm = s => s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-      q?.addEventListener('input', () => {
-        const t = norm(q.value.trim()); let n = 0;
-        document.querySelectorAll('section').forEach(sec => {
-          const rows = sec.querySelectorAll('li.rowli'); if (!rows.length) return; let k = 0;
-          rows.forEach(li => { const hit = !t || norm(li.textContent).includes(t); li.hidden = !hit; if (hit) k++; });
-          sec.hidden = !!t && !k; n += k;
-        });
-        geen.hidden = !t || n > 0;
-      });
-    })();
-  </script>
 </Tekst>

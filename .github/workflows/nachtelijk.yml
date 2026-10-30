@@ -72,6 +72,10 @@ jobs:
         if: steps.w.outputs.doe
         run: node scripts/db.mjs export
         env: *supabase
+      - name: Provincie per nieuwe plaats
+        if: steps.w.outputs.doe == 'alles'
+        run: node scripts/provincies.mjs
+        continue-on-error: true # lukt PDOK niet, dan staat een nieuwe plaats een nacht later op zijn provinciepagina
       - run: npm test
         if: steps.w.outputs.doe
       - run: npm run build

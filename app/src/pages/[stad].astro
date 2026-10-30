@@ -6,12 +6,14 @@ import type { City } from '../lib/seo';
 import { near } from '../lib/seo';
 import { km, dLong, catOf, weekendOf, dayStart, hm } from '../lib/model';
 import { DAY_CATS } from '../lib/plan';
-import { ix, markets, from, generated, SITE } from '../lib/sitedata';
+import { ix, markets, from, generated, prov, SITE } from '../lib/sitedata';
+import { PROVINCES } from '../lib/seo';
 
 export function getStaticPaths() {
   return ix.cities.map(city => ({ params: { stad: city.slug }, props: { city } }));
 }
 const { city } = Astro.props as { city: City };
+const province = PROVINCES.find(p => p.pdok === prov[city.name]);
 const kring = city.shops.filter(p => catOf(p) === 'kringloop').length;
 const around = near(city, markets, from, 15, 10);
 const [sat, sun] = weekendOf(dayStart(from));
@@ -36,7 +38,7 @@ const ld = { '@context': 'https://schema.org', '@type': 'ItemList', name: title,
 ---
 <Tekst title={title} description={description} wide>
   <script type="application/ld+json" slot="head" set:html={JSON.stringify(ld)} />
-  <p class="tp-crumbs"><a href="/">Snuffelkaart</a> › <a href="/plaatsen/">Plaatsen</a> › {city.name}</p>
+  <p class="tp-crumbs"><a href="/">Snuffelkaart</a> › <a href="/plaatsen/">Plaatsen</a> › {province && <><a href={`/provincie/${province.slug}/`}>{province.name}</a> › </>}{city.name}</p>
   <h1>{title}</h1>
   <p class="lede">{description}</p>
   <div class="tp-cta"><b>Plan je snuffeldag</b><p>Kies stops op de kaart. Snuffelkaart zet ze in de slimste volgorde en kijkt of alles open is als je er bent.</p>

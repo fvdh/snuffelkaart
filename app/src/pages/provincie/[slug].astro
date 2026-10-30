@@ -1,0 +1,39 @@
+---
+// Provinciepagina: "rommelmarkt Noord-Brabant", "vlooienmarkt Gelderland", "kringloop Limburg". Markten van de komende weken en
+// de plaatsen met de meeste kringlopen. Provincie per plaats: scripts/provincies.mjs.
+import Tekst from '../../layouts/Tekst.astro';
+import MarktAgenda from '../../components/MarktAgenda.astro';
+import { PROVINCES } from '../../lib/seo';
+import { catOf } from '../../lib/model';
+import { ix, markets, prov, SITE } from '../../lib/sitedata';
+
+export function getStaticPaths() {
+  return PROVINCES.map(p => ({ params: { slug: p.slug }, props: { p } }));
+}
+const { p } = Astro.props as { p: (typeof PROVINCES)[number] };
+const ms = markets.filter(m => prov[m.place] === p.pdok);
+const cities = ix.cities.filter(c => prov[c.name] === p.pdok && c.shops.length).sort((a, b) => b.shops.length - a.shops.length);
+const kring = cities.reduce((a, c) => a + c.shops.filter(s => catOf(s) === 'kringloop').length, 0), shops = cities.reduce((a, c) => a + c.shops.length, 0);
+const all = [...cities.flatMap(c => c.shops), ...ms], lat = all.reduce((a, x) => a + x.lat, 0) / (all.length || 1), lon = all.reduce((a, x) => a + x.lon, 0) / (all.length || 1);
+const title = `Rommelmarkten en kringlopen in ${p.name}`;
+const description = `${ms.length} rommel- en vlooienmarkten in ${p.name} de komende maanden en ${shops} tweedehandswinkels${kring ? `, waarvan ${kring} kringlopen` : ''}, met openingstijden. Elke nacht bijgewerkt.`;
+const ld = { '@context': 'https://schema.org', '@type': 'ItemList', name: title, itemListElement: ms.slice(0, 50).map((m, i) => ({ '@type': 'ListItem', position: i + 1, url: SITE + ix.url(m.id), name: `${m.name}, ${m.date}` })) };
+---
+<Tekst title={title} description={description} wide>
+  <script type="application/ld+json" slot="head" set:html={JSON.stringify(ld)} />
+  <p class="tp-crumbs"><a href="/">Snuffelkaart</a> › <a href="/markten/">Markten</a> › {p.name}</p>
+  <h1>{title}</h1>
+  <p class="lede">{description}</p>
+  <div class="tp-cta"><b>Plan je snuffeldag in {p.name}</b><p>Op de kaart zie je welke kringlopen open zijn en welke markten er zijn, en zet je ze in de slimste volgorde.</p>
+    <a class="btn primary" href={`/?plek=${encodeURIComponent(p.name)}&lat=${lat.toFixed(5)}&lon=${lon.toFixed(5)}`}>Open de kaart</a></div>
+  <MarktAgenda markets={ms} empty={`Dit weekend staat er in ${p.name} geen markt in onze agenda. Kijk op de kaart: die toont ook markten net over de grens.`} />
+  {cities.length > 0 && <section>
+    <h2>Kringlopen in {p.name}, per plaats</h2>
+    <ul class="tp-links">{cities.slice(0, 40).map(c => <li><a href={`/${c.slug}/`}>{c.name}</a> <span style="color:var(--fg-3)">{c.shops.length}</span></li>)}</ul>
+    {cities.length > 40 && <p><a href="/plaatsen/">Alle plaatsen</a></p>}
+  </section>}
+  <section>
+    <h2>Andere provincies</h2>
+    <ul class="tp-links">{PROVINCES.filter(x => x !== p).map(x => <li><a href={`/provincie/${x.slug}/`}>{x.name}</a></li>)}</ul>
+  </section>
+</Tekst>

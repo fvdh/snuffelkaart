@@ -1,0 +1,23 @@
+---
+// Pagina per soort markt ("vlooienmarkt", "kofferbakmarkt", "rommelmarkt"): de komende markten van die soort, met per provincie hoeveel.
+import Tekst from '../layouts/Tekst.astro';
+import MarktAgenda from './MarktAgenda.astro';
+import { PROVINCES, MARKET_KINDS } from '../lib/seo';
+import { ix, markets, prov, SITE } from '../lib/sitedata';
+interface Props { slug: string }
+const k = MARKET_KINDS.find(x => x.slug === Astro.props.slug)!;
+const ms = markets.filter(m => k.kinds.includes(m.kind));
+const per = PROVINCES.map(p => ({ p, n: ms.filter(m => prov[m.place] === p.pdok).length })).filter(x => x.n);
+const title = `${k.title} in Nederland`;
+const description = `${ms.length} ${ms.length === 1 ? k.one : k.title.split(' ')[0].toLowerCase()} de komende maanden in ${new Set(ms.map(m => m.place)).size} plaatsen, met datum, tijden, entree en of ze doorgaan. Elke nacht gecontroleerd.`;
+const ld = { '@context': 'https://schema.org', '@type': 'ItemList', name: title, itemListElement: ms.slice(0, 50).map((m, i) => ({ '@type': 'ListItem', position: i + 1, url: SITE + ix.url(m.id), name: `${m.name}, ${m.date}` })) };
+---
+<Tekst title={title} description={description} wide>
+  <script type="application/ld+json" slot="head" set:html={JSON.stringify(ld)} />
+  <p class="tp-crumbs"><a href="/">Snuffelkaart</a> › <a href="/markten/">Markten</a> › {k.title}</p>
+  <h1>{title}</h1>
+  <p class="lede">{description} Of <a href="/">bekijk ze op de kaart</a>, samen met de kringlopen in de buurt.</p>
+  {per.length > 1 && <p>Per provincie: {per.map(({ p, n }, i) => <>{i ? ' · ' : ''}<a href={`/provincie/${p.slug}/`}>{p.name}</a> ({n})</>)}</p>}
+  <MarktAgenda markets={ms} empty={`Dit weekend staat er geen ${k.one} in onze agenda.`} />
+  <p style="color:var(--fg-3)">Ook: {MARKET_KINDS.filter(x => x !== k).map((x, i) => <>{i ? ' · ' : ''}<a href={`/${x.slug}/`}>{x.title.toLowerCase()}</a></>)} · <a href="/rommelmarkt-dit-weekend/">markten dit weekend</a></p>
+</Tekst>

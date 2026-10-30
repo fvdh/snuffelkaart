@@ -1,0 +1,35 @@
+---
+// "Rommelmarkt dit weekend": de markten van komende zaterdag en zondag, per provincie. Elke nacht opnieuw gebouwd.
+import Tekst from '../layouts/Tekst.astro';
+import ItemRow from '../components/ItemRow.astro';
+import { PROVINCES } from '../lib/seo';
+import { weekendOf, dayStart, dLong } from '../lib/model';
+import { ix, markets, from, prov, SITE } from '../lib/sitedata';
+
+const [sat, sun] = weekendOf(dayStart(from));
+const ms = markets.filter(m => m.date === sat || m.date === sun).sort((a, b) => a.date.localeCompare(b.date) || a.start - b.start || a.name.localeCompare(b.name));
+const groups = PROVINCES.map(p => ({ p, ms: ms.filter(m => prov[m.place] === p.pdok) })).filter(g => g.ms.length);
+const rest = ms.filter(m => !PROVINCES.some(p => p.pdok === prov[m.place]));
+const days = `${dLong(sat).toLowerCase()} en ${dLong(sun).toLowerCase()}`;
+const title = 'Rommelmarkten en vlooienmarkten dit weekend';
+const description = `${ms.length} rommelmarkten, vlooienmarkten en kofferbakmarkten op ${days}, per provincie, met tijden, entree en of ze doorgaan.`;
+const ld = { '@context': 'https://schema.org', '@type': 'ItemList', name: title, itemListElement: ms.slice(0, 50).map((m, i) => ({ '@type': 'ListItem', position: i + 1, url: SITE + ix.url(m.id), name: m.name })) };
+---
+<Tekst title={title} description={description} wide>
+  <script type="application/ld+json" slot="head" set:html={JSON.stringify(ld)} />
+  <p class="tp-crumbs"><a href="/">Snuffelkaart</a> › <a href="/markten/">Markten</a> › Dit weekend</p>
+  <h1>{title}</h1>
+  <p class="lede">{description} {groups.length > 1 && <>Spring naar {groups.map((g, i) => <>{i ? ', ' : ''}<a href={`#${g.p.slug}`}>{g.p.name}</a></>)}.</>}</p>
+  <div class="tp-cta"><b>Combineer met kringlopen</b><p>Op de kaart zie je welke kringlopen er dit weekend open zijn, dicht bij de markt.</p><a class="btn primary" href="/">Open de kaart</a></div>
+  {ms.length ? <>{groups.map(g => <section id={g.p.slug}>
+      <h2>{g.p.name} <span style="color:var(--fg-3);font-weight:500">{g.ms.length}</span></h2>
+      <ul class="rows">{g.ms.map(m => <ItemRow it={m} />)}</ul>
+      <p style="font-size:.875rem"><a href={`/provincie/${g.p.slug}/`}>Alle markten in {g.p.name}</a></p>
+    </section>)}
+    {rest.length > 0 && <section><h2>Overig</h2><ul class="rows">{rest.map(m => <ItemRow it={m} />)}</ul></section>}</>
+    : <p>Dit weekend staan er geen markten in onze agenda. Kijk bij <a href="/markten/">alle markten</a> wat er de komende weken is.</p>}
+  <section>
+    <h2>Per provincie</h2>
+    <ul class="tp-links">{PROVINCES.map(p => <li><a href={`/provincie/${p.slug}/`}>{p.name}</a></li>)}</ul>
+  </section>
+</Tekst>

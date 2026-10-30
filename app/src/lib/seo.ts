@@ -5,7 +5,7 @@ import { km, addDays, dayStart, DAYS_LONG, hm, cap, catOf } from './model';
 
 export const slugify = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/['’]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 /** Bestaande adressen in de root; een plaats met zo'n naam krijgt "-plaats" erachter. */
-const RESERVED = new Set(['beheer', 'privacy', 'hoe-we-controleren', 'plaatsen', 'markten', 'organisator', 'colofon', 'voorwaarden', 'offline', '404', 'winkel', 'markt', 'data', 'fonts', 'icons', '_astro', 'sitemap', 'robots']);
+const RESERVED = new Set(['beheer', 'privacy', 'hoe-we-controleren', 'plaatsen', 'markten', 'organisator', 'provincie', 'rommelmarkt-dit-weekend', 'vlooienmarkten', 'rommelmarkten', 'kofferbakmarkten', 'colofon', 'voorwaarden', 'offline', '404', 'winkel', 'markt', 'data', 'fonts', 'icons', '_astro', 'sitemap', 'robots']);
 
 /** Uniek adres per item: eerst de mooie naam, bij een botsing het korte id erachter. Zelfde invoer → zelfde adressen. */
 function unique<T>(items: T[], base: (x: T) => string, id: (x: T) => string): Map<string, T> {
@@ -86,3 +86,14 @@ export function hoursSummary(w: { wd: number; iv: [number, number][] }[]): strin
 /** Dunne winkelpagina's houden we uit Google (wel op de kaart): ongecontroleerd uit Overture zonder tijden, website of telefoon,
  *  en sloop of pandjeshuis. Zulke pagina's zeggen weinig meer dan "misschien bestaat hij niet meer". */
 export const thin = (p: Place) => (p.src === 'overture' && !p.h && !p.website && !p.phone) || ['schroot', 'pandjeshuis'].includes(catOf(p));
+
+/** Provincies (naam zoals PDOK hem geeft → naam waarop mensen zoeken, en het adres). */
+export const PROVINCES = [['Groningen', 'Groningen'], ['Fryslân', 'Friesland'], ['Drenthe', 'Drenthe'], ['Overijssel', 'Overijssel'], ['Flevoland', 'Flevoland'], ['Gelderland', 'Gelderland'],
+  ['Utrecht', 'Utrecht'], ['Noord-Holland', 'Noord-Holland'], ['Zuid-Holland', 'Zuid-Holland'], ['Zeeland', 'Zeeland'], ['Noord-Brabant', 'Noord-Brabant'], ['Limburg', 'Limburg']]
+  .map(([pdok, name]) => ({ pdok, name, slug: slugify(name) }));
+/** Soorten markt met een eigen pagina; welke soorten uit de agenda's erbij horen. */
+export const MARKET_KINDS = [
+  { slug: 'vlooienmarkten', title: 'Vlooienmarkten', one: 'vlooienmarkt', kinds: ['Vlooienmarkt', 'Curiosa', 'Verzamelbeurs', 'Platenbeurs'] },
+  { slug: 'rommelmarkten', title: 'Rommelmarkten en snuffelmarkten', one: 'rommelmarkt', kinds: ['Rommelmarkt', 'Snuffelmarkt', 'Garagesale', 'Vrijmarkt', 'Jaarmarkt'] },
+  { slug: 'kofferbakmarkten', title: 'Kofferbakmarkten', one: 'kofferbakmarkt', kinds: ['Kofferbakmarkt'] },
+];

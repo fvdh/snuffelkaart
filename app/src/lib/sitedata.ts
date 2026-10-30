@@ -14,3 +14,5 @@ export const markets: Market[] = M.markets.filter((m: Market) => m.date >= P.fro
 export const from: string = P.from, holidays: string[] = P.holidays ?? [], generated: string = P.generated;
 export const ix = siteIndex(places, markets);
 export const SITE = 'https://snuffelkaart.nl';
+/** Provincie per plaats (scripts/provincies.mjs, PDOK). Ontbreekt een plaats, dan staat hij alleen niet op een provinciepagina. */
+export const prov: Record<string, string> = fs.existsSync(path.join(process.cwd(), 'public/data/provincies.json')) ? read('provincies') : {};
