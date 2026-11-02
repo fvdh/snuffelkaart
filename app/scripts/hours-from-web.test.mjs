@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseHoursNL, toText, hoursLD } from './hours-from-web.mjs';
+import { parseHoursNL, toText, hoursLD, keep } from './hours-from-web.mjs';
 import { precompute } from './hours-precompute.mjs';
 
 const oh = t => parseHoursNL(t)?.oh ?? null;
@@ -113,4 +113,13 @@ describe('schema.org in de pagina', () => {
     expect(oh('Openingstijden Verenigingsruimtes:\nMaandag t/m donderdag van 09:00 – 12:00 en van 13:30 – 17:00 uur.\nVrijdags van 09:00 - 12:00 uur.\nEtages zijn bereikbaar door middel van (trap)liften.\nOpeningstijden Kringloopwinkel:\nIn principe dinsdags, woensdags, donderdags en vrijdags van 13:30 tot 16:30 uur.\n'))
       .toBe('Tu-Fr 13:30-16:30');
   });
+});
+
+it('niet gelezen: laatst gelezen tijden blijven tot 60 dagen, met de oude datum', () => {
+  const prev = { oh: 'Sa 10:00-17:00', page: 'https://x/contact', read: '2026-10-27T20:00:00Z' }, now = Date.parse('2026-11-02T01:00:00Z');
+  const fail = { url: 'https://x', read: '2026-11-02T01:00:00Z', oh: null, page: null, note: 'fout: status 403' };
+  expect(keep(fail, prev, now)).toMatchObject({ oh: 'Sa 10:00-17:00', ok: '2026-10-27T20:00:00Z', note: 'fout: status 403 (tijden van 2026-10-27 bewaard)' });
+  expect(keep(fail, prev, Date.parse('2027-01-10T00:00:00Z')).oh).toBeNull(); // te oud: weg
+  expect(keep({ ...fail, oh: 'Su 12:00-16:00', ok: fail.read }, prev, now).oh).toBe('Su 12:00-16:00'); // nieuw gelezen wint
+  expect(keep(fail, undefined, now).oh).toBeNull();
 });

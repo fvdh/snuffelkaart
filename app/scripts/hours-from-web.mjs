@@ -152,3 +152,12 @@ export const hoursFromHtml = html => parseHoursNL(toText(html)) ?? hoursLD(html)
 
 /** Sleutel voor de cache: host + pad, zonder www en slash. Winkels van één keten op één pagina delen hem. */
 export const siteKey = u => { try { const x = new URL(/^https?:/i.test(u) ? u : 'https://' + u); return x.host.replace(/^www\./, '').toLowerCase() + x.pathname.replace(/\/$/, ''); } catch { return null; } };
+
+/** Niet gelezen (fout, blokkade, even geen tijden op de pagina)? Dan de laatst gelezen tijden houden, tot 60 dagen oud.
+ *  GitHub-servers worden door sommige sites geweigerd (2 nov: 84 winkels kwijt); `ok` is de datum van de laatste echte lezing
+ *  en wordt de controledatum op de kaart, dus oude tijden ogen nooit vers. */
+export function keep(res, prev, now = Date.now()) {
+  const ok = prev?.oh && (prev.ok ?? prev.read);
+  if (res.oh || !ok || now - Date.parse(ok) > 60 * 864e5) return res;
+  return { ...res, oh: prev.oh, page: prev.page, pc: prev.pc, ok, note: `${res.note} (tijden van ${ok.slice(0, 10)} bewaard)` };
+}

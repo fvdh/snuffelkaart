@@ -3,6 +3,7 @@ dist/
 .astro/
 .DS_Store
 .env*
-app/data-raw/
+app/data-raw/*
+!app/data-raw/web-hours.json
 .claude/worktrees/
 supabase/.temp/

@@ -1,11 +1,14 @@
 # Elke week (§5.1): winkels opnieuw uit OpenStreetMap en Overture, openingstijden van hun websites → Supabase.
 # De nachtelijke run van 02:30 UTC zet het daarna op de kaart (export, bouwen, uitrollen); deze job schrijft alleen naar Supabase.
 # Verdwenen winkels worden verborgen (niet gewist); meer dan 10% weg = fout, dan schrijft db.mjs niets. Zie placeRows in db.mjs.
-# Caches: Overture per release (maandelijks nieuw), websitetijden doorlopend (fetch-web-hours leest alleen wat ouder is dan 7 dagen).
+# Overture in de cache per release (maandelijks nieuw). Websitetijden staan in de repo (data-raw/web-hours.json): fetch-web-hours leest
+# alleen wat ouder is dan 7 dagen en houdt bij een fout de laatst gelezen tijden (2 nov: GitHub-servers worden door sommige sites geweigerd).
 # ponytail: Overpass in 9 vakken i.p.v. het Geofabrik-extract + osmium; overstappen als Overpass vaak weigert.
 name: Winkels wekelijks
 on:
   workflow_dispatch: # maandag 00:30 UTC gestart door de klok (app/worker/klok.js), ruim vóór de nachtelijke export
+permissions:
+  contents: write # websitetijden bewaren in de repo
 jobs:
   winkels:
     runs-on: ubuntu-latest
@@ -32,20 +35,18 @@ jobs:
       - name: Overture ophalen (alleen bij een nieuwe release)
         if: steps.ovcache.outputs.cache-hit != 'true'
         run: node scripts/fetch-overture.mjs "${{ steps.ov.outputs.release }}"
-      - uses: actions/cache/restore@v4
-        with:
-          path: app/data-raw/web-hours.json
-          key: web-hours-${{ github.run_id }}
-          restore-keys: web-hours-
       - name: Openingstijden van websites
         run: node scripts/fetch-web-hours.mjs
         timeout-minutes: 45
-        continue-on-error: true # deels gelezen is ook goed; de cache wordt tussendoor bewaard
-      - uses: actions/cache/save@v4
+        continue-on-error: true # deels gelezen is ook goed; het bestand wordt tussendoor bewaard
+      - name: Websitetijden bewaren in de repo
         if: always()
-        with:
-          path: app/data-raw/web-hours.json
-          key: web-hours-${{ github.run_id }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data-raw/web-hours.json
+          push() { for i in 1 2 3; do git push && return; git pull --rebase -X theirs || return 1; done; return 1; }
+          git diff --cached --quiet || { git commit -m "Websitetijden gelezen $(date +%F)" && push; }
       - name: OpenStreetMap + samenvoegen
         run: |
           test -s data-raw/overture.json && test -s data-raw/web-hours.json || { echo "::error::Overture of websitetijden ontbreekt; niets geschreven"; exit 1; }

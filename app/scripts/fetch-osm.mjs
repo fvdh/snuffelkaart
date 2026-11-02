@@ -167,7 +167,7 @@ if (fs.existsSync(WEB)) {
     // Niet exact vergelijken: de postcode in OSM/Overture wijkt vaak een paar huizen af (4131 ↔ 4132).
     if (pc && w.pc?.length && !w.pc.some(x => x.slice(0, 3) === pc.slice(0, 3))) { webStat.otherShop++; continue; }
     const h = precompute(w.oh, FROM); if (!h) continue;
-    Object.assign(p, { h, oh: w.oh, checked: w.read.slice(0, 10), hs: 'web', hu: w.page }); webStat.used++;
+    Object.assign(p, { h, oh: w.oh, checked: (w.ok ?? w.read).slice(0, 10), hs: 'web', hu: w.page }); webStat.used++;
   }
 }
 

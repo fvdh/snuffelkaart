@@ -5,7 +5,7 @@
 //          npm run data:web -- --fresh (alles opnieuw)
 //          npm run data:web -- --limit=50 (proef)
 import fs from 'node:fs';
-import { hoursFromHtml, toText, siteKey } from './hours-from-web.mjs';
+import { hoursFromHtml, toText, siteKey, keep } from './hours-from-web.mjs';
 
 const PLACES = new URL('../public/data/places.json', import.meta.url), OUT = new URL('../data-raw/web-hours.json', import.meta.url);
 const UA = 'Snuffelkaart-PoC/0.1 (openingstijden van kringlopen; freek@draad.nu)';
@@ -81,13 +81,13 @@ async function read(key, url) {
       try { const r = await get(next); hit = hoursFromHtml(r.html); if (hit) { at = r.url; break; } } catch { /* volgende */ }
     }
     // Postcodes op de pagina (4 cijfers): staat de winkel er niet tussen, dan is het misschien een andere winkel (zie fetch-osm).
-    if (hit) { res.oh = hit.oh; res.page = at; res.pc = [...new Set([...toText(html).matchAll(/\b([1-9]\d{3})\s?[A-Z]{2}\b/g)].map(m => m[1]))].slice(0, 12); } else res.note = 'geen tijden gevonden';
+    if (hit) { res.oh = hit.oh; res.page = at; res.ok = res.read; res.pc = [...new Set([...toText(html).matchAll(/\b([1-9]\d{3})\s?[A-Z]{2}\b/g)].map(m => m[1]))].slice(0, 12); } else res.note = 'geen tijden gevonden';
   } catch (e) {
     res.note = `fout: ${e.message ?? e.name}`;
     // Echt weg (domein bestaat niet meer, of 404/410), niet even onbereikbaar: onthoud sinds wanneer. Een vorige fout telt als eerste keer.
     if (gone(e)) { const prev = cache[key]; res.dead = prev?.dead ?? (prev?.note?.startsWith('fout') ? prev.read : res.read); }
   }
-  return res;
+  return keep(res, cache[key]);
 }
 const gone = e => e.cause?.code === 'ENOTFOUND' || /status 40[4]|status 410/.test(e.message); // verlopen certificaat, 403, 5xx: kan tijdelijk zijn
 
@@ -103,4 +103,7 @@ await Promise.all(Array.from({ length: WORKERS }, async () => {
 save();
 const all = Object.values(cache), notes = {};
 for (const r of all) if (!r.oh) { const n = r.note?.startsWith('fout') ? 'fout (site niet bereikbaar)' : r.note; notes[n] = (notes[n] ?? 0) + 1; }
-console.log(`Klaar: ${found} van ${done} nieuw gelezen sites met tijden. In cache: ${all.filter(r => r.oh).length} van ${all.length} met tijden.`, notes);
+const kept = all.filter(r => r.oh && r.ok !== r.read && Date.parse(r.read) > Date.now() - 864e5).length;
+console.log(`Klaar: ${found} van ${done} nieuw gelezen sites met tijden (waarvan ${kept} oude tijden bewaard). In cache: ${all.filter(r => r.oh).length} van ${all.length} met tijden.`, notes);
+// Zichtbaar in het GitHub-overzicht (annotaties), ook zonder in de logs te kijken.
+if (process.env.GITHUB_ACTIONS) console.log(`::notice title=Websitetijden::${found} van ${done} gelezen met tijden, ${kept} oude bewaard. Zonder tijden: ${Object.entries(notes).map(([k, v]) => `${k} ${v}`).join(', ')}`);
