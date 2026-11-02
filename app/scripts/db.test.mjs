@@ -42,12 +42,14 @@ it('extra.json: alleen goedgekeurd, jongste tijden winnen, schermnaam erbij', ()
   const x = toExtra([
     c('tijden', { oh: 'Sa 10:00-17:00', seen: '2026-10-20' }),
     c('tijden', { oh: 'Sa 11:00-16:00', seen: '2026-10-25' }, { created_at: '2026-10-27T10:00:00Z' }), // later ingestuurd, maar recenter gezien: wint
+    c('tijden', { oh: 'klopt', klopt: true, seen: '2026-10-30' }), // bevestiging: alleen de datum, de tijden blijven
     c('review', { stars: 4, text: '', month: '2026-09' }),
     c('review', { stars: 2, month: '2026-10' }, { status: 'nieuw' }),
     c('foto', { path: 'u/a.webp' }, { user_id: 'onbekend' }),
   ], new Map([['u', 'Marieke']]), '2026-10-31', 'https://x/fotos');
   expect(x.hours.p.h[0]).toEqual([[660, 960]]);
   expect(x.hours.p).toMatchObject({ checked: '2026-10-25', by: 'Marieke' });
+  expect(x.ok.p).toEqual({ checked: '2026-10-30', by: 'Marieke' });
   expect(x.reviews.p).toEqual([{ name: 'Marieke', stars: 4, text: undefined, month: '2026-09' }]);
   expect(x.photos.p[0]).toMatchObject({ url: 'https://x/fotos/u/a.webp', name: 'Een bezoeker' });
 });

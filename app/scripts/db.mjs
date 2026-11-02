@@ -88,11 +88,12 @@ export function placeRows(existing, incoming, today) {
 /** Goedgekeurde bijdragen → /data/extra.json (los van het open OSM-bestand; van Snuffelkaart, niet ODbL).
  *  Tijden: de jongste per winkel (op de datum waarop de bezoeker ze zag), vooruitgerekend zoals de rest. */
 export function toExtra(contribs, names, from, photoBase) {
-  const hours = {}, reviews = {}, photos = {}, by = id => names.get(id) ?? 'Een bezoeker';
+  const hours = {}, ok = {}, reviews = {}, photos = {}, by = id => names.get(id) ?? 'Een bezoeker';
   for (const c of [...contribs].sort((a, b) => a.created_at.localeCompare(b.created_at))) {
     if (c.status !== 'goed') continue;
     const d = c.data;
-    if (c.kind === 'tijden') {
+    if (c.kind === 'tijden' && d.klopt) { if (!ok[c.item_id] || d.seen > ok[c.item_id].checked) ok[c.item_id] = { checked: d.seen, by: by(c.user_id) }; }
+    else if (c.kind === 'tijden') {
       const h = precompute(d.oh, from);
       if (h && (!hours[c.item_id] || d.seen >= hours[c.item_id].checked)) hours[c.item_id] = { h, checked: d.seen, by: by(c.user_id) };
     } else if (c.kind === 'review') (reviews[c.item_id] ??= []).push({ name: by(c.user_id), stars: d.stars, text: d.text || undefined, month: d.month });
@@ -100,7 +101,7 @@ export function toExtra(contribs, names, from, photoBase) {
   }
   for (const r of Object.values(reviews)) r.sort((a, b) => b.month.localeCompare(a.month));
   for (const p of Object.values(photos)) p.reverse(); // nieuwste eerst
-  return { generated: new Date().toISOString(), hours, reviews, photos };
+  return { generated: new Date().toISOString(), hours, ok, reviews, photos };
 }
 
 // ---------- Supabase REST ----------

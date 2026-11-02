@@ -8,13 +8,15 @@ import { groupRows, type Filters, type Group } from '../lib/filter';
 import { searchSpots, type Spot } from '../lib/pdok';
 import { providers, oauthUrl, verifyCode, SB, KEY, type Session } from '../lib/auth';
 import { Ic, Tile, St, Conf, Banner, CAT, kindLabel, isUnsure, EASE, reduced, pop } from './ui';
-import { PhotoStrip, ReviewsSection, NameField, PILL, WHAT, type Bij } from './Bijdragen';
+import { PhotoStrip, ReviewsSection, NameField, Stars, PILL, WHAT, type Bij } from './Bijdragen';
 const fbUrl = (path: string) => `https://www.facebook.com/${path}`;
 import { errText } from '../lib/bijdragen';
 
 export interface Ctx {
   now: Date; f: Filters; online: boolean; dataFrom: string | null; install: { add: () => void; no: () => void } | null; origin: LatLon; originLabel: string | null; locDenied: boolean; spot: boolean; me: LatLon | null; locating: boolean;
   pickSpot: (s: Spot) => void; recent: Spot[]; markets: Market[]; favs: string[]; bij: Bij; planStops: string[]; planDay: string;
+  /** Winkels waar je was ("Hier ben ik"), met de laatste dag. Alleen op dit apparaat. */
+  geweest: Record<string, string>; visit: (id: string) => void;
   /** Het gekozen moment: nu (live) of een dag + vertrektijd. Geldt voor lijst, kaart en detail; het dagplan heeft een eigen dag en tijd. */
   day: string; min: number; live: boolean; setWhen: (w: { day: string; start: number } | null) => void; st: (it: Item) => Status;
   setF: (p: Partial<Filters>) => void; open: (id: string, from?: HTMLElement | null) => void; toggleStop: (id: string) => void; toggleFav: (id: string) => void;
@@ -341,7 +343,8 @@ function MarketDetail({ m, c, top, d, actions }: { m: Market; c: Ctx; top: React
 
 /** from: vertrekpunt van dit plan (de plek waar je keek toen je de eerste stop koos), los van wat je daarna in de lijst bekijkt. */
 export type From = LatLon & { label: string; me?: boolean; fallback?: boolean };
-export type Plan = { day: string; start: number; stops: string[]; done?: string[]; skip?: string[]; from?: From };
+/** go: de dag is gestart (Onderweg). Dan opent de app daar weer, ook na afsluiten (Freek, 2 nov: rondje Zwolle). */
+export type Plan = { day: string; start: number; stops: string[]; done?: string[]; skip?: string[]; from?: From; go?: boolean };
 /** Vertrektijd; -1 = "nu" (vandaag: nu, afgerond op 5 min; een andere dag: 10:00). */
 export const nowStart = (now: Date) => Math.ceil(minutesOf(now) / 5) * 5;
 /** Vandaag ligt het vertrek nooit in het verleden: een gekozen tijd die al voorbij is, wordt "nu". */
@@ -426,30 +429,61 @@ export function PlanView({ c, items, plan, setPlan, optimizeSeen, onderweg, shar
   </>);
 }
 
-/** Op de dag zelf: steeds de volgende stop, navigeren per stop, en na een bezoek één vraag over de tijden. */
+/** Sterren met één tik, meteen ingestuurd als review (tekst mag, hoeft niet). Zonder account of schermnaam: het formulier. */
+function StarTap({ it, c }: { it: Place; c: Ctx }) {
+  const old = c.bij.mine.find(x => x.kind === 'review' && x.item_id === it.id), was = old ? Number(old.data.stars) : 0;
+  const [n, setN] = useState(was), [err, setErr] = useState(false);
+  const pick = (k: number) => {
+    if (!c.user || !c.bij.name) return c.bij.go('review', it.id);
+    setN(k); setErr(false);
+    c.bij.send('review', it.id, { ...old?.data, stars: k, month: isoDay(c.now).slice(0, 7), text: old?.data.text ?? '' }).catch(() => { setN(was); setErr(true); });
+  };
+  return (<span className="startap"><span className="starpick" role="radiogroup" aria-label={`Sterren voor ${it.name}`}>{[1, 2, 3, 4, 5].map(k => <label key={k} className={k <= n ? 'on' : ''}>
+    <input type="radio" name={`st-${it.id}`} checked={k === n} onChange={() => pick(k)} /><svg className="i" aria-hidden="true"><use href="#i-star" /></svg><span className="sr">{k} ster{k > 1 ? 'ren' : ''}</span></label>)}</span>
+    {err && <small className="issue bad">Lukte niet, probeer het nog eens.</small>}</span>);
+}
+
+/** Op de dag zelf: steeds de volgende stop, navigeren per stop. Bij aankomst hooguit één vraag over de tijden (wat we nog niet weten);
+ *  de sterren aan het eind, in één overzicht (Freek, 2 nov: midden in je rondje wil je door). */
 export function OnderwegView({ c, items, plan, setPlan, done }: { c: Ctx; items: Item[]; plan: Plan; setPlan: (p: Partial<Plan>) => void; done: () => void }) {
   const byId = new Map(items.map(i => [i.id, i])), stops = plan.stops.map(id => byId.get(id)).filter(Boolean) as Item[];
   const gone = new Set([...(plan.done ?? []), ...(plan.skip ?? [])]), left = stops.filter(s => !gone.has(s.id)), next = left[0];
   const lastDone = [...stops].reverse().find(s => plan.done?.includes(s.id)), from = c.me ?? lastDone ?? c.origin;
   const today = plan.day === isoDay(c.now), t0 = today ? Math.max(effStart(plan, c.now), minutesOf(c.now)) : effStart(plan, c.now);
   const sim = simulate(left, plan.day, t0, from), s0 = sim.stops[0];
-  const [asked, setAsked] = useState<string | null>(null), askIt = asked ? byId.get(asked) : null;
-  const here = (it: Item) => { setPlan({ done: [...(plan.done ?? []), it.id] }); if (it.t === 'k' && it.h) setAsked(it.id); };
+  // Bij aankomst: tijden onbekend → vragen; bekend maar niet in de laatste 30 dagen bevestigd → klopt het?; anders geen vraag.
+  const [asked, setAsked] = useState<{ id: string; q: 'onbekend' | 'tijden' | 'dank' } | null>(null), askIt = asked ? byId.get(asked.id) : null;
+  const here = (it: Item) => {
+    setPlan({ done: [...(plan.done ?? []), it.id] }); if (it.t !== 'k') return setAsked(null);
+    c.visit(it.id);
+    setAsked(!it.h ? { id: it.id, q: 'onbekend' } : it.checked && it.checked >= addDays(isoDay(c.now), -30) ? null : { id: it.id, q: 'tijden' });
+  };
+  // "Ze kloppen" telt mee als bevestiging (na controle in beheer: "gecontroleerd op" vandaag). Zonder account bedanken we alleen.
+  const klopt = (it: Item) => { setAsked({ id: it.id, q: 'dank' }); if (c.user && c.bij.name) c.bij.send('tijden', it.id, { oh: 'klopt', klopt: true, seen: isoDay(c.now), how: 'Klopte bij bezoek' }).catch(() => {}); };
+  const visited = stops.filter(s => s.t === 'k' && plan.done?.includes(s.id)) as Place[];
+  const ask = askIt && (asked!.q === 'onbekend' ? <section className="ow-ask" aria-labelledby="ow-ask"><h3 id="ow-ask">Weet jij de tijden van {askIt.name}?</h3><p>Ze staan vaak op de deur. Dan ziet de volgende snuffelaar of de winkel open is.</p>
+      <div className="btns"><button className="btn sm primary" onClick={() => c.bij.go('suggest', askIt.id)}><Ic n="edit" />Tijden invullen</button><button className="btn sm" onClick={() => setAsked(null)}>Weet ik niet</button></div></section>
+    : asked!.q === 'tijden' ? <section className="ow-ask" aria-labelledby="ow-ask"><h3 id="ow-ask">Kloppen de tijden van {askIt.name}?</h3><p>Kijk even op de deur. Wij hebben vandaag: <b>{askIt.t === 'k' && week(askIt, isoDay(c.now))?.[0]?.txt}</b>.</p>
+      <div className="btns"><button className="btn sm primary" onClick={() => klopt(askIt)}><Ic n="check" />Ja, ze kloppen</button><button className="btn sm" onClick={() => c.bij.go('suggest', askIt.id)}>Nee, aanpassen</button></div></section>
+    : <section className="ow-ask" aria-labelledby="ow-ask"><h3 id="ow-ask">Dank je!</h3><p>{c.user && c.bij.name ? `We zetten bij ${askIt.name} dat de tijden kloppen.` : 'Log in, dan telt je bevestiging mee op de kaart.'}</p>
+      <div className="btns"><button className="btn sm" onClick={() => setAsked(null)}>Oké</button></div></section>);
   return (<div className="onderweg">
     <div className="pv-head" data-peek data-drag>
       <div className="dv-top"><button className="back" onClick={c.back}><Ic n="back" />Mijn {DAYS_LONG[dayStart(plan.day).getDay()]}</button></div>
       <div className="pv-title"><h2>Onderweg</h2><span className="ow-n tnum">{stops.length - left.length} van {stops.length}{next && ` · terug rond ${hm(sim.home)}`}</span></div>
       <div className="ow-bar" aria-hidden="true">{stops.map(s => <i key={s.id} className={plan.done?.includes(s.id) ? 'ja' : plan.skip?.includes(s.id) ? 'nee' : s === next ? 'nu' : ''} />)}</div>
     </div>
+    {ask}
     {next && s0 ? <section className="ow-next" aria-labelledby="ow-h">
       <span className="label">Volgende · ±{s0.drive} min · {fkm(s0.km)} km</span>
       <h3 id="ow-h">{next.name}</h3>
       <St s={s0.issue ? { cls: s0.issue.lv === 'bad' ? 'closed' : 'warn', txt: s0.issue.txt } : { cls: 'open', txt: `Aankomst ±${hm(s0.arrive)}${s0.note ? ` · ${s0.note}` : ''}`, open: true }} />
       <a className="btn primary block" href={routeUrl(IOS ? 'apple' : 'google', c.me, [next])} target="_blank" rel="noopener"><Ic n="route" />Navigeer erheen</a>
       <div className="row2"><button className="btn" onClick={() => here(next)}><Ic n="check" />Hier ben ik</button><button className="btn" onClick={() => setPlan({ skip: [...(plan.skip ?? []), next.id] })}>Overslaan</button></div>
-    </section> : <div className="success"><span className="ok-ic"><Ic n="check" /></span><h3>Klaar!</h3><p>Je hebt al je stops gehad. Fijne vondsten.</p><button className="btn primary" onClick={done}>Afsluiten</button></div>}
-    {askIt && <section className="ow-ask" aria-labelledby="ow-ask"><h3 id="ow-ask">Je was bij {askIt.name}</h3><p>Klopten de openingstijden? Zo niet, help de volgende snuffelaar en geef ze door.</p>
-      <div className="btns"><button className="btn sm primary" onClick={() => c.bij.go('suggest', askIt.id)}><Ic n="edit" />Tijden doorgeven</button><button className="btn sm" onClick={() => setAsked(null)}>Ze klopten</button></div></section>}
+    </section> : <div className="success"><span className="ok-ic"><Ic n="check" /></span><h3>Klaar!</h3>
+      <p>{visited.length ? `Je was bij ${visited.length === 1 ? '1 winkel' : `${visited.length} winkels`}. Hoe waren ze? ${c.user ? 'Eén tik is genoeg.' : 'Log in en geef ze sterren.'}` : 'Je hebt al je stops gehad. Fijne vondsten.'}</p>
+      {visited.length > 0 && <ul className="ow-rate">{visited.map(it => <li key={it.id}><span className="f-name">{it.name}</span><StarTap it={it} c={c} /><button className="link" onClick={() => c.bij.go('review', it.id)}>Schrijf erbij</button></li>)}</ul>}
+      <button className="btn primary" onClick={done}>Afsluiten</button></div>}
     <ol className="ow-list">{stops.map((s, i) => { const st = plan.done?.includes(s.id) ? 'geweest' : plan.skip?.includes(s.id) ? 'overgeslagen' : null, k = left.indexOf(s); return (
       <li key={s.id} className={st ? 'gone' : ''}><span className="ow-i tnum">{i + 1}</span><button className="st-name" onClick={() => c.open(s.id)}>{s.name}</button><span className="tnum">{st ?? (sim.stops[k] ? `±${hm(sim.stops[k].arrive)}` : '')}</span></li>); })}</ol>
     {next && <p className="src"><Ic n="info" /><span>Tijden rekenen vanaf {c.me ? 'waar je nu bent' : lastDone ? `${lastDone.name}` : 'je vertrekpunt'} en het huidige tijdstip.</span></p>}
@@ -531,6 +565,10 @@ export function MeView({ c, items, showFavs, login, logout, download, remove }: 
   // ponytail: tien vakjes; wie er meer heeft ziet de nieuwste tien en een teller
   const slots = Array.from({ length: 10 }, (_, i) => [...mine].reverse()[i] ?? null), over = Math.max(0, mine.length - 10);
   const stops = c.planStops.map(id => byId.get(id)).filter(Boolean) as Item[], dayName = DAYS_LONG[dayStart(c.planDay).getDay()];
+  // Geweest: wat je onderweg afvinkte plus waar je een review gaf, nieuwste eerst. ponytail: geen limiet; inklappen als lijsten lang worden.
+  const rated = new Map(c.bij.mine.filter(x => x.kind === 'review' && x.status !== 'afgewezen').map(x => [x.item_id, Number(x.data.stars)]));
+  const been = [...new Set([...Object.keys(c.geweest), ...rated.keys()])].map(id => ({ it: byId.get(id), d: c.geweest[id] ?? '' }))
+    .filter((x): x is { it: Place; d: string } => x.it?.t === 'k').sort((a, b) => b.d.localeCompare(a.d));
   return (<div className="me">
     <section className="pas" aria-labelledby="pas-naam">
       <div className="pas-top"><span className="pas-brand"><Ic n="tag" />SNUFFELPAS</span><span className="pas-mail">{c.user ?? 'op dit apparaat'}</span></div>
@@ -569,6 +607,15 @@ export function MeView({ c, items, showFavs, login, logout, download, remove }: 
           <ol>{stops.slice(0, 5).map(it => <li key={it.id}>{it.name}</li>)}{stops.length > 5 && <li className="mb-more">en nog {stops.length - 5}</li>}</ol>
           <span className="mb-go">Open dagplan<Ic n="chev" /></span></button>
           : <p className="me-empty"><Ic n="cal" /><span>Nog geen plan. Tik op <b>+</b> bij een winkel of markt, of laat er een maken onder <b>Mijn dag</b>.</span></p>}
+      </section>
+
+      <section className="me-block" aria-labelledby="me-been">
+        <div className="me-bh"><h3 id="me-been">Geweest{been.length ? <span className="tnum"> {been.length}</span> : null}</h3></div>
+        {been.length ? <ul className="favs">{been.map(({ it, d }) => { const s = rated.get(it.id); return (
+          <li key={it.id}><button onClick={() => s ? c.open(it.id) : c.bij.go('review', it.id)} aria-label={s ? `${it.name}, ${s} sterren` : `${it.name}: geef sterren`}>
+            <Tile it={it} /><span className="f-main"><span className="f-name">{it.name}</span><span className="f-sub">{[it.place, d && dShort(d)].filter(Boolean).join(' · ')}</span></span>
+            {s ? <Stars n={s} /> : <span className="f-rate"><Ic n="star" />Sterren</span>}</button></li>); })}</ul>
+          : <p className="me-empty"><Ic n="check" /><span>Tik onderweg op <b>Hier ben ik</b>, dan verzamel je hier de kringlopen waar je was.</span></p>}
       </section>
     </div>
 

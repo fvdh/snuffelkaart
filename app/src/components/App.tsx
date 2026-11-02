@@ -91,6 +91,7 @@ export default function App() {
   useEffect(() => { try { const old = localStorage.getItem('snuffel-plek'); if (old) { const o: Spot = JSON.parse(old); if (!recent.some(r => r.label === o.label)) setRecent([o, ...recent].slice(0, 3)); localStorage.removeItem('snuffel-plek'); } } catch { /* niets */ } }, []);
   const origin = me ?? spot ?? DEFAULT_CENTER, originLabel = me ? null : spot?.label ?? 'Amersfoort';
   const [favs, setFavs] = useLocal<string[]>('snuffel-favs', []);
+  const [geweest, setGeweest] = useLocal<Record<string, string>>('snuffel-geweest', {}), geweestRef = useRef(geweest); geweestRef.current = geweest;
   // Het moment voor lijst, kaart en detail: nu (null) of een dag + vertrektijd binnen twee weken. Niet bewaard: de app opent op nu.
   const [whenRaw, setWhen] = useState<{ day: string; start: number } | null>(null);
   const when = whenRaw && whenRaw.day >= today && whenRaw.day <= addDays(today, 13) ? whenRaw : null;
@@ -98,7 +99,7 @@ export default function App() {
   // Het dagplan heeft een eigen dag en vertrektijd (-1 = nu), los van wat je in de lijst bekijkt (Freek, 29 okt: ontwerp "de snuffellus").
   const [planRaw, setPlanRaw] = useLocal<Plan>('snuffel-plan', { day: today, start: -1, stops: [] });
   // Een plan van een voorbije dag schuift naar vandaag en begint weer op "nu".
-  const plan: Plan = planRaw.day >= today && planRaw.day <= addDays(today, 13) ? planRaw : { ...planRaw, day: today, start: -1, done: [], skip: [] };
+  const plan: Plan = planRaw.day >= today && planRaw.day <= addDays(today, 13) ? planRaw : { ...planRaw, day: today, start: -1, done: [], skip: [], go: false };
   // Altijd vanaf de laatste stand rekenen: snelle tikken achter elkaar mogen elkaar niet overschrijven.
   const planRef = useRef(plan); planRef.current = plan;
   const hereRef = useRef<From>({ ...DEFAULT_CENTER, label: 'Amersfoort', fallback: true });
@@ -155,7 +156,7 @@ export default function App() {
   const FORMS: View[] = ['review', 'photo', 'suggest'];
   const back = () => {
     setDir('back'); scrollTop();
-    if (FORMS.includes(view)) return setView('detail'); // terug naar de winkel; prev blijft staan
+    if (FORMS.includes(view)) return setView(prev === 'onderweg' ? 'onderweg' : 'detail'); // terug naar de winkel, of naar Onderweg als je daarvandaan kwam; prev blijft staan
     setView(view === 'detail' || view === 'waar' ? (prev === 'waar' ? 'list' : prev) : view === 'login' || view === 'contrib' ? 'me' : view === 'onderweg' || view === 'dag' ? 'plan' : 'list'); if (view === 'detail') setSel(null); setPrev('list');
   };
   // ---------- account (M3) ----------
@@ -193,7 +194,7 @@ export default function App() {
     go: (v, id) => {
       // Na inloggen terug naar wat je wilde doen, ook als de inloglink de app opnieuw opent (UX-review 29 okt).
       if (!sess && v !== 'contrib') { try { sessionStorage.setItem('snuffel-terug', JSON.stringify({ v, id: id ?? sel })); } catch { /* privémodus */ } setToast('Log in om bij te dragen. Daarna ga je meteen verder.'); setDir('fwd'); setPrev(view); setView('login'); setSnap('full'); return; }
-      setDir('fwd'); if (id) setSel(id); setView(v); setSnap('full'); scrollTop();
+      setDir('fwd'); if (id) setSel(id); if (view === 'onderweg') setPrev('onderweg'); setView(v); setSnap('full'); scrollTop();
     },
     send: async (kind: Kind, itemId: string, data: Record<string, unknown>, file?: Blob) => {
       if (!sess) throw new Error('Log eerst in.');
@@ -242,7 +243,7 @@ export default function App() {
     klik(id, 'plan');
     const next: Partial<Plan> = { stops: [...plan.stops, id] };
     // Eerste stop: het plan neemt het moment over dat je bekijkt (of de dag van de markt).
-    if (!plan.stops.length) { next.day = it.t === 'm' ? it.date : day; next.start = next.day === today && nowMode ? -1 : when && next.day === when.day ? when.start : 600; next.done = []; next.skip = []; }
+    if (!plan.stops.length) { next.day = it.t === 'm' ? it.date : day; next.start = next.day === today && nowMode ? -1 : when && next.day === when.day ? when.start : 600; next.done = []; next.skip = []; next.go = false; }
     if (it.t === 'm' && it.date !== (next.day ?? plan.day)) setToast(`Let op: deze markt is op ${DAYS_LONG[dayStart(it.date).getDay()]}.`);
     else if (it.t === 'm' && !plan.stops.length && it.date !== day) setToast(`Je dag staat nu op ${DAYS_LONG[dayStart(it.date).getDay()]}, de dag van deze markt.`);
     else if (it.t === 'm' && it.status === 'unconf') setToast('Toegevoegd. Deze datum is nog niet bevestigd.');
@@ -285,7 +286,7 @@ export default function App() {
   useEffect(() => { if (!wide && aside) { setView(aside); setAside(null); } else if (wide && PLANISH.includes(view as never)) { setAside(view as Aside); setView('list'); } }, [wide]);
   const st = useCallback((it: Item) => statusFor(it, now, day, nowMode ? undefined : min), [now, day, min, nowMode]);
 
-  const c: Ctx = { now, f, online, dataFrom, install, origin, originLabel, locDenied, locating, spot: !!spot, pickSpot, markets, recent: spot ? [spot, ...recent.filter(r => r.label !== spot.label)].slice(0, 3) : recent, me, favs, bij, planStops: plan.stops, planDay: plan.day,
+  const c: Ctx = { now, f, online, dataFrom, install, origin, originLabel, locDenied, locating, spot: !!spot, pickSpot, markets, recent: spot ? [spot, ...recent.filter(r => r.label !== spot.label)].slice(0, 3) : recent, me, favs, bij, geweest, visit: id => setGeweest({ ...geweestRef.current, [id]: today }), planStops: plan.stops, planDay: plan.day,
     day, min, live: nowMode, setWhen: w => setWhen(w), st, setF, open, toggleStop, toggleFav, here, locate, back, openPlan, openMe, openDag, openWaar, share: shareItem, user: sess?.email ?? null };
   const planProps = { items, plan, setPlan };
   const closeAside = () => setAside(null);
@@ -294,8 +295,15 @@ export default function App() {
   // "Je locatie" beweegt mee zodra die bekend is; tot dan de plek waar je toen was.
   const pFrom: From = plan.from ? (plan.from.me && me ? here : plan.from) : here;
   const planScreen = (v: (typeof PLANISH)[number], cx0: Ctx) => { const cx: Ctx = { ...cx0, origin: pFrom, originLabel: pFrom.label, me: plan.from?.me ? me : null }; return v === 'dag' ? <DagView c={cx} {...planProps} />
-    : v === 'onderweg' ? <OnderwegView c={cx} {...planProps} done={() => { setPlan({ done: [], skip: [] }); cx.openPlan(); }} />
-    : <PlanView c={cx} {...planProps} setPlan={p => { setPlan(p); if (p.stops && !p.day && p.stops.length === plan.stops.length) setOptimized(true); }} optimizeSeen={optimized} onderweg={() => wide ? setAside('onderweg') : openPlanish('onderweg')} share={sharePlan} />; };
+    : v === 'onderweg' ? <OnderwegView c={cx} {...planProps} done={() => { setPlan({ done: [], skip: [], go: false }); cx.openPlan(); }} />
+    : <PlanView c={cx} {...planProps} setPlan={p => { setPlan(p); if (p.stops && !p.day && p.stops.length === plan.stops.length) setOptimized(true); }} optimizeSeen={optimized} onderweg={() => { setPlan({ go: true }); openPlanish('onderweg'); }} share={sharePlan} />; };
+  // Gestart en nog stops over: na afsluiten opent de app weer in Onderweg, niet op de lijst. Een deeplink gaat voor.
+  const reopened = useRef(false);
+  useEffect(() => {
+    if (reopened.current || !places) return; reopened.current = true;
+    const gone = new Set([...(plan.done ?? []), ...(plan.skip ?? [])]);
+    if (plan.go && plan.day === today && plan.stops.some(id => byId.has(id) && !gone.has(id)) && !/[?&](open|dag)=/.test(location.search) && !sessionStorage.getItem('snuffel-terug')) openPlanish('onderweg');
+  }, [byId]);
   const tab = PLANISH.includes(view as never) ? 'dag' : ['me', 'login', 'contrib'].includes(view) ? 'jij' : 'kaart';
   const goTab = (t: string) => { if (t === 'kaart') { setDir('back'); setView('list'); setSel(null); scrollTop(); if (!desktop && snap === 'full') setSnap('half'); } else if (t === 'dag') { if (wide) setAside(aside ? null : 'plan'); else openPlanish('plan'); } else openMe(); };
   const nav = <nav className="tabs" aria-label="Hoofdmenu">

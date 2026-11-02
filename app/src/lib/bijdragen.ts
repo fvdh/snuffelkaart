@@ -5,7 +5,8 @@ import { intervals, isHoliday } from './hours';
 
 export type Review = { name: string; stars: number; text?: string; month: string };
 export type Photo = { url: string; caption?: string; name: string };
-export type Extra = { hours: Record<string, { h: [number, number][][]; checked: string; by: string }>; reviews: Record<string, Review[]>; photos: Record<string, Photo[]> };
+/** ok: tijden die een bezoeker ter plekke bevestigde (alleen de datum; de tijden zelf blijven). */
+export type Extra = { hours: Record<string, { h: [number, number][][]; checked: string; by: string }>; ok?: Record<string, { checked: string; by: string }>; reviews: Record<string, Review[]>; photos: Record<string, Photo[]> };
 export type Kind = 'tijden' | 'review' | 'foto';
 export type Contribution = { id: number; item_id: string; kind: Kind; data: Record<string, any>; status: 'nieuw' | 'goed' | 'afgewezen'; reason: string | null; created_at: string };
 
@@ -13,7 +14,11 @@ export const NO_EXTRA: Extra = { hours: {}, reviews: {}, photos: {} };
 
 /** Tijden van bezoekers gaan voor (ze zijn met de hand gekeurd en meestal het recentst). */
 export function applyExtra(places: Place[], x: Extra): Place[] {
-  return places.map(p => { const v = x.hours[p.id]; return v ? { ...p, h: v.h, checked: v.checked, hs: 'bezoeker' as const, hb: v.by } : p; });
+  return places.map(p => {
+    const v = x.hours[p.id], q = v ? { ...p, h: v.h, checked: v.checked, hs: 'bezoeker' as const, hb: v.by } : p, k = x.ok?.[p.id];
+    // ponytail: een bevestiging hoort bij de tijden van toen; veranderen ze later in OSM, dan geldt de datum nog. Vergelijk de tijden als dat misgaat.
+    return k && q.h && (!q.checked || k.checked > q.checked) ? { ...q, checked: k.checked } : q;
+  });
 }
 
 export const DAYS_OSM = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'];

@@ -91,7 +91,7 @@ export function ReviewView({ p, b, back }: { p: Place; b: Bij; back: () => void 
       <div className="field"><label htmlFor="rv-maand">Wanneer was je er?</label>
         <select className="select" id="rv-maand" value={month} onChange={e => setMonth(e.target.value)}>{months.map(m => <option key={m} value={m}>{monthLabel(m).replace(/^./, c => c.toUpperCase())}</option>)}</select>
         <span className="help">Verplicht, zodat lezers weten hoe actueel je review is.</span></div>
-      <div className="field"><label htmlFor="rv-tekst">Wat viel je op?</label>
+      <div className="field"><label htmlFor="rv-tekst">Wat viel je op? <span className="lbl-opt">(mag leeg)</span></label>
         <textarea className="textarea" id="rv-tekst" maxLength={500} value={text} onChange={e => setText(e.target.value)} placeholder="Wat vond je, waar moet je op letten?" />
         <span className="help">Noem geen medewerkers of andere mensen bij naam.</span></div>
       {s.nameField}{s.error}
@@ -162,7 +162,7 @@ export function ContribView({ b, items, back, open }: { b: Bij; items: Item[]; b
   const byId = new Map(items.map(i => [i.id, i.name])), [err, setErr] = useState('');
   const detail = (c: Contribution): ReactNode => c.status === 'afgewezen' ? c.reason
     : c.kind === 'review' ? `${c.data.stars} ster${c.data.stars > 1 ? 'ren' : ''} · ingestuurd ${new Date(c.created_at).toLocaleDateString('nl-NL', { day: 'numeric', month: 'short' })}`
-    : c.kind === 'tijden' ? ohText(c.data.oh) :`Ingestuurd ${new Date(c.created_at).toLocaleDateString('nl-NL', { day: 'numeric', month: 'short' })}`;
+    : c.kind === 'tijden' ? (c.data.klopt ? 'Tijden kloppen' : ohText(c.data.oh)) :`Ingestuurd ${new Date(c.created_at).toLocaleDateString('nl-NL', { day: 'numeric', month: 'short' })}`;
   return (<>
     <Head back="Jij" title="Mijn bijdragen" sub={`Alles wordt gecontroleerd voordat het online komt.${b.name ? ` Je schermnaam: ${b.name}.` : ''}`} onBack={back} />
     {err && <p role="alert" style={{ color: 'var(--bad-ink)', fontSize: '.875rem' }}>{err}</p>}
