@@ -390,7 +390,7 @@ export function PlanView({ c, items, plan, setPlan, optimizeSeen, onderweg, shar
     <div className="pv-head" data-peek data-drag>
       <div className="pv-title"><h2>Mijn {dayName}</h2>{stops.length > 0 && <button className="btn sm" onClick={share}><Ic n="share" />Deel</button>}</div>
       <Vertrek c={c} plan={plan} setPlan={setPlan} />
-      {later > 0 && <button className="btn sm" style={{ alignSelf: 'flex-start' }} onClick={() => setPlan({ start: later })}><Ic n="clock" />Vertrek om {hm(later)}, dan hoef je bij de eerste stop niet {sim.stops[0].wait} min te wachten</button>}
+      {later > 0 && <button className="btn sm" style={{ alignSelf: 'flex-start' }} onClick={() => setPlan({ start: later })}><Ic n="clock" />Vertrek pas om {hm(later)}, dan wacht je niet bij de eerste stop</button>}
     </div>);
   if (!stops.length) return <>{head}<div className="empty"><h3>Nog geen stops</h3><p>Tik op <b>+</b> bij een kringloop of markt. We rekenen uit wanneer je waar bent, en of het dan open is.</p>
     <div className="btns"><button className="btn sm primary" onClick={c.openDag}><Ic n="wand" />Maak een dag voor me</button><button className="btn sm" onClick={() => { c.setWhen({ day: plan.day, start }); c.back(); }}>Wat is er open op {dayName}?</button></div></div></>;

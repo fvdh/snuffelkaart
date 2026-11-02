@@ -69,6 +69,8 @@ export const DAYS_LONG = ['zondag', 'maandag', 'dinsdag', 'woensdag', 'donderdag
 const MON = ['jan', 'feb', 'mrt', 'apr', 'mei', 'jun', 'jul', 'aug', 'sep', 'okt', 'nov', 'dec'];
 export const MON_LONG = ['januari', 'februari', 'maart', 'april', 'mei', 'juni', 'juli', 'augustus', 'september', 'oktober', 'november', 'december'];
 export const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+/** Wachttijd leesbaar: 45 min, 2 uur, 5 uur 32 min. */
+export const dur = (min: number) => (min < 60 ? `${min} min` : `${Math.floor(min / 60)} uur${min % 60 ? ` ${min % 60} min` : ''}`);
 export const hm = (min: number) => `${Math.floor(min / 60)}:${String(min % 60).padStart(2, '0')}`;
 export const hShort = (min: number) => (min % 60 ? hm(min) : String(min / 60));
 export const fkm = (n: number) => (n < 10 ? n.toFixed(1).replace('.', ',') : String(Math.round(n)));

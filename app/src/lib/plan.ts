@@ -1,4 +1,4 @@
-import { type Item, type LatLon, type Cat, km, catOf, DAYS_LONG, dayStart, hm, mEnd } from './model';
+import { type Item, type LatLon, type Cat, km, catOf, DAYS_LONG, dayStart, hm, dur, mEnd } from './model';
 import { intervals, openOn } from './hours';
 
 export interface Issue { lv: 'bad' | 'warn'; txt: string }
@@ -26,7 +26,7 @@ export function simulate(order: Item[], iso: string, startMin: number, from: Lat
         if (cur) { note = `open tot ${hm(cur[1])}`; if (cur[1] - arrive < 25) issue = { lv: 'warn', txt: `Sluit om ${hm(cur[1])}: je hebt maar ${cur[1] - arrive} min` }; }
         else {
           const nx = r.find(([a]) => a > arrive);
-          if (nx) { wait = nx[0] - arrive; issue = { lv: 'warn', txt: `Gaat pas om ${hm(nx[0])} open (${wait} min wachten)` }; leave = nx[0] + STAY.k; }
+          if (nx) { wait = nx[0] - arrive; issue = { lv: 'warn', txt: `Gaat pas om ${hm(nx[0])} open (${dur(wait)} wachten)` }; leave = nx[0] + STAY.k; }
           else issue = { lv: 'bad', txt: `Al dicht als je aankomt (sluit ${hm(r[r.length - 1][1])})` };
         }
       }
