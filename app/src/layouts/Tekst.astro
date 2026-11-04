@@ -78,6 +78,8 @@ const canonical = SITE + Astro.url.pathname;
   if (key && __SB_URL__ && !import.meta.env.DEV) {
     post('pagina', key);
     if (new URLSearchParams(location.search).get('via') === 'badge' && key.startsWith('org:')) { post('badge', key.slice(4)); history.replaceState(null, '', location.pathname); }
+    // Doorklikken naar de app (de kaart, "Plan in Mijn dag", "Open de kaart rond …"): telt per pagina, zodat we zien of een pagina mensen naar de kaart brengt.
+    document.addEventListener('click', e => { const a = (e.target as Element).closest?.('a[href]') as HTMLAnchorElement | null; if (a && a.host === location.host && a.pathname === '/') post('naarkaart', key); }, true);
   }
 </script>
 </html>

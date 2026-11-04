@@ -66,7 +66,7 @@ function compute(t: T[], c: C[], info: Map<string, Info>, days: number) {
     const plans = tm('dagplan').filter(cur).map(r => { const [actie, st, markt, dag] = r.key.split('|'); return { actie, st: +st, markt, dag, n: r.n }; });
     const pn = sum(plans);
     return {
-      list, kpi: { app: kpi(tm('uur')), pagina: kpi(tm('pagina')), view: kpi(cw('view')), plan: kpi(cw('plan')), door: kpi(cw('route', 'site', 'tel')) },
+      list, kpi: { app: kpi(tm('uur')), pagina: kpi(tm('pagina')), naarkaart: kpi(tm('naarkaart')), view: kpi(cw('view')), plan: kpi(cw('plan')), door: kpi(cw('route', 'site', 'tel')) },
       heat, orgs: [...orgs].sort((a, b) => Object.values(b[1]).reduce((x, y) => x + y, 0) - Object.values(a[1]).reduce((x, y) => x + y, 0)),
       regions, plaatsen: group(tm('plaats'), k => k).slice(0, 10), filters: group(tm('filter'), k => k.replace(/^type:m$/, 'alleen markten').replace(/^type:k$/, 'alleen winkels').replace(/^cat:/, 'soort: ')).slice(0, 10),
       afstand: AFST.map(a => [a, sum(tm('afstand').filter(cur).filter(r => r.key.endsWith(`|${a}`)))] as [string, number]),
@@ -101,6 +101,7 @@ export function Dashboard({ s }: { s: Session }) {
     <div className="ds-kpis">
       <Kpi label="App geopend" {...d.kpi.app} help="Eén keer per bezoek aan de kaart" />
       <Kpi label="Pagina's bekeken" {...d.kpi.pagina} help="Winkel-, markt- en organisatorpagina's, vaak via Google" />
+      <Kpi label="Van pagina naar kaart" {...d.kpi.naarkaart} help="Klikken van zo'n pagina naar de kaart of Mijn dag" />
       <Kpi label="Plekken geopend" {...d.kpi.view} help="Detail van een winkel of markt in de app" />
       <Kpi label="In een dagplan" {...d.kpi.plan} />
       <Kpi label="Doorgeklikt" {...d.kpi.door} help="Route, website of bellen" />

@@ -1,0 +1,42 @@
+---
+// Kaart op een statische pagina (Freek, 4 nov: "alle markten/kringlopen op de kaart laten zien"): een stille kaart met stippen
+// voor wat op de pagina staat, als ingang naar de app. Niet te bedienen (geen scroll-val op de telefoon); een tik opent de app.
+// MapLibre laadt pas als het blok in beeld komt, zodat de tekst voor Google en bezoekers niet wacht.
+import type { Item } from '../lib/model';
+interface Props { items: Item[]; href: string; label: string }
+const { items, href, label } = Astro.props;
+const pts = items.map(it => [+it.lon.toFixed(5), +it.lat.toFixed(5), it.t === 'm' ? 1 : 0]);
+---
+<a class="kaartblok" href={href} data-pts={JSON.stringify(pts)} aria-label={label}>
+  <span class="kb-map" aria-hidden="true"></span>
+  <span class="btn primary kb-btn"><svg class="i" aria-hidden="true"><use href="#i-map" /></svg>{label}</span>
+</a>
+<style is:global>
+  .kaartblok { position: relative; display: block; height: 240px; border-radius: 14px; overflow: hidden; background: var(--surface-2); margin: 18px 0; text-decoration: none; isolation: isolate }
+  @media (min-width: 700px) { .kaartblok { height: 320px } }
+  .kaartblok > .kb-map { position: absolute; inset: 0; display: block } /* wint van .maplibregl-map { position: relative } */
+  .kb-map canvas { cursor: pointer }
+  .kb-btn { position: absolute; left: 12px; bottom: 12px; z-index: 2; max-width: calc(100% - 24px); box-shadow: var(--shadow) }
+  .kaartblok:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px }
+</style>
+<script>
+  import 'maplibre-gl/dist/maplibre-gl.css';
+  import { token as rgb, paint } from '../lib/mapstyle';
+  async function draw(el: HTMLElement) {
+    const pts: [number, number, number][] = JSON.parse(el.dataset.pts ?? '[]'); if (!pts.length) return;
+    const [ml, style, worker] = await Promise.all([import('maplibre-gl'), fetch('https://tiles.openfreemap.org/styles/positron').then(r => r.json()), import('maplibre-gl/dist/maplibre-gl-worker.mjs?url')]);
+    ml.setWorkerUrl(worker.default);
+    const box = el.querySelector<HTMLElement>('.kb-map')!, b = new ml.LngLatBounds();
+    pts.forEach(([x, y]) => b.extend([x, y]));
+    const map = new ml.Map({ container: box, style, bounds: b, fitBoundsOptions: { padding: { top: 28, bottom: 64, left: 28, right: 28 }, maxZoom: 13 }, interactive: false, attributionControl: false });
+    map.addControl(new ml.AttributionControl({ compact: true }), 'top-right');
+    new ResizeObserver(() => map.resize()).observe(box); // het blok kan na het laden van de stijl nog van maat veranderen
+    map.on('load', () => {
+      paint(map);
+      map.addSource('p', { type: 'geojson', data: { type: 'FeatureCollection', features: pts.map(([x, y, m]) => ({ type: 'Feature', properties: { m }, geometry: { type: 'Point', coordinates: [x, y] } })) } });
+      map.addLayer({ id: 'p', type: 'circle', source: 'p', paint: { 'circle-radius': ['interpolate', ['linear'], ['zoom'], 6, 4, 12, 7], 'circle-color': ['case', ['==', ['get', 'm'], 1], rgb('--markt'), rgb('--kring')], 'circle-stroke-width': 1.5, 'circle-stroke-color': rgb('--surface') } });
+    });
+  }
+  const io = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { io.unobserve(e.target); draw(e.target as HTMLElement).catch(err => console.warn('kaartblok', err)); } }), { rootMargin: '200px' });
+  document.querySelectorAll<HTMLElement>('.kaartblok').forEach(el => io.observe(el));
+</script>

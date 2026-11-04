@@ -2,6 +2,7 @@
 // Stadspagina (ontwerp §08): "Kringlopen en rommelmarkten in <plaats>", statisch, elke nacht opnieuw gebouwd.
 import Tekst from '../layouts/Tekst.astro';
 import ItemRow from '../components/ItemRow.astro';
+import KaartBlok from '../components/KaartBlok.astro';
 import type { City } from '../lib/seo';
 import { near } from '../lib/seo';
 import { km, dLong, catOf, weekendOf, dayStart, hm } from '../lib/model';
@@ -36,13 +37,13 @@ const label = (p: (typeof city.shops)[number]) => dup.has(p.name) && p.addr ? `$
 const list = (xs: (typeof city.shops)[number][]) => xs.length <= 3 ? xs.map(label).join(', ').replace(/, ([^,]*)$/, ' en $1') : `${xs.slice(0, 3).map(label).join(', ')} en nog ${xs.length - 3}`;
 const ld = { '@context': 'https://schema.org', '@type': 'ItemList', name: title, itemListElement: [...city.shops, ...around].slice(0, 50).map((it, i) => ({ '@type': 'ListItem', position: i + 1, url: SITE + ix.url(it.id), name: it.name })) };
 ---
-<Tekst title={title} description={description} wide>
+<Tekst title={title} description={description} wide tel={`stad:${city.slug}`}>
   <script type="application/ld+json" slot="head" set:html={JSON.stringify(ld)} />
   <p class="tp-crumbs"><a href="/">Snuffelkaart</a> › <a href="/plaatsen/">Plaatsen</a> › {province && <><a href={`/provincie/${province.slug}/`}>{province.name}</a> › </>}{city.name}</p>
   <h1>{title}</h1>
   <p class="lede">{description}</p>
-  <div class="tp-cta"><b>Plan je snuffeldag</b><p>Kies stops op de kaart. Snuffelkaart zet ze in de slimste volgorde en kijkt of alles open is als je er bent.</p>
-    <a class="btn primary" href={`/?plek=${encodeURIComponent(city.name)}&lat=${city.lat.toFixed(5)}&lon=${city.lon.toFixed(5)}`}>Open de kaart rond {city.name}</a></div>
+  <KaartBlok items={[...city.shops, ...around]} href={`/?plek=${encodeURIComponent(city.name)}&lat=${city.lat.toFixed(5)}&lon=${city.lon.toFixed(5)}`} label={`Open de kaart rond ${city.name}`} />
+  <div class="tp-cta"><b>Plan je snuffeldag</b><p>Kies stops op de kaart. Snuffelkaart zet ze in de slimste volgorde en kijkt of alles open is als je er bent.</p></div>
 
   {(satOpen.length > 0 || sunOpen.length > 0) && <section>
     <h2>Open dit weekend</h2>

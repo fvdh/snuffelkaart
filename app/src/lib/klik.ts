@@ -18,7 +18,7 @@ export function linkKind(href: string): Klik | null {
 }
 
 // Anonieme tellers voor het dashboard (rpc tel, migratie tellers): per dag, soort en sleutel. Nooit wie, nooit een exacte plek.
-export type Metric = 'pagina' | 'badge' | 'afstand' | 'plaats' | 'regio' | 'zoekleeg' | 'filter' | 'uur' | 'dagplan';
+export type Metric = 'pagina' | 'badge' | 'afstand' | 'plaats' | 'regio' | 'zoekleeg' | 'filter' | 'uur' | 'dagplan' | 'naarkaart';
 const sent = new Set<string>();
 /** once: hooguit één keer per bezoek (paginalading) tellen, bijv. de regio of een filter dat je aan- en uitzet. */
 export function tel(metric: Metric, key = '', once = false) {

@@ -2,8 +2,8 @@ import { type Item, type LatLon, type Cat, catOf, km, isoDay, minutesOf, mEnd, s
 import { intervals } from './hours';
 
 /** open: alleen wat open is op het gekozen moment. Staat standaard uit (Freek). Het moment (nu, of een dag + tijd)
- *  staat los van de filters. hide: winkelsoorten die uit staan. only: alleen deze id's ("Bewaard op de kaart"). */
-export interface Filters { type: 'all' | 'k' | 'm'; open: boolean; gratis: boolean; overdekt: boolean; q: string; hide: Cat[]; only?: string[] | null }
+ *  staat los van de filters. hide: winkelsoorten die uit staan. only: alleen deze id's ("Bewaard op de kaart", of de markten van één organisator: onlyName). */
+export interface Filters { type: 'all' | 'k' | 'm'; open: boolean; gratis: boolean; overdekt: boolean; q: string; hide: Cat[]; only?: string[] | null; onlyName?: string | null }
 
 /** Waar een plek in de lijst valt op het gekozen moment (dag + minuut). Markten op een andere dag: 'other'. */
 export type Group = 'open' | 'later' | 'unknown' | 'other' | 'closed' | 'cancel';

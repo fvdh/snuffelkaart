@@ -427,6 +427,7 @@ async function vac(skipped) {
 }
 async function vanAerle(skipped) {
   const rows = aerleAgenda(await (await get('https://www.vlooienmarkten.nl/agenda-markten/')).text()), out = [];
+  const seen = new Set();
   for (const row of rows) {
     await sleep(1500);
     let p; try { p = aerleProduct(await (await get(row.url)).text()); } catch (e) { skipped.push(`${row.url} (${e.message})`); continue; }
@@ -435,6 +436,8 @@ async function vanAerle(skipped) {
     for (let i = 0; i < row.days; i++) {
       const date = new Date(Date.parse(row.date + 'T12:00:00Z') + i * 864e5).toISOString().slice(0, 10);
       const name = row.name === row.name.toUpperCase() ? title(row.name).replace(/\b(in|op|bij)\s+(\w)/g, (m, w, c) => `${w} ${c.toUpperCase()}`) : row.name;
+      // Ze kopiëren een productpagina voor een nieuwe datum (…-kopie); soms blijft het origineel met dezelfde datum staan: één keer tonen.
+      const same = `${date}|${city}|${venue}`; if (seen.has(same)) continue; seen.add(same);
       out.push({ id: `aerle-${row.url.replace(/\/$/, '').split('/').pop()}-${date}`, t: 'm', name, kind, place: city, venue,
         addr: p.street && p.postcode ? `${p.street}, ${p.postcode.replace(/([A-Z]{2})$/, ' $1')} ${city}` : null, street: p.street, postcode: p.postcode,
         date, start: p.open ? p.open[0] : 540, end: p.open ? p.open[1] : null, timeKnown: !!p.open,

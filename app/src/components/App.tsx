@@ -4,7 +4,7 @@ import type { Item, LatLon, Market, Place } from '../lib/model';
 import { CATS, km, DEFAULT_CENTER, isoDay, addDays, DAYS_LONG, dayStart, hm, dShort, minutesOf } from '../lib/model';
 import { placeNow, openOn, setWindow } from '../lib/hours';
 import { visible, matches, groupOf, type Filters } from '../lib/filter';
-import { siteIndex } from '../lib/seo';
+import { siteIndex, slugify } from '../lib/seo';
 import type { Spot } from '../lib/pdok';
 import MapView, { type Bounds } from './MapView';
 import { ListView, DetailView, PlanView, MeView, LoginView, DagView, WaarView, OnderwegView, GedeeldView, statusFor, effStart, type Ctx, type Plan, type From } from './Views';
@@ -220,7 +220,7 @@ export default function App() {
   };
   const openMe = () => { setDir('fwd'); setPrev(view); setView('me'); setSnap('full'); scrollTop(); }; // groot paneel: op mobiel het hele scherm
   // Bewaard op de kaart: alle andere filters uit, anders zie je maar een deel (UX-test 30 okt).
-  const showFavs = () => { const pts = favs.map(id => byId.get(id)).filter(Boolean) as Item[]; setFState(o => ({ ...o, only: favs, open: false, q: '', type: 'all', hide: [], gratis: false, overdekt: false })); setDir('back'); setView('list'); setSel(null); if (pts.length) setFit({ pts, key: Date.now() }); if (!desktop) setSnap('collapsed'); };
+  const showFavs = () => { const pts = favs.map(id => byId.get(id)).filter(Boolean) as Item[]; setFState(o => ({ ...o, only: favs, onlyName: null, open: false, q: '', type: 'all', hide: [], gratis: false, overdekt: false })); setDir('back'); setView('list'); setSel(null); if (pts.length) setFit({ pts, key: Date.now() }); if (!desktop) setSnap('collapsed'); };
   // Delen: een winkel via zijn eigen pagina (vast adres, ook vindbaar), een markt via de app; het systeemmenu, anders kopiëren.
   const shareIdx = useMemo(() => places ? siteIndex(places, allMarkets.filter(m => m.date >= (dataFrom ?? '').slice(0, 10))) : null, [places, allMarkets, dataFrom]); // zelfde adressen als de statische pagina's
   const shareLink = (title: string, text: string, url: string) => {
@@ -267,8 +267,14 @@ export default function App() {
     if (id && byId.has(id)) { const it = byId.get(id)!; if (!spot && !me) pickSpot({ label: it.place ?? it.name, sub: '', lat: it.lat, lon: it.lon }); q.delete('open'); go(id); if (q.get('plan') === '1') { q.delete('plan'); if (!planRef.current.stops.includes(id)) toggleStop(id); } } // rond de winkel, niet rond Amersfoort (UX-test 30 okt)
     const sd = q.get('dag'), ss = q.get('s');
     if (sd && ss && byId.size) { setShared({ day: sd >= today ? sd : today, start: Math.max(0, Math.min(1439, Number(q.get('v')) || 600)), stops: ss.split(',').slice(0, 8) }); ['dag', 'v', 's'].forEach(k => q.delete(k)); setView('gedeeld'); setSnap('full'); }
-    if (!q.has('open') && !q.has('plek') && /[?&](open|plek|plan|dag|s)=/.test(location.search)) history.replaceState(null, '', location.pathname + (q.toString() ? `?${q}` : ''));
-  }, [byId]);
+    // Vanaf een organisatorpagina: ?org=<slug> toont alleen hun markten, ingezoomd. Wacht tot de markten er zijn.
+    const org = q.get('org');
+    if (org && allMarkets.length) {
+      q.delete('org'); const ms = markets.filter(m => m.org && slugify(m.org) === org);
+      if (ms.length) { setFState(o => ({ ...o, only: ms.map(m => m.id), onlyName: ms[0].org, open: false, q: '', type: 'all', hide: [], gratis: false, overdekt: false })); setFit({ pts: ms, key: Date.now() }); }
+    }
+    if (!q.has('open') && !q.has('plek') && !q.has('org') && /[?&](open|plek|plan|dag|s|org)=/.test(location.search)) history.replaceState(null, '', location.pathname + (q.toString() ? `?${q}` : ''));
+  }, [byId, allMarkets.length]);
   // Al eerder toestemming gegeven? Dan zonder vragen opnieuw ophalen.
   // Safari (iPhone) meldt een eerdere toestemming niet via de permissions-API; daarom onthouden we zelf dat het eerder lukte.
   useEffect(() => { let ok = false; try { ok = !!localStorage.getItem('snuffel-loc-ok'); } catch { /* niets */ } if (ok) locate(true); else navigator.permissions?.query({ name: 'geolocation' }).then(s => s.state === 'granted' && locate(true)).catch(() => {}); }, []);
