@@ -3,7 +3,7 @@
 // Inloggen met een link per e-mail (Supabase Auth); wat je mag, bepaalt RLS (tabel admins). Wat je hier zet, komt in `locked`:
 // een import overschrijft het niet meer. Sessie en REST: lib/auth.ts.
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { CATS, type Cat } from '../lib/model';
+import { CATS, dLong, type Cat } from '../lib/model';
 import { queue, alerts, parseLatLon, type MRow, type Judged, type Run } from '../lib/beheer';
 import { CAT, Ic } from './ui';
 import { SB, KEY, readSession, sendLink, logout, fresh, api as authApi, type Session } from '../lib/auth';
@@ -136,7 +136,7 @@ function Markets({ title, items, filters, save, empty }: { title: string; items:
       {list.length ? <ul className="adm-list">{list.map(i => <li key={i.row.id} id={`it-${i.row.id}`}>
         <button className={`adm-item${i === cur ? ' on' : ''}`} aria-current={i === cur} onClick={() => setSelId(i.row.id)}>
           <span className={`tile${i.j?.urgent ? ' crit' : ''}`}><Ic n={i.j?.kind === 'verdwenen' ? 'alert' : i.j ? 'cal' : 'kraam'} /></span>
-          <span><b>{i.j?.kind === 'verdwenen' ? `Mogelijk afgelast: ${i.row.data.name}` : i.row.data.name}</b>
+          <span><b>{i.j?.kind === 'verdwenen' ? `${i.j.label}: ${i.row.data.name}` : i.row.data.name}</b>
             <span>{i.row.data.place}{i.row.data.stage ? ` · ${i.row.data.stage}` : ''}{i.row.data.timeKnown ? ` · ${hm(i.row.data.start)}` : ''}</span>
             {i.j ? <span className={`ai ${i.j.verdict}`}><Ic n="sparkle" />{i.j.label}</span> : <span className={`bh-st ${i.row.status}`}>{STATUS[i.row.status]}</span>}</span>
           <time dateTime={i.row.date}>{day(i.row.date)}</time></button></li>)}</ul>
@@ -156,6 +156,8 @@ function MarketDetail({ item: { row: r, j }, save }: { item: Item; save: (r: Row
   const rejectTo = r.status === 'kandidaat' ? 'afgewezen' : 'cancel', whyKey = rejectTo === 'afgewezen' ? 'rejectWhy' : 'cancelWhy';
   const setStatus = (status: string, extra: Record<string, any> = {}) => save(r, { status, data: { ...d, ...extra, ...(status === 'chk' ? { checked: today() } : {}) }, locked: lock(r, 'status', ...Object.keys(extra)) });
   const approve = () => setStatus('chk'), unsure = () => setStatus('unconf');
+  // Verplaatst: deze datum is afgelast met de nieuwe datum als reden (die zien bezoekers); de nieuwe staat er al via de import.
+  const moved = () => j?.moved && setStatus('cancel', { cancelWhy: `Verplaatst naar ${dLong(j.moved).toLowerCase()}` });
   const reject = () => why.trim() && setStatus(rejectTo, { [whyKey]: why.trim() });
   const saveEdit = () => {
     const t = form.start && form.end ? { start: toMin(form.start), end: toMin(form.end), timeKnown: true } : { timeKnown: false };
@@ -167,12 +169,12 @@ function MarketDetail({ item: { row: r, j }, save }: { item: Item; save: (r: Row
     const k = (e: KeyboardEvent) => {
       if (e.key === 'Escape') return setMode('');
       if (typing(e) || e.metaKey || e.ctrlKey || e.altKey || mode) return;
-      const a = ({ a: approve, u: unsure, e: () => setMode('edit'), r: () => setMode('reject') } as Record<string, () => void>)[e.key];
+      const a = ({ a: approve, u: unsure, e: () => setMode('edit'), r: () => setMode('reject'), ...(j?.moved ? { v: moved } : {}) } as Record<string, () => void>)[e.key];
       if (a) { e.preventDefault(); a(); }
     };
     addEventListener('keydown', k); return () => removeEventListener('keydown', k);
   });
-  const kind = j?.kind === 'verdwenen' ? 'Mogelijk afgelast' : d.snippet ? `Tip uit ${d.org ?? 'het Gemeenteblad'}` : d.org;
+  const kind = j?.kind === 'verdwenen' ? j.label : d.snippet ? `Tip uit ${d.org ?? 'het Gemeenteblad'}` : d.org;
   return (<aside className="adm-detail" aria-label="Details">
     <div><p className="eyebrow"><span className="tile"><Ic n={j?.kind === 'verdwenen' ? 'alert' : 'cal'} /></span>{kind}</p>
       <h3>{d.name}</h3>
@@ -207,6 +209,7 @@ function MarketDetail({ item: { row: r, j }, save }: { item: Item; save: (r: Row
       <p className="src"><Ic n="info" /><span>{open || r.status !== 'chk' ? 'Goedkeuren: “gecontroleerd op vandaag”, binnen ±15 minuten op de kaart.' : `Gecontroleerd op ${d.checked ?? '?'}. Wijzigingen staan binnen ±15 minuten op de kaart.`}</span></p>
       <div className="adm-btns">
         <button className="btn primary" onClick={approve}><Ic n="check" />{r.status === 'chk' ? 'Opnieuw gecontroleerd' : 'Goedkeuren'} <span className="kbd">A</span></button>
+        {j?.moved && <button className="btn" onClick={moved}><Ic n="cal" />Verplaatst naar {day(j.moved)} <span className="kbd">V</span></button>}
         {r.status !== 'unconf' && <button className="btn" onClick={unsure}>Nog niet bevestigd <span className="kbd">U</span></button>}
         <button className="btn" onClick={() => setMode('edit')}>Aanpassen <span className="kbd">E</span></button>
         {r.status !== rejectTo && <button className="btn" onClick={() => setMode('reject')}>{rejectTo === 'afgewezen' ? 'Afwijzen' : 'Afgelast'} <span className="kbd">R</span></button>}

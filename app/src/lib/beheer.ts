@@ -4,7 +4,7 @@ import { km } from './model';
 
 export type MRow = { id: string; date: string; status: string; locked: string[]; data: Record<string, any>; updated_at?: string };
 export type Verdict = 'good' | 'doubt' | 'rej';
-export type Judged = { row: MRow; kind: 'kandidaat' | 'verdwenen'; urgent: boolean; verdict: Verdict; label: string; why: string[] };
+export type Judged = { row: MRow; kind: 'kandidaat' | 'verdwenen'; urgent: boolean; verdict: Verdict; label: string; why: string[]; moved?: string };
 
 const PUBLIC = ['org', 'chk', 'unconf', 'cancel'];
 const addDays = (iso: string, n: number) => new Date(Date.parse(iso + 'T12:00:00Z') + n * 864e5).toISOString().slice(0, 10);
@@ -17,9 +17,16 @@ export function queue(rows: MRow[], today: string): Judged[] {
     .sort((a, b) => Number(b.urgent) - Number(a.urgent) || a.row.date.localeCompare(b.row.date) || a.row.id.localeCompare(b.row.id));
 }
 
-export function judge(r: MRow, live: MRow[]): { verdict: Verdict; label: string; why: string[] } {
+export function judge(r: MRow, live: MRow[]): { verdict: Verdict; label: string; why: string[]; moved?: string } {
   const d = r.data, at = (x: Record<string, any>) => ({ lat: x.lat as number, lon: x.lon as number });
-  if (r.status !== 'kandidaat') return { verdict: 'doubt', label: 'Mogelijk afgelast', why: [`Verdwenen van de site van de organisator op ${d.vanished}`, 'Kijk op hun site of social media; gaat hij door, keur dan goed'] };
+  if (r.status !== 'kandidaat') {
+    // Verplaatst? Dezelfde organisator in dezelfde plaats op een andere datum, hooguit 8 weken ernaast (Velp 14 → 7 feb, 4 nov).
+    // ponytail: bij een vaste reeks (elke maand dezelfde plek) is dat gewoon de volgende editie; daarom alleen een suggestie.
+    const near = live.filter(o => o.id !== r.id && o.data.org === d.org && o.data.place === d.place && Math.abs(Date.parse(o.date) - Date.parse(r.date)) <= 56 * 864e5)
+      .sort((a, b) => Math.abs(Date.parse(a.date) - Date.parse(r.date)) - Math.abs(Date.parse(b.date) - Date.parse(r.date)))[0];
+    return { verdict: 'doubt', label: near ? 'Mogelijk verplaatst' : 'Mogelijk afgelast', moved: near?.date,
+      why: [`Verdwenen van de site van de organisator op ${d.vanished}`, ...(near ? [`${d.org} heeft in ${d.place} ook een markt op ${near.date}: verplaatst? Dan "Verplaatst", anders kijk op hun site`] : []), 'Kijk op hun site of social media; gaat hij door, keur dan goed'] };
+  }
   const dup = live.find(o => o.date === r.date && o.data.lat != null && d.lat != null && km(at(o.data), at(d)) < 1);
   if (dup) return { verdict: 'rej', label: 'Waarschijnlijk dubbel', why: [`Op dezelfde dag staat “${dup.data.name}” al op de kaart, ${Math.round(km(at(dup.data), at(d)) * 1000)} m verderop`] };
   const why = [

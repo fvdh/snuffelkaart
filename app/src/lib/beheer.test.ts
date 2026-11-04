@@ -40,3 +40,14 @@ test('pin verplaatsen: coördinaten of een kaartlink', () => {
   expect(parseLatLon('5.12, 52.09')).toBeNull(); // omgedraaid: valt buiten Nederland
   expect(parseLatLon('Dorpsstraat 1')).toBeNull();
 });
+
+test('verdwenen markt: andere datum van dezelfde organisator in dezelfde plaats = mogelijk verplaatst', () => {
+  const q = queue([
+    row('velp-14', '2027-02-14', 'unconf', { org: 'Animo', place: 'Velp', vanished: '2026-11-04' }),
+    row('velp-7', '2027-02-07', 'chk', { org: 'Animo', place: 'Velp' }),
+    row('arnhem', '2027-02-07', 'chk', { org: 'Animo', place: 'Arnhem' }),
+    row('ver', '2027-01-03', 'unconf', { org: 'Animo', place: 'Ede', vanished: '2026-11-04' }),
+  ], '2026-11-04');
+  expect(q.find(j => j.row.id === 'velp-14')).toMatchObject({ label: 'Mogelijk verplaatst', moved: '2027-02-07' });
+  expect(q.find(j => j.row.id === 'ver')).toMatchObject({ label: 'Mogelijk afgelast', moved: undefined });
+});
