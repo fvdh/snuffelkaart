@@ -8,7 +8,7 @@ import { km } from '../lib/model';
 
 type T = { day: string; metric: string; key: string; n: number };
 type C = { day: string; item_id: string; what: string; n: number };
-type Info = { name: string; place?: string; org?: string; lat: number; lon: number; t?: string; date?: string };
+type Info = { name: string; place?: string; org?: string; lat: number; lon: number; t?: string; date?: string; h?: unknown };
 
 const DAG = ['zo', 'ma', 'di', 'wo', 'do', 'vr', 'za'], AFST = ['0-5', '5-15', '15-30', '30+'];
 const iso = (d: Date) => d.toISOString().slice(0, 10), ago = (n: number) => iso(new Date(Date.now() - n * 864e5));
@@ -63,6 +63,11 @@ function compute(t: T[], c: C[], info: Map<string, Info>, days: number) {
       const near = cs.reduce((b, x) => (km(p, x) < km(p, b) ? x : b), cs[0] ?? { name: k, lat, lon });
       return { name: near?.name ?? k, n, markets: mk.filter(m => km(p, m) < 15).length };
     });
+    // Per winkel: zelfde tellers als per markt. Bovenaan wat het meest bekeken wordt: daar is het bewijs en loont het tijden aanvullen.
+    const shops = new Map<string, Record<string, number>>(), addS = (id: string, k: string, n: number) => { if (info.get(id)?.t !== 'k') return; const r = shops.get(id) ?? {}; r[k] = (r[k] ?? 0) + n; shops.set(id, r); };
+    for (const r of c.filter(cur)) addS(r.item_id, r.what, r.n);
+    for (const r of tm('pagina').filter(cur)) addS(r.key, 'pagina', r.n);
+    const winkels = [...shops].map(([id, r]) => ({ id, r, total: Object.values(r).reduce((a, b) => a + b, 0) })).sort((a, b) => b.total - a.total);
     const plans = tm('dagplan').filter(cur).map(r => { const [actie, st, markt, dag] = r.key.split('|'); return { actie, st: +st, markt, dag, n: r.n }; });
     const pn = sum(plans);
     return {
@@ -72,7 +77,7 @@ function compute(t: T[], c: C[], info: Map<string, Info>, days: number) {
       afstand: AFST.map(a => [a, sum(tm('afstand').filter(cur).filter(r => r.key.endsWith(`|${a}`)))] as [string, number]),
       leeg: sum(tm('zoekleeg').filter(cur)), plans: { n: pn, start: sum(plans.filter(p => p.actie === 'start')), stops: pn ? plans.reduce((a, p) => a + p.st * p.n, 0) / pn : 0, markt: pct(sum(plans.filter(p => p.markt === 'ja')), pn),
         dagen: DAG.map(x => [x, sum(plans.filter(p => p.dag === x))] as [string, number]) },
-      orgOf, cur, tm,
+      winkels, orgOf, cur, tm,
     };
 }
 type Dash = ReturnType<typeof compute>;
@@ -126,6 +131,10 @@ export function Dashboard({ s }: { s: Session }) {
       <table className="adm-table"><thead><tr><th>Organisator</th><th className="tnum">Bekeken op de site</th><th className="tnum">Geopend in de app</th><th className="tnum">Dagplan</th><th className="tnum">Doorgeklikt</th><th className="tnum">Via badge</th></tr></thead>
         <tbody>{d.orgs.map(([o, r]) => <tr key={o}><td><button className="link" onClick={() => setOrg(o)}>{o}</button></td><td className="tnum">{nl(r.pagina ?? 0)}</td><td className="tnum">{nl(r.view ?? 0)}</td><td className="tnum">{nl(r.plan ?? 0)}</td><td className="tnum">{nl((r.route ?? 0) + (r.site ?? 0) + (r.tel ?? 0))}</td><td className="tnum">{nl(r.badge ?? 0)}</td></tr>)}</tbody></table>
       {!d.orgs.length && <p className="adm-sub">Nog niets geteld.</p>}</div>
+    <div className="ds-card"><h3>Per winkel</h3><p className="adm-sub">{nl(d.winkels.length)} winkels bekeken in deze periode. Bovenaan het meest bekeken; zonder tijden = daar eerst tijden aanvullen.</p>
+      <table className="adm-table"><thead><tr><th>Winkel</th><th className="tnum">Pagina</th><th className="tnum">Geopend</th><th className="tnum">Dagplan</th><th className="tnum">Doorgeklikt</th><th>Tijden</th></tr></thead>
+        <tbody>{d.winkels.slice(0, 50).map(({ id, r }) => { const x = info.get(id); return <tr key={id}><td><a href={`/kaart/?open=${encodeURIComponent(id)}`} target="_blank" rel="noopener">{x?.name ?? id}</a>{x?.place ? <span className="adm-sub"> · {x.place}</span> : null}</td><td className="tnum">{nl(r.pagina ?? 0)}</td><td className="tnum">{nl(r.view ?? 0)}</td><td className="tnum">{nl(r.plan ?? 0)}</td><td className="tnum">{nl((r.route ?? 0) + (r.site ?? 0) + (r.tel ?? 0))}</td><td className={x?.h ? '' : 'ds-low'}>{x?.h ? 'ja' : 'nee'}</td></tr>; })}</tbody></table>
+      {!d.winkels.length && <p className="adm-sub">Nog niets geteld.</p>}</div>
   </section>);
 }
 
