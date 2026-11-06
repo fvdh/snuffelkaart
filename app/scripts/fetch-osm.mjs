@@ -118,7 +118,10 @@ const STOP = new Set(['kringloop', 'kringloopwinkel', 'kringloopcentrum', 'kring
 const words = s => new Set(s.toLowerCase().normalize('NFD').replace(/[^a-z0-9 ]/g, ' ').split(' ').filter(w => w.length > 2 && !STOP.has(w)));
 const sameName = (a, b) => { const B = words(b); return [...words(a)].some(w => B.has(w)); };
 const metres = (a, b) => Math.hypot((a.lon - b.lon) * 111320 * Math.cos(a.lat * Math.PI / 180), (a.lat - b.lat) * 110540);
-const isDup = (o, p) => { const d = metres(o, p); return d < 100 || (d < 400 && sameName(o.name, p.name)); };
+// Zelfde eigen website en naam binnen 2 km is ook dezelfde winkel: Dorcas Aalten stond 1,2 km uit elkaar (OSM Tweede Broekdijk, Overture Nijverheidsweg).
+const pc4 = x => /\b([1-9]\d{3})\s?[A-Z]{2}\b/i.exec(x.addr ?? x.postcode ?? '')?.[1];
+const sameSite = (o, p) => !!(o.website && p.website) && siteKey(o.website) === siteKey(p.website);
+const isDup = (o, p) => { const d = metres(o, p); return d < 100 || (d < 400 && sameName(o.name, p.name)) || (d < 2000 && sameSite(o, p) && sameName(o.name, p.name) && pc4(o) && pc4(o) === pc4(p)); }; // postcode: twee Episodes in Amsterdam (1016, 1017) zijn echt twee winkels
 const nice = s => s && s === s.toUpperCase() ? s.toLowerCase().replace(/(^|[\s-])\p{L}/gu, c => c.toUpperCase()) : s;
 /** Overture geeft 31642158684; wij tonen 0642158684. Buitenlandse nummers krijgen een +. */
 const telNL = t => { if (!t) return null; const d = t.replace(/[^\d]/g, ''); return /^31\d{9}$/.test(d) ? '0' + d.slice(2) : /^0\d{9}$/.test(d) ? d : '+' + d; };

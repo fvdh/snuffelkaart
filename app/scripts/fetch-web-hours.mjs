@@ -14,7 +14,7 @@ const UA = 'Snuffelkaart-PoC/0.1 (openingstijden van kringlopen; freek@draad.nu)
 const SKIP = /facebook|instagram|marktplaats|g\.page|google\.|linktr\.ee|tiktok|twitter|x\.com|youtube|wa\.me|allekringloopwinkels|kringloopwinkels?\.(nl|info|com)|kringlopen\.nl|tweedehandswinkels|openingstijden\.|openingstijdenwinkels|telefoonboek|telefoongids|cylex|opendi|hotfrog|yelp|tripadvisor|goudengids|bedrijvenpagina|drimble|infobel|kompass|oozo|plaatsengids|nederlandsewinkels/i;
 // MAX_AGE 6 dagen: de wekelijkse run (elke 7 dagen, zelfde tijd) leest dan echt alles opnieuw; bij 7 was het net te vers (6 nov).
 // VERSION ophogen als de parser of de AI-lezer beter wordt: dan wordt alles meteen opnieuw gelezen, niet pas na de cache.
-const WORKERS = 8, PAUSE = 800, MAX_AGE = 6 * 864e5, VERSION = 9; // 3: AI-antwoorden met een dag in twee regels samengevoegd; 4: dagen en tijden in twee kolommen; 5: postcodes ook van de tijdenpagina; 6: vestigingsblok op eigen straat; 7: tijdelijk gesloten; 8: Engelse dagen; 9: vestiging op postcode, "openingstijden en inname"
+const WORKERS = 8, PAUSE = 800, MAX_AGE = 6 * 864e5, VERSION = 10; // 3: AI-antwoorden met een dag in twee regels samengevoegd; 4: dagen en tijden in twee kolommen; 5: postcodes ook van de tijdenpagina; 6: vestigingsblok op eigen straat; 7: tijdelijk gesloten; 8: Engelse dagen; 9: vestiging op postcode, "openingstijden en inname"; 10: links "Onze winkel", niet de homepage zelf
 
 
 const cache = fs.existsSync(OUT) && !process.argv.includes('--fresh') ? JSON.parse(fs.readFileSync(OUT, 'utf8')) : {};
@@ -71,9 +71,9 @@ function candidates(html, base) {
   const out = [];
   for (const m of html.matchAll(/<a\b[^>]*href=["']([^"'#]+)["'][^>]*>([\s\S]*?)<\/a>/gi)) {
     const label = (m[2].replace(/<[^>]+>/g, ' ') + ' ' + m[1]).toLowerCase();
-    const score = /openingstijd|openingsuren|tijden/.test(label) ? 3 : /contact|bezoek|route|adres/.test(label) ? 2 : /winkel/.test(label) ? 1 : 0;
+    const score = /openingstijd|openingsuren|tijden/.test(label) ? 3 : /contact|bezoek|route|adres|onze winkel|vestiging|locatie/.test(label) ? 2 : /winkel/.test(label) ? 1 : 0; // "Onze Winkel" (The Musketeer)
     if (!score || /klantcontact/.test(label)) continue; // tijden van het loket, niet van de winkel (KDC Kaatsheuvel)
-    try { const u = new URL(m[1], base); if (u.host === new URL(base).host && /^https?:$/.test(u.protocol)) out.push([score, u.href.split('#')[0]]); } catch { /* ongeldige link */ }
+    try { const u = new URL(m[1], base); if (u.host === new URL(base).host && /^https?:$/.test(u.protocol) && u.href.split('#')[0] !== base.split('#')[0] && u.pathname !== '/') out.push([score, u.href.split('#')[0]]); } catch { /* ongeldige link */ }
   }
   return [...new Map(out.sort((a, b) => b[0] - a[0]).map(([, u]) => [u, u])).keys()].slice(0, 2);
 }
