@@ -48,7 +48,7 @@ async function fetchOverpass() {
 
 // Geen tweedehands: winkels met nieuwe spullen. Dumpstores en dergelijke blijven, als tweedehandswinkel.
 // Ook auto-onderdelen, sloperijen, metaal- en schroothandel en milieustraten: tweedehands, maar niets voor snuffelaars (6 nov: 103 plekken).
-const NOT_SECOND_HAND = /wereldwinkel|unicef|eine.welt|auto[- ]?(demontage|sloperij|recycling|parts|onderdelen|bedrijf|berging)|auto.s\b|carparts|car parts|\bsloperij|slopersbedrijf|motorenrevisie|bergingsbedrijf|landrovers|разборка|schroothandel|metaal(recycling|handel)|metalen\b|milieustraat|ecostation|decommissioning/i;
+const NOT_SECOND_HAND = /wereldwinkel|unicef|eine.welt|auto[- ]?(demontage|sloperij|recycling|parts|onderdelen|bedrijf|berging)|auto.s\b|carparts|car parts|\bsloperij|slopersbedrijf|motorenrevisie|bergingsbedrijf|landrovers|разборка|schroothandel|metaal(recycling|handel)|metalen\b|milieustraat|ecostation|decommissioning|kindcentrum|kindercentrum|basisschool|kinderopvang|kinderdagverblijf|peuterspeelzaal|\bbso\b/i; // kindcentrum: basisschool "De Kringloop" (Arnhem)
 // Overture "flea_market" is vooral evenementen en organisatoren (rommelroutes, jaarmarkten), zonder vaste tijden. Alleen winkels
 // (die krijgen zo ook websitetijden) en vaste overdekte markten blijven; data:markets doet de markten met datum.
 const FLEA_SHOP = /kringlo|winkel|brocante|loods|schuur|koopjes|snuffelhoek|handelshuis|2dehands|tweedehands|2e hands|secunda|curiosa|at home|oude lampen/i;
