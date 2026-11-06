@@ -24,6 +24,28 @@ describe('AI-lezer: controle op het antwoord', () => {
   });
 });
 
+describe('AI-lezer: proef 6 nov (Cloudflare)', () => {
+  it("niet elke week open: weigeren ('t Schuurtje van Vincentius)", () => {
+    const t = 'Het Schuurtje is geopend elke eerste en derde zaterdag van de maand van 9.00 - 15.00 uur. Vanaf 18 januari 2024 ook elke donderdag geopend van 12:00 tot 16:00.';
+    expect(check({ oh: 'Th 12:00-16:00; Sa 09:00-15:00', bron: 'geopend elke eerste en derde zaterdag van de maand van 9.00 - 15.00 uur' }, t)).toBeNull();
+  });
+  it('meerdere vestigingen: alleen de tijden onder het eigen adres (RaderWerk)', () => {
+    const t = 'Kringloopwinkel Buitenpost\nMarconistraat 2\n9285 WG Buitenpost\nOpeningstijden:\nMa t/m vr\n10.00 - 16.00\nZaterdag\n10.00-17.00\nRaderwerk Kollum\nVoorstraat 122\n9291 CN Kollum\nOpeningstijden:\ndi t/m za\n10.00 – 17.00 uur';
+    const addr = 'Marconistraat 2, 9285WG Buitenpost';
+    expect(check({ oh: 'Tu-Sa 10:00-17:00', bron: 'di t/m za 10.00 – 17.00 uur' }, t, undefined, addr)).toBeNull();
+    expect(check({ oh: 'Mo-Fr 10:00-16:00; Sa 10:00-17:00', bron: 'Ma t/m vr 10.00 - 16.00 Zaterdag 10.00-17.00' }, t, undefined, addr)).toEqual({ oh: 'Mo-Fr 10:00-16:00; Sa 10:00-17:00' });
+  });
+  it('spaties na de komma mogen (ROEC)', () => {
+    const t = 'Onze openingstijden zijn:\nmaandagavond van 18.30-20.30\ndinsdag van 9.00-12.00 en van 13.00-16.00 en in de avond van 18.30-20.30\ndonderdag van 9.00-12.00 en van 13.00-16.00';
+    expect(check({ oh: 'Mo 18:30-20:30; Tu 09:00-12:00, 13:00-16:00, 18:30-20:30; Th 09:00-12:00, 13:00-16:00', bron: 'maandagavond van 18.30-20.30 dinsdag van 9.00-12.00 en van 13.00-16.00 en in de avond van 18.30-20.30 donderdag van 9.00-12.00 en van 13.00-16.00' }, t))
+      .toEqual({ oh: 'Mo 18:30-20:30; Tu 09:00-12:00,13:00-16:00,18:30-20:30; Th 09:00-12:00,13:00-16:00' });
+  });
+  it('goede antwoorden blijven goed (De Haagse Dames, Reconsider)', () => {
+    expect(check({ oh: 'Tu-Sa 12:00-17:00', bron: 'zijn we open van 12.00 tot 17.00 uur op dinsdag tot en met zaterdag' }, 'Met ingang van dinsdag 22 september zijn we open van 12.00 tot 17.00 uur op dinsdag tot en met zaterdag.')).toEqual({ oh: 'Tu-Sa 12:00-17:00' });
+    expect(check({ oh: 'Sa 11:00-18:00', bron: 'Zaterdag van 11:00 tot 18:00' }, 'Openingstijden\nZaterdag van 11:00 tot 18:00, en op afspraak!')).toEqual({ oh: 'Sa 11:00-18:00' });
+  });
+});
+
 describe('AI-lezer: welk stuk tekst', () => {
   it('pakt het stuk rond openingstijden, niets zonder dag en tijd', () => {
     expect(snippet(page)).toContain('woensdag tot en met zaterdag');

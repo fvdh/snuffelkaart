@@ -24,12 +24,23 @@ export const hashOf = s => createHash('sha1').update(s).digest('hex').slice(0, 1
 const flat = s => s.toLowerCase().replace(/[–—]/g, '-').replace(/\s+/g, ' ').trim();
 const OH = /^(?:(?:Mo|Tu|We|Th|Fr|Sa|Su)(?:[-,](?:Mo|Tu|We|Th|Fr|Sa|Su))* (?:off|[0-2]\d:[0-5]\d-[0-2]\d:[0-5]\d(?:,[0-2]\d:[0-5]\d-[0-2]\d:[0-5]\d)*)(?:; |$))+(?:; PH off)?$/;
 
-/** Antwoord van het model controleren. Geeft { oh } of null. */
-export function check(answer, text, today = todayIso()) {
-  const oh = answer?.oh?.trim?.(), quote = answer?.bron;
+// Niet elke week open: "elke eerste en derde zaterdag", "laatste zaterdag van de maand" (proef 6 nov: 't Schuurtje kreeg elke zaterdag).
+const MONTHLY = /\b(eerste|tweede|derde|vierde|laatste|oneven)\b[^.\n]{0,40}(maandag|dinsdag|woensdag|donderdag|vrijdag|zaterdag|zondag)|van de maand|per maand|om de week|tweewekelijks/i;
+const PC = /\b([1-9]\d{3})\s?[a-z]{2}\b/gi;
+
+/** Antwoord van het model controleren. Geeft { oh } of null. addr: adres van de winkel (bij meerdere vestigingen op één pagina). */
+export function check(answer, text, today = todayIso(), addr = '') {
+  const oh = answer?.oh?.trim?.().replace(/,\s+/g, ','), quote = answer?.bron; // "09:00-12:00, 13:00-16:00" is ook goed (proef: ROEC)
   if (!oh || typeof quote !== 'string' || !OH.test(oh)) return null;
-  if (!flat(text).includes(flat(quote)) || quote.length < 10) return null; // verzonnen of aangepaste bron
-  const nums = new Set([...flat(quote).matchAll(/\d{1,2}(?=[:.]\d{2}|\s*(?:uur|u\b|-|tot|en))/g)].map(m => +m[0]));
+  const T = flat(text), Q = flat(quote), at = T.indexOf(Q);
+  if (at < 0 || quote.length < 10) return null; // verzonnen of aangepaste bron
+  if (MONTHLY.test(text)) return null;
+  // Meerdere vestigingen (meer dan één postcode op de pagina): de dichtstbijzijnde postcode vóór de bron moet die van deze winkel zijn (proef: RaderWerk).
+  if (new Set([...text.matchAll(PC)].map(m => m[1])).size > 1) {
+    const pc = /\b([1-9]\d{3})\s?[A-Z]{2}\b/i.exec(addr)?.[1], last = [...T.slice(0, at).matchAll(PC)].pop()?.[1];
+    if (!pc || last !== pc) return null;
+  }
+  const nums = new Set([...Q.matchAll(/\d{1,2}(?=[:.]\d{2}|\s*(?:uur|u\b|-|tot|en))/g)].map(m => +m[0]));
   for (const m of oh.matchAll(/([0-2]\d):[0-5]\d/g)) if (!nums.has(+m[1])) return null; // elke tijd moet in de bron staan
   for (const m of oh.matchAll(/([0-2]\d):([0-5]\d)-([0-2]\d):([0-5]\d)/g)) { const a = +m[1] * 60 + +m[2], b = +m[3] * 60 + +m[4]; if (!(a >= 360 && b <= 1380 && b > a)) return null; }
   return precompute(oh, today) ? { oh } : null;
@@ -64,7 +75,7 @@ export async function askAI(name, addr, text, { account = process.env.CF_ACCOUNT
   let j; try { j = JSON.parse(body); } catch { throw Object.assign(new Error(`model gaf geen JSON: ${short}`), { limit: true }); } // verkeerd adres: niet 120 keer proberen
   const raw = j.choices?.[0]?.message?.content ?? '';
   let ans = null; try { ans = JSON.parse(raw.slice(raw.indexOf('{'), raw.lastIndexOf('}') + 1)); } catch { /* geen JSON in het antwoord */ }
-  const ok = check(ans, text);
+  const ok = check(ans, text, undefined, addr);
   if (!ok && process.env.AI_DEBUG) console.log(`  AI afgewezen: ${name} → ${raw.replace(/\s+/g, ' ').slice(0, 300)}`);
   return ok;
 }
