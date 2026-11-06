@@ -1,0 +1,26 @@
+# "Markten dit weekend" per mail (app/scripts/weekmail.mjs): donderdagmiddag, gestart door de klok (app/worker/klok.js).
+# Leest de gepubliceerde markets.json van de site, dus wat in de mail staat is wat op de kaart staat. Handmatig: "Run workflow".
+name: Weekmail
+on:
+  workflow_dispatch:
+concurrency: weekmail
+jobs:
+  mail:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+      - run: npm ci # scripts/db.mjs (req) laadt opening_hours
+      - run: node scripts/weekmail.mjs
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}

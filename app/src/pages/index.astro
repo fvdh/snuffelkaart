@@ -175,6 +175,20 @@ const ic = (id: string) => `<svg class="i" aria-hidden="true" focusable="false">
           <span class="rechts"><b>{dShort(m.date)}</b>{m.entree && !/onbekend/i.test(m.entree) && <span>entree&nbsp;{m.entree}</span>}</span>
         </li>); })}
     </ul>
+    <form class="aanmeld weekmail" id="mail" method="post" action="/api/aanmelden" aria-labelledby="wm-kop">
+      <h3 id="wm-kop">Elke donderdag de markten bij jou in de buurt</h3>
+      <p class="tekst">Een korte mail met de rommelmarkten van het weekend, binnen de afstand die je kiest. Geen markten in de buurt, dan geen mail.</p>
+      <input type="hidden" name="lijst" value="weekend">
+      <div class="rij2v">
+        <label class="lbl" for="wm-mail" style="grid-area:l1">Je e-mailadres</label>
+        <input id="wm-mail" name="email" type="email" autocomplete="email" required style="grid-area:i1">
+        <label class="lbl" for="wm-plek" style="grid-area:l2">Plaats of postcode</label>
+        <input id="wm-plek" name="plek" required autocomplete="address-level2" placeholder="Haarlem" style="grid-area:i2">
+      </div>
+      <div class="wm-rij"><label class="lbl" for="wm-km">Binnen</label><select id="wm-km" name="km"><option value="10">10 km</option><option value="25" selected>25 km</option><option value="50">50 km</option></select><button class="btn primary" type="submit">Aanmelden</button></div>
+      <p class="hint">Je krijgt eerst een mail om je aanmelding te bevestigen. Afmelden kan altijd met één klik. <a href="/privacy/#mail">Wat we bewaren</a></p>
+      <div class="hp" aria-hidden="true"><label>Laat dit leeg <input name="website" tabindex="-1" autocomplete="off"></label></div>
+    </form>
   </section>
 
   <section aria-labelledby="hoe-kop" style="padding-top:0">
@@ -213,10 +227,18 @@ const ic = (id: string) => `<svg class="i" aria-hidden="true" focusable="false">
     <div>
       <h2 class="h2" id="org-kop">Zet straks je garagesale of buurtmarkt op de kaart</h2>
       <p class="tekst">Organiseer je een garagesale of de vrijmarkt op Koningsdag? Binnenkort maak je er in een paar minuten een kaart van, gratis. Buren zetten zelf hun adres erop, zonder account. Bezoekers zien alle adressen en de kringlopen in de buurt. Na de markt verdwijnen de adressen weer. We willen het klaar hebben voor Koningsdag 2027.</p>
-      <!-- ponytail: mailto in plaats van het aanmeldformulier; dat komt met dubbele opt-in en privacytekst (BACKLOG). -->
-      <p class="aanmeld"><a class="btn primary" href="mailto:info@freekvanderhorst.com?subject=Kaartmaker%20voor%20onze%20markt&body=Waar%20en%20wanneer%3A%20">
-        <Fragment set:html={ic('mail')} />Mail me als het klaar is</a></p>
-      <p class="hint">Stuur een mailtje met waar en wanneer je markt is. We mailen één keer terug als het klaar is.</p>
+      <form class="aanmeld" method="post" action="/api/aanmelden">
+        <input type="hidden" name="lijst" value="kaartmaker">
+        <div class="rij2v">
+          <label class="lbl" for="org-mail" style="grid-area:l1">Je e-mailadres</label>
+          <input id="org-mail" name="email" type="email" autocomplete="email" required style="grid-area:i1">
+          <label class="lbl" for="org-waar" style="grid-area:l2">Waar en wanneer <small>(mag leeg)</small></label>
+          <input id="org-waar" name="notitie" maxlength="200" placeholder="Breda, juni" style="grid-area:i2">
+        </div>
+        <button class="btn primary" type="submit">Mail me als het klaar is</button>
+        <p class="hint">Eerst krijg je een mail om te bevestigen. Daarna één mail als het klaar is, en dan wissen we je adres. <a href="/privacy/#mail">Privacy</a></p>
+        <div class="hp" aria-hidden="true"><label>Laat dit leeg <input name="website" tabindex="-1" autocomplete="off"></label></div>
+      </form>
       <div class="badge">
         <svg width="200" height="48" viewBox="0 0 200 48" role="img" aria-labelledby="badge-t"><title id="badge-t">Badge: Onze markten staan op Snuffelkaart</title><rect x=".75" y=".75" width="198.5" height="46.5" rx="11" fill="#fbf8f0" stroke="#1e2229" stroke-width="1.5"/><rect x="9" y="9" width="30" height="30" rx="8" fill="#1e2229"/><g transform="translate(12.6 12.6)" fill="none" stroke="#fbfaf8" stroke-width="1.9" stroke-linejoin="round"><path d="M3.5 12.2V4.5a1 1 0 0 1 1-1h7.7l8.3 8.3a1.5 1.5 0 0 1 0 2.1l-6.6 6.6a1.5 1.5 0 0 1-2.1 0z"/><circle cx="8.2" cy="8.2" r="1.6"/></g><text x="48" y="21" font-family="Figtree,sans-serif" font-size="11" fill="#545a66">Onze markten staan op</text><text x="48" y="36" font-family="Figtree,sans-serif" font-size="15" font-weight="760" fill="#1e2229">Snuffelkaart</text></svg>
         <span>Organiseer je vlooienmarkten? Dan staan ze er waarschijnlijk al op. <a href="/markten/">Zoek je organisatie bij de markten</a> en zet de badge op je eigen site.</span>

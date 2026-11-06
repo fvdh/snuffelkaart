@@ -295,3 +295,11 @@ footer .credits{margin-top:16px;font-size:.75rem;line-height:1.7;color:var(--fg-
 footer .credits a{color:var(--fg-2)}
 
 @media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+
+/* mail-aanmeldingen (worker/mail.js) */
+.weekmail{margin-top:40px;max-width:620px;padding:24px;border-radius:16px;background:var(--surface);box-shadow:0 0 0 1px var(--line)}
+.weekmail h3{font-size:1.25rem;font-weight:720;letter-spacing:-.01em}
+.weekmail p.tekst{color:var(--fg-2);margin-top:-4px}
+.wm-rij{display:flex;gap:10px 12px;align-items:center;flex-wrap:wrap}
+.wm-rij select{height:48px;padding:0 12px;border-radius:12px;border:1.5px solid var(--ui-border);background:var(--surface);color:var(--fg);font:500 1rem var(--font)}
+.hp{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}

@@ -8,6 +8,7 @@ it('klok: elk kwartier publiceren, 02:30 alles, back-up, controle en winkels op 
   expect(at('2026-10-28T02:00:00Z')).toEqual(['nachtelijk.yml:kwartier', 'controle.yml', 'backup.yml']);
   expect(at('2026-10-28T02:30:00Z')).toEqual(['nachtelijk.yml:alles', 'controle.yml']);
   expect(at('2026-11-02T00:30:00Z')).toEqual(['nachtelijk.yml:kwartier', 'controle.yml', 'winkels.yml']); // maandag
+  expect(at('2026-11-05T14:00:00Z')).toEqual(['nachtelijk.yml:kwartier', 'controle.yml', 'weekmail.yml']); // donderdag
 });
 
 it('oude kaartlinks op / gaan naar /kaart/, de rest naar de bestanden', async () => {

@@ -1,0 +1,47 @@
+---
+// Waar de mail-aanmeldingen (worker/mail.js) je heen sturen: /aanmelden/?stap=mail|ok|fout|afmelden|uit. Eén statische pagina, het
+// scriptje toont het juiste stuk; zonder JavaScript zie je alle stukken onder elkaar (dan klopt het nog steeds, alleen langer).
+import Tekst from '../layouts/Tekst.astro';
+---
+<Tekst title="Aanmelden" description="Je aanmelding voor mail van Snuffelkaart.">
+  <meta slot="head" name="robots" content="noindex" />
+  <section data-stap="mail">
+    <h1>Check je mail</h1>
+    <p class="lede">We hebben je een mail gestuurd met een link. Pas als je daarop klikt, ben je aangemeld. Niets gekregen? Kijk even bij je spam, of wacht een paar minuten.</p>
+  </section>
+  <section data-stap="ok">
+    <h1>Je bent aangemeld</h1>
+    <p class="lede" data-lijst="weekend">Vanaf donderdag krijg je elke week de rommelmarkten van het weekend bij jou in de buurt. Zijn er geen markten in de buurt, dan krijg je die week niets.</p>
+    <p class="lede" data-lijst="kaartmaker">We sturen je één mail als de kaartmaker voor buurtmarkten klaar is. Daarna wissen we je adres.</p>
+    <p>Afmelden kan altijd, met de link onderaan elke mail.</p>
+    <div class="tp-cta"><b>Alvast kijken?</b><p>Op de kaart zie je welke kringlopen en markten er nu open zijn.</p><a class="btn primary" href="/kaart/">Open de kaart</a></div>
+  </section>
+  <section data-stap="afmelden">
+    <h1>Afmelden</h1>
+    <p class="lede">Wil je geen mail meer van Snuffelkaart? Dan wissen we je adres.</p>
+    <form method="post" action="/api/afmelden"><button class="btn primary" type="submit">Ja, meld me af</button></form>
+  </section>
+  <section data-stap="uit">
+    <h1>Je bent afgemeld</h1>
+    <p class="lede">Je adres is gewist. Je krijgt geen mail meer van ons.</p>
+  </section>
+  <section data-stap="fout">
+    <h1>Dat lukte niet</h1>
+    <p class="lede" data-waarom="adres">Dat e-mailadres lijkt niet te kloppen. Kijk het even na en probeer het opnieuw.</p>
+    <p class="lede" data-waarom="plek">Die plaats konden we niet vinden. Typ een plaatsnaam of een postcode, zoals Haarlem of 2011.</p>
+    <p class="lede" data-waarom="druk">Er melden zich nu heel veel mensen tegelijk aan. Probeer het over een uur nog eens.</p>
+    <p class="lede" data-waarom="link">Deze link werkt niet (meer). Misschien ben je al afgemeld, of is de aanmelding na een week zonder bevestiging gewist.</p>
+    <p class="lede" data-waarom="storing">Er ging bij ons iets mis. Probeer het later nog eens, of mail naar <a href="mailto:info@freekvanderhorst.com">info@freekvanderhorst.com</a>.</p>
+    <p><a class="btn" href="/#mail">Terug naar het formulier</a></p>
+  </section>
+  <script is:inline>
+    (function () {
+      var q = new URLSearchParams(location.search), stap = q.get('stap') || 'mail';
+      document.querySelectorAll('[data-stap]').forEach(function (s) { s.hidden = s.dataset.stap !== stap; });
+      document.querySelectorAll('[data-lijst]').forEach(function (s) { s.hidden = !!q.get('lijst') && s.dataset.lijst !== q.get('lijst'); });
+      document.querySelectorAll('[data-waarom]').forEach(function (s) { s.hidden = s.dataset.waarom !== (q.get('waarom') || 'storing'); });
+      var f = document.querySelector('[data-stap="afmelden"] form'); if (q.get('t')) f.action = '/api/afmelden?t=' + encodeURIComponent(q.get('t'));
+      var h = document.querySelector('[data-stap="' + stap + '"] h1'); if (h) document.title = h.textContent + ' · Snuffelkaart';
+    })();
+  </script>
+</Tekst>

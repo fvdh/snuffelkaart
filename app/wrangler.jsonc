@@ -5,8 +5,8 @@
   "account_id": "092890fe4cde8445e74991b7d7ae19fd", // geen geheim; het token staat als secret in GitHub
   "compatibility_date": "2026-10-27",
   "main": "worker/klok.js",
-  // run_worker_first: alleen "/" gaat langs de worker, om oude kaartlinks (/?open=…) door te sturen naar /kaart/
-  "assets": { "directory": "./dist", "binding": "ASSETS", "not_found_handling": "404-page", "run_worker_first": ["/"] },
+  // run_worker_first: "/" om oude kaartlinks (/?open=…) door te sturen naar /kaart/, "/api/*" voor mail-aanmeldingen (worker/mail.js)
+  "assets": { "directory": "./dist", "binding": "ASSETS", "not_found_handling": "404-page", "run_worker_first": ["/", "/api/*"] },
   "triggers": { "crons": ["*/15 * * * *"] },
   // workers.dev-adres blijft ook werken (oude links, geïnstalleerde app); zonder deze regel zet wrangler het uit
   "workers_dev": true,

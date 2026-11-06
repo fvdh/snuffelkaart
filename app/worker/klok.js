@@ -1,7 +1,9 @@
 // De klok van Snuffelkaart: Cloudflare-cron (elk kwartier) start de GitHub-workflows via workflow_dispatch.
 // Waarom niet GitHubs eigen planning: die startte in deze repository niet (28 okt 2026, ook niet na uit/aan). Zie DECISIONS.md.
 // Secret GITHUB_TOKEN: fine-grained token, alleen fvdh/snuffelkaart, Actions: read and write. Zonder token doet de klok niets.
-// De site zelf blijft statisch: elk verzoek gaat naar de bestanden in dist/ (ASSETS).
+// De site zelf blijft statisch: elk verzoek gaat naar de bestanden in dist/ (ASSETS), behalve / (oude kaartlinks) en /api/ (mail-aanmeldingen).
+import { api } from './mail.js';
+
 const REPO = 'fvdh/snuffelkaart', DEEP = /[?&](open|plek|org|dag|s|plan|nu)=/;
 
 /** Welke workflows bij dit tijdstip (UTC) horen. Tijden zoals voorheen in de workflows stonden. */
@@ -11,6 +13,7 @@ export function due(d) {
   if (m === 0 || m === 30) out.push(['controle.yml', {}]);
   if (h === 2 && m === 0) out.push(['backup.yml', {}]);
   if (day === 1 && h === 0 && m === 30) out.push(['winkels.yml', {}]);
+  if (day === 4 && h === 14 && m === 0) out.push(['weekmail.yml', {}]); // donderdag 15:00 (winter) / 16:00 (zomer): markten van het weekend
   return out;
 }
 
@@ -26,6 +29,7 @@ export default {
   fetch(req, env) {
     // De kaart woonde op / tot de homepage kwam (nov 2026): oude links (?open=, ?plek=, ?dag=, gedeelde rondjes) naar /kaart/ met dezelfde vraag.
     const u = new URL(req.url);
+    if (u.pathname.startsWith('/api/')) return api(req, env); // mail-aanmeldingen (worker/mail.js)
     if (u.pathname === '/' && DEEP.test(u.search)) return Response.redirect(`${u.origin}/kaart/${u.search}`, 302);
     return env.ASSETS.fetch(req);
   },

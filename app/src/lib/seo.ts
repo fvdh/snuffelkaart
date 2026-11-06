@@ -5,7 +5,7 @@ import { km, addDays, dayStart, DAYS_LONG, hm, cap, catOf } from './model';
 
 export const slugify = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/['’]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 /** Bestaande adressen in de root; een plaats met zo'n naam krijgt "-plaats" erachter. */
-const RESERVED = new Set(['kaart', 'beheer', 'privacy', 'hoe-we-controleren', 'plaatsen', 'markten', 'organisator', 'provincie', 'rommelmarkt-dit-weekend', 'vlooienmarkten', 'rommelmarkten', 'kofferbakmarkten', 'colofon', 'voorwaarden', 'offline', '404', 'winkel', 'markt', 'data', 'fonts', 'icons', '_astro', 'sitemap', 'robots']);
+const RESERVED = new Set(['kaart', 'aanmelden', 'api', 'beheer', 'privacy', 'hoe-we-controleren', 'plaatsen', 'markten', 'organisator', 'provincie', 'rommelmarkt-dit-weekend', 'vlooienmarkten', 'rommelmarkten', 'kofferbakmarkten', 'colofon', 'voorwaarden', 'offline', '404', 'winkel', 'markt', 'data', 'fonts', 'icons', '_astro', 'sitemap', 'robots']);
 
 /** Uniek adres per item: eerst de mooie naam, bij een botsing het korte id erachter. Zelfde invoer → zelfde adressen. */
 function unique<T>(items: T[], base: (x: T) => string, id: (x: T) => string): Map<string, T> {
