@@ -37,7 +37,7 @@ const label = (p: (typeof city.shops)[number]) => dup.has(p.name) && p.addr ? `$
 const list = (xs: (typeof city.shops)[number][]) => xs.length <= 3 ? xs.map(label).join(', ').replace(/, ([^,]*)$/, ' en $1') : `${xs.slice(0, 3).map(label).join(', ')} en nog ${xs.length - 3}`;
 const ld = { '@context': 'https://schema.org', '@type': 'ItemList', name: title, itemListElement: [...city.shops, ...around].slice(0, 50).map((it, i) => ({ '@type': 'ListItem', position: i + 1, url: SITE + ix.url(it.id), name: it.name })) };
 ---
-<Tekst title={title} description={description} wide tel={`stad:${city.slug}`}>
+<Tekst title={title} description={description} wide tel={`stad:${city.slug}`} mail={city.name}>
   <script type="application/ld+json" slot="head" set:html={JSON.stringify(ld)} />
   <p class="tp-crumbs"><a href="/">Snuffelkaart</a> › <a href="/plaatsen/">Plaatsen</a> › {province && <><a href={`/provincie/${province.slug}/`}>{province.name}</a> › </>}{city.name}</p>
   <h1>{title}</h1>

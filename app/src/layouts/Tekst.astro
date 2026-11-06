@@ -4,8 +4,9 @@ import '../styles/design.css';
 import Sprite from '../components/Sprite.astro';
 import Meten from '../components/Meten.astro';
 import Deel from '../components/Deel.astro';
+import WeekMail from '../components/WeekMail.astro';
 import { SITE } from '../lib/sitedata';
-const { title, description, wide = false, tel } = Astro.props; // tel: sleutel voor de paginateller (winkel- of markt-id, org:<slug>)
+const { title, description, wide = false, tel, mail } = Astro.props; // tel: sleutel voor de paginateller (winkel- of markt-id, org:<slug>); mail: aanmelden voor de weekendmail onderaan (plaatsnaam, of true zonder plaats)
 const canonical = SITE + Astro.url.pathname;
 ---
 <html lang="nl">
@@ -65,6 +66,7 @@ const canonical = SITE + Astro.url.pathname;
     <main class={`tp${wide ? ' wide' : ''}`}>
       <div class="tp-top"><a class="tp-brand" href="/"><span class="tp-mark"><svg class="i" aria-hidden="true"><use href="#i-tag" /></svg></span>Snuffelkaart</a><a class="tp-back" href="/kaart/">Naar de kaart</a></div>
       <slot />
+      {mail && <WeekMail plek={mail === true ? null : mail} />}
       <footer class="tp-foot"><a href="/plaatsen/">Alle plaatsen</a><a href="/hoe-we-controleren">Hoe we controleren</a><a href="/privacy">Privacy</a><a href="/voorwaarden">Voorwaarden</a><a href="/colofon">Colofon</a><a href="/data/places.json">Open data (ODbL)</a></footer>
     </main>
     {/* Links naar andere sites (organisator, winkel, OSM) in een nieuw tabblad, zodat je Snuffelkaart niet kwijtraakt. Route en bellen niet. */}

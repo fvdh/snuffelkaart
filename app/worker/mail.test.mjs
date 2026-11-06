@@ -24,8 +24,8 @@ const get = path => api(new Request(`https://snuffelkaart.nl${path}`), env);
 const naar = r => { expect(r.status).toBe(303); return Object.fromEntries(new URL(r.headers.get('location')).searchParams); };
 
 it('aanmelden voor de weekendmail: plaats via PDOK, rij zonder bevestiging, één bevestigingsmail', async () => {
-  expect(naar(await post({ lijst: 'weekend', email: ' Jan@Voorbeeld.nl ', plek: 'haarlem', km: '50' }))).toEqual({ stap: 'mail', lijst: 'weekend' });
-  expect(rijen).toMatchObject([{ email: 'jan@voorbeeld.nl', lijst: 'weekend', plek: 'Haarlem', lat: 52.3874, km: 50, bevestigd: null }]);
+  expect(naar(await post({ lijst: 'weekend', email: ' Jan@Voorbeeld.nl ', plek: 'haarlem', km: '50', via: '/haarlem/' }))).toEqual({ stap: 'mail', lijst: 'weekend' });
+  expect(rijen).toMatchObject([{ email: 'jan@voorbeeld.nl', lijst: 'weekend', plek: 'Haarlem', lat: 52.3874, km: 50, bevestigd: null, via: '/haarlem/' }]);
   expect(verstuurd).toHaveLength(1);
   expect(verstuurd[0]).toMatchObject({ to: 'jan@voorbeeld.nl', from: expect.stringContaining('@snuffelkaart.nl') });
   expect(verstuurd[0].html).toContain(`/api/bevestig?t=${T}`);
@@ -39,6 +39,7 @@ it('fouten: verkeerd adres, onbekende plaats, honeypot doet niets', async () => 
   expect(naar(await post({ lijst: 'weekend', email: 'a@b.nl', plek: 'Atlantis' }))).toMatchObject({ stap: 'fout', waarom: 'plek' });
   expect(naar(await post({ lijst: 'kaartmaker', email: 'a@b.nl', website: 'spam' })).stap).toBe('mail');
   expect(naar(await post({ lijst: 'iets', email: 'a@b.nl' })).stap).toBe('fout');
+  await post({ lijst: 'kaartmaker', email: 'x@y.nl', via: 'https://evil.example/' }); expect(rijen[0].via).toBeNull(); rijen = []; verstuurd = [];
   expect(rijen).toHaveLength(0); expect(verstuurd).toHaveLength(0);
 });
 

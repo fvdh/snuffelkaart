@@ -192,7 +192,7 @@ const ic = (id: string) => `<svg class="i" aria-hidden="true" focusable="false">
       <h2 class="h2" id="wm-kop">De markten van het weekend, donderdag in je mail</h2>
       <p class="post-lede">Alleen de rommelmarkten binnen de afstand die je kiest, met tijden en entree. Zijn er geen markten in de buurt, dan krijg je die week niets.</p>
       <form class="post-form" method="post" action="/api/aanmelden">
-        <input type="hidden" name="lijst" value="weekend">
+        <input type="hidden" name="lijst" value="weekend"><input type="hidden" name="via" value="/">
         <div class="post-velden">
           <label for="wm-mail" style="grid-area:l1">Je e-mailadres</label>
           <input id="wm-mail" name="email" type="email" autocomplete="email" required style="grid-area:i1">
@@ -309,7 +309,7 @@ const ic = (id: string) => `<svg class="i" aria-hidden="true" focusable="false">
       <h2 class="h2" id="org-kop">Zet straks je garagesale of buurtmarkt op de kaart</h2>
       <p class="tekst">Organiseer je een garagesale of de vrijmarkt op Koningsdag? Binnenkort maak je er in een paar minuten een kaart van, gratis. Buren zetten zelf hun adres erop, zonder account. Bezoekers zien alle adressen en de kringlopen in de buurt. Na de markt verdwijnen de adressen weer. We willen het klaar hebben voor Koningsdag 2027.</p>
       <form class="aanmeld" method="post" action="/api/aanmelden">
-        <input type="hidden" name="lijst" value="kaartmaker">
+        <input type="hidden" name="lijst" value="kaartmaker"><input type="hidden" name="via" value="/">
         <div class="rij2v">
           <label class="lbl" for="org-mail" style="grid-area:l1">Je e-mailadres</label>
           <input id="org-mail" name="email" type="email" autocomplete="email" required style="grid-area:i1">

@@ -44,7 +44,7 @@ export async function aanmelden(req, env) {
   if (v('website')) return naar(o, { stap: 'mail' }); // honeypot: bots krijgen hetzelfde antwoord, maar er gebeurt niets
   if (!LIJSTEN.includes(lijst)) return naar(o, { stap: 'fout' });
   if (!geldigAdres(email)) return naar(o, { stap: 'fout', waarom: 'adres', lijst });
-  const rij = { email, lijst, notitie: v('notitie').slice(0, 200) || null };
+  const rij = { email, lijst, notitie: v('notitie').slice(0, 200) || null, via: /^\/[\w\/-]{0,119}$/.test(v('via')) ? v('via') : null }; // via: pagina van het formulier
   if (lijst === 'weekend') {
     const p = v('plek') && await zoekPlek(v('plek').slice(0, 80));
     if (!p) return naar(o, { stap: 'fout', waarom: 'plek', lijst });

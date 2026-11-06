@@ -14,7 +14,7 @@ const title = 'Rommelmarkten en vlooienmarkten in Nederland';
 const description = `${all.length} rommelmarkten, vlooienmarkten en snuffelmarkten in ${places} plaatsen, met datum, tijden, entree en of ze doorgaan. ${weekend.length ? `Dit weekend: ${weekend.length} ${weekend.length === 1 ? 'markt' : 'markten'}.` : ''}`.trim();
 const ld = { '@context': 'https://schema.org', '@type': 'ItemList', name: title, itemListElement: all.slice(0, 50).map((m, i) => ({ '@type': 'ListItem', position: i + 1, url: SITE + ix.url(m.id), name: `${m.name}, ${dShort(m.date)}` })) };
 ---
-<Tekst title={title} description={description} wide>
+<Tekst title={title} description={description} wide mail>
   <script type="application/ld+json" slot="head" set:html={JSON.stringify(ld)} />
   <p class="tp-crumbs"><a href="/">Snuffelkaart</a> › Markten</p>
   <h1>{title}</h1>

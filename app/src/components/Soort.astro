@@ -12,7 +12,7 @@ const title = `${k.h1 ?? k.title} in Nederland`;
 const description = `${k.intro ? `${k.intro} ` : ''}${ms.length} ${ms.length === 1 ? k.one : k.binnen ? 'markten binnen' : k.title.split(' ')[0].toLowerCase()} de komende maanden in ${new Set(ms.map(m => m.place)).size} plaatsen, met datum, tijden, entree en of ze doorgaan. Elke nacht gecontroleerd.`;
 const ld = { '@context': 'https://schema.org', '@type': 'ItemList', name: title, itemListElement: ms.slice(0, 50).map((m, i) => ({ '@type': 'ListItem', position: i + 1, url: SITE + ix.url(m.id), name: `${m.name}, ${m.date}` })) };
 ---
-<Tekst title={title} description={description} wide>
+<Tekst title={title} description={description} wide mail>
   <script type="application/ld+json" slot="head" set:html={JSON.stringify(ld)} />
   <p class="tp-crumbs"><a href="/">Snuffelkaart</a> › <a href="/markten/">Markten</a> › {k.title}</p>
   <h1>{title}</h1>
