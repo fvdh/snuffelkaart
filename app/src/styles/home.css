@@ -335,3 +335,35 @@ footer .credits a{color:var(--fg-2)}
 .env-lijst span{font:400 .75rem/1.5 var(--mono);color:oklch(0.43 0.012 260)}
 .env-leeg{margin-top:14px;font-size:.9375rem}
 .env-voet{margin-top:16px;padding-top:10px;border-top:1px dashed oklch(0.80 0.008 85);font-size:.75rem;color:oklch(0.45 0.012 260)}
+
+/* "Weet jij het beter?": het grote getal is gestippeld onderstreept (gestippeld = onzeker, DESIGN.md).
+   De drie stukjes app lopen schuin op; het zijn voorbeelden (aria-hidden), de tekst eronder zegt wat je kunt. */
+.bij-kop{display:grid;grid-template-columns:auto minmax(0,1fr);gap:16px clamp(28px,4vw,56px);align-items:end}
+@media (max-width:760px){.bij-kop{grid-template-columns:minmax(0,1fr)}}
+.bij-getal{font-weight:780;font-size:clamp(4.25rem,11vw,9rem);line-height:.9;letter-spacing:-.045em;font-variant-numeric:tabular-nums;color:var(--fg)}
+.bij-getal span{text-decoration:underline dashed var(--warn-ink);text-decoration-thickness:.06em;text-underline-offset:.12em}
+.bij-lede{margin-top:12px;max-width:36em;font-size:1.0625rem;color:var(--fg-2)}
+.bij-lede b{color:var(--fg);font-weight:650}
+.bij-rij{list-style:none;margin:clamp(40px,5vw,64px) 0 0;padding:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:clamp(20px,3vw,40px);align-items:start}
+.bij-rij li:nth-child(2){margin-top:28px}.bij-rij li:nth-child(3){margin-top:56px}
+@media (max-width:880px){.bij-rij{grid-template-columns:minmax(0,1fr);gap:40px}.bij-rij li:nth-child(n){margin-top:0}}
+.bij-rij h3{font-size:1.125rem;font-weight:700;margin-top:4px}
+.bij-rij li > p:last-child{margin-top:6px;color:var(--fg-2)}
+.bij-label{margin-top:18px;font:500 .75rem/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--fg-2)}
+.bij-stuk{display:grid;gap:8px;padding:16px;border-radius:16px;background:var(--surface);box-shadow:var(--shadow),0 0 0 1px var(--line);align-content:start}
+@media (min-width:881px){.bij-stuk{min-height:168px}}
+.bij-rij li:nth-child(1) .bij-stuk{transform:rotate(-1deg)}.bij-rij li:nth-child(3) .bij-stuk{transform:rotate(.8deg)}
+.bs-t{font-weight:700;font-size:.9375rem}
+.bs-sub{font-size:.8125rem;color:var(--fg-2);font-variant-numeric:tabular-nums}
+.bs-optie{display:flex;align-items:center;gap:10px;font-size:.875rem;padding:7px 10px;border-radius:10px;border:1px solid var(--line-strong)}
+.bs-optie i{width:16px;height:16px;border-radius:50%;border:1.5px solid var(--ui-border);flex:none}
+.bs-optie.aan{border-color:var(--ink);font-weight:600}.bs-optie.aan i{border:5px solid var(--ink)}
+.bs-knoppen{display:flex;gap:8px;flex-wrap:wrap;margin-top:4px}
+.bs-knop{display:inline-flex;align-items:center;gap:6px;justify-self:start;padding:8px 12px;border-radius:10px;border:1px solid var(--ui-border);font:600 .8125rem var(--font)}
+.bs-knop .i{width:16px;height:16px}
+.bs-knop.pri{background:var(--ink);border-color:var(--ink);color:var(--on-ink)}
+.bs-sterren{display:flex;gap:4px;color:var(--markt-ink)}
+.bs-sterren .i{width:28px;height:28px;stroke-width:1.6}
+.bs-sterren .vol .i{fill:var(--markt);stroke:var(--markt-ink)}
+.bij-voet{margin-top:clamp(40px,5vw,64px);padding-top:24px;border-top:1px solid var(--line);display:flex;gap:16px 40px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.bij-voet p{max-width:44em;color:var(--fg-2);font-size:.9375rem}

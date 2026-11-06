@@ -25,6 +25,7 @@ const tijd = (m: (typeof zes)[number]) => (m.timeKnown === false ? 'tijden onbek
 // Het envelopje bij de weekendmail: wat iemand in Haarlem deze week zou krijgen (zelfde regels als scripts/weekmail.mjs, 25 km).
 const briefPlek = 'Haarlem', HAARLEM = { lat: 52.3874, lon: 4.6383 };
 const brief = weekend.map(m => ({ m, d: km(HAARLEM, m) })).filter(x => x.d <= 25).sort((a, b) => a.m.date.localeCompare(b.m.date) || a.d - b.d).slice(0, 3);
+const zonderTijden = places.filter(p => !p.h).length; // eerlijk getal voor "Weet jij het beter?"
 const grootste = [...ix.cities].sort((a, b) => b.shops.length - a.shops.length || a.name.localeCompare(b.name, 'nl')).slice(0, 16);
 const bijgewerkt = new Date(generated).toLocaleString('nl-NL', { timeZone: 'Europe/Amsterdam', weekday: 'long', day: 'numeric', month: 'long', hour: 'numeric', minute: '2-digit' });
 const title = 'Snuffelkaart · Kringlopen en rommelmarkten bij jou in de buurt';
@@ -75,6 +76,8 @@ const ic = (id: string) => `<svg class="i" aria-hidden="true" focusable="false">
   <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
   <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></symbol>
   <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></symbol>
+  <symbol id="i-star" viewBox="0 0 24 24"><path d="m12 3.5 2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.8l-5.2 2.8 1-5.8-4.3-4.1 5.9-.9z"/></symbol>
+  <symbol id="i-camera" viewBox="0 0 24 24"><path d="M4 8.5a1.5 1.5 0 0 1 1.5-1.5h2.2L9.2 5h5.6l1.5 2h2.2A1.5 1.5 0 0 1 20 8.5v9a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 17.5z"/><circle cx="12" cy="13" r="3.3"/></symbol>
   <symbol id="i-mail" viewBox="0 0 24 24"><rect x="3.5" y="5.5" width="17" height="13" rx="2"/><path d="m4 7 8 6 8-6"/></symbol>
 </svg>
 
@@ -244,6 +247,56 @@ const ic = (id: string) => `<svg class="i" aria-hidden="true" focusable="false">
     </div>
   </section>
 </div>
+
+<section class="bijdragen" id="bijdragen" aria-labelledby="bij-kop">
+  <div class="wrap">
+    <div class="bij-kop">
+      <p class="bij-getal" aria-hidden="true"><span>{nl(zonderTijden)}</span></p>
+      <div>
+        <p class="kicker" aria-hidden="true">GEMAAKT DOOR SNUFFELAARS</p>
+        <h2 class="h2" id="bij-kop">Weet jij het beter? Zet het erop</h2>
+        <p class="bij-lede">Wij halen de gegevens op bij OpenStreetMap, de websites van winkels en de agenda's van organisatoren. Wat daar niet staat, weten bezoekers: van <b>{nl(zonderTijden)}</b> van de {nl(places.length)} winkels kennen we de openingstijden nog niet. Elke melding, tijd en foto die jij doorgeeft, ziet de volgende snuffelaar ook.</p>
+      </div>
+    </div>
+    <ol class="bij-rij" role="list">
+      <li>
+        <div class="bij-stuk" aria-hidden="true">
+          <b class="bs-t">Klopt er iets niet?</b>
+          <span class="bs-optie"><i></i>Gesloten of bestaat niet meer</span>
+          <span class="bs-optie aan"><i></i>Andere tijden</span>
+          <span class="bs-optie"><i></i>Markt gaat niet door</span>
+        </div>
+        <p class="bij-label">Zonder account</p>
+        <h3>Meld wat er niet klopt</h3>
+        <p>Bij elke winkel en markt. We kijken het na; een markt die niet doorgaat staat er meestal binnen een half uur bij.</p>
+      </li>
+      <li>
+        <div class="bij-stuk" aria-hidden="true">
+          <b class="bs-t">Kloppen de tijden van RataPlan?</b>
+          <span class="bs-sub">Wij hebben vandaag: 12:00–17:00</span>
+          <span class="bs-knoppen"><span class="bs-knop pri"><Fragment set:html={ic('check')} />Ja, ze kloppen</span><span class="bs-knop">Nee, aanpassen</span></span>
+        </div>
+        <p class="bij-label">Met je e-mailadres</p>
+        <h3>Vul tijden aan of bevestig ze</h3>
+        <p>Staat er een bord op de deur? Geef de tijden door. Onderweg met je dagplan vragen we het ook even, als je bij een winkel bent.</p>
+      </li>
+      <li>
+        <div class="bij-stuk" aria-hidden="true">
+          <b class="bs-t">Hoe was Appel &amp; Ei?</b>
+          <span class="bs-sterren">{[1, 2, 3, 4, 5].map(i => <span class={i <= 4 ? 'vol' : ''}><Fragment set:html={ic('star')} /></span>)}</span>
+          <span class="bs-knop"><Fragment set:html={ic('camera')} />Foto toevoegen</span>
+        </div>
+        <p class="bij-label">Met je e-mailadres</p>
+        <h3>Schrijf een review of plaats een foto</h3>
+        <p>Wat vond je, wat kost het, is het groot? Een foto laat zien wat je kunt verwachten.</p>
+      </li>
+    </ol>
+    <div class="bij-voet">
+      <p>We bekijken alles met de hand voordat het op de kaart staat. Inloggen gaat met een code in je mail, zonder wachtwoord. Bij een review staat de naam die je zelf kiest, nooit je e-mailadres. <a href="/privacy/">Privacy</a></p>
+      <a class="btn primary" href="/kaart/"><Fragment set:html={ic('map')} />Open de kaart en kies een winkel</a>
+    </div>
+  </div>
+</section>
 
 <section class="tafel" id="organisatoren" aria-labelledby="org-kop">
   <div class="wrap org">
