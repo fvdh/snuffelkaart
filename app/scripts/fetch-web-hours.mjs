@@ -14,7 +14,7 @@ const UA = 'Snuffelkaart-PoC/0.1 (openingstijden van kringlopen; freek@draad.nu)
 const SKIP = /facebook|instagram|marktplaats|g\.page|google\.|linktr\.ee|tiktok|twitter|x\.com|youtube|wa\.me|allekringloopwinkels|kringloopwinkels?\.(nl|info|com)|kringlopen\.nl|tweedehandswinkels|openingstijden\.|openingstijdenwinkels|telefoonboek|telefoongids|cylex|opendi|hotfrog|yelp|tripadvisor|goudengids|bedrijvenpagina|drimble|infobel|kompass|oozo|plaatsengids|nederlandsewinkels/i;
 // MAX_AGE 6 dagen: de wekelijkse run (elke 7 dagen, zelfde tijd) leest dan echt alles opnieuw; bij 7 was het net te vers (6 nov).
 // VERSION ophogen als de parser of de AI-lezer beter wordt: dan wordt alles meteen opnieuw gelezen, niet pas na de cache.
-const WORKERS = 8, PAUSE = 800, MAX_AGE = 6 * 864e5, VERSION = 2;
+const WORKERS = 8, PAUSE = 800, MAX_AGE = 6 * 864e5, VERSION = 3; // 3: AI-antwoorden met een dag in twee regels samengevoegd
 
 
 const cache = fs.existsSync(OUT) && !process.argv.includes('--fresh') ? JSON.parse(fs.readFileSync(OUT, 'utf8')) : {};

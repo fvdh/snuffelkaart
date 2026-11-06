@@ -28,6 +28,28 @@ const OH = /^(?:(?:Mo|Tu|We|Th|Fr|Sa|Su)(?:[-,](?:Mo|Tu|We|Th|Fr|Sa|Su))* (?:off
 const MONTHLY = /\b(eerste|tweede|derde|vierde|laatste|oneven)\b[^.\n]{0,40}(maandag|dinsdag|woensdag|donderdag|vrijdag|zaterdag|zondag)|van de maand|per maand|om de week|tweewekelijks/i;
 const PC = /\b([1-9]\d{3})\s?[a-z]{2}\b/gi;
 
+const D7 = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'];
+/** Zelfde dag in twee regels: in OSM vervangt de tweede de eerste. Het model bedoelt dat bij overlap ("Tu-Sa 10-17; Fr 10-18": vrijdag langer)
+ *  maar niet bij een losse avond ("Tu-Fr 9-17; Fr 18:30-20:30": koopavond erbij). Overlap = vervangen, anders erbij; daarna één regel per dag. */
+export function mergeDays(oh) {
+  const week = Array(7).fill(null), mins = t => +t.slice(0, 2) * 60 + +t.slice(3, 5);
+  for (const part of oh.split('; ')) {
+    if (part === 'PH off') continue;
+    const [daysTxt, timesTxt] = part.split(' '), spans = timesTxt === 'off' ? [] : timesTxt.split(',');
+    for (const g of daysTxt.split(',')) {
+      const [a, b = a] = g.split('-').map(d => D7.indexOf(d));
+      for (let i = a; ; i = (i + 1) % 7) {
+        const old = week[i] ?? [], overlap = old.some(x => spans.some(y => mins(y) < mins(x.slice(6)) && mins(x) < mins(y.slice(6))));
+        week[i] = !spans.length || !old.length || overlap ? spans : [...old, ...spans].sort();
+        if (i === b) break;
+      }
+    }
+  }
+  const parts = [];
+  for (let i = 0; i < 7;) { const v = (week[i] ?? []).join(','); let j = i; while (j + 1 < 7 && (week[j + 1] ?? []).join(',') === v) j++; if (v) parts.push(`${D7[i]}${j > i ? '-' + D7[j] : ''} ${v}`); i = j + 1; }
+  return parts.join('; ') + (/PH off/.test(oh) ? '; PH off' : '');
+}
+
 /** Antwoord van het model controleren. Geeft { oh } of null. addr: adres van de winkel (bij meerdere vestigingen op één pagina). */
 export function check(answer, text, today = todayIso(), addr = '') {
   const oh = answer?.oh?.trim?.().replace(/,\s+/g, ','), quote = answer?.bron; // "09:00-12:00, 13:00-16:00" is ook goed (proef: ROEC)
@@ -47,7 +69,8 @@ export function check(answer, text, today = todayIso(), addr = '') {
   const nums = new Set([...Q.matchAll(/\d{1,2}(?=[:.]\d{2}|\s*(?:uur|u\b|-|tot|en))/g)].map(m => +m[0]));
   for (const m of oh.matchAll(/([0-2]\d):[0-5]\d/g)) if (!nums.has(+m[1])) return null; // elke tijd moet in de bron staan
   for (const m of oh.matchAll(/([0-2]\d):([0-5]\d)-([0-2]\d):([0-5]\d)/g)) { const a = +m[1] * 60 + +m[2], b = +m[3] * 60 + +m[4]; if (!(a >= 360 && b <= 1380 && b > a)) return null; }
-  return precompute(oh, today) ? { oh } : null;
+  const out = mergeDays(oh);
+  return out && precompute(out, today) ? { oh: out } : null;
 }
 
 const PROMPT = (name, addr, text) => `Hieronder staat tekst van de website van de tweedehandswinkel "${name}"${addr ? ` (${addr})` : ''}.

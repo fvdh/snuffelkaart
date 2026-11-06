@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { snippet, check } from './hours-ai.mjs';
+import { snippet, check, mergeDays } from './hours-ai.mjs';
 
 const page = 'Welkom bij Petit Circuit\nWij zijn geopend van woensdag tot en met zaterdag tussen 11:00 uur en 17:00 uur.\nItems doneren? Dat kan op dinsdag van 9 tot 12 uur.';
 
@@ -48,6 +48,16 @@ describe('AI-lezer: proef 6 nov (Cloudflare)', () => {
   it('goede antwoorden blijven goed (De Haagse Dames, Reconsider)', () => {
     expect(check({ oh: 'Tu-Sa 12:00-17:00', bron: 'zijn we open van 12.00 tot 17.00 uur op dinsdag tot en met zaterdag' }, 'Met ingang van dinsdag 22 september zijn we open van 12.00 tot 17.00 uur op dinsdag tot en met zaterdag.')).toEqual({ oh: 'Tu-Sa 12:00-17:00' });
     expect(check({ oh: 'Sa 11:00-18:00', bron: 'Zaterdag van 11:00 tot 18:00' }, 'Openingstijden\nZaterdag van 11:00 tot 18:00, en op afspraak!')).toEqual({ oh: 'Sa 11:00-18:00' });
+  });
+});
+
+describe('AI-lezer: zelfde dag in twee regels (winkelrun 6 nov)', () => {
+  it('losse avond komt erbij, overlap vervangt', () => {
+    expect(mergeDays('Tu-Fr 09:00-17:00; Fr 18:30-20:30; Sa 09:00-16:00')).toBe('Tu-Th 09:00-17:00; Fr 09:00-17:00,18:30-20:30; Sa 09:00-16:00');
+    expect(mergeDays('Tu-Sa 10:00-17:00; Fr 10:00-18:00')).toBe('Tu-Th 10:00-17:00; Fr 10:00-18:00; Sa 10:00-17:00');
+    expect(mergeDays('Tu,We 09:00-12:00; We 18:30-20:30; Th 13:30-16:30')).toBe('Tu 09:00-12:00; We 09:00-12:00,18:30-20:30; Th 13:30-16:30');
+    expect(mergeDays('Mo-Sa 10:00-17:00; We off')).toBe('Mo-Tu 10:00-17:00; Th-Sa 10:00-17:00');
+    expect(mergeDays('Mo-Fr 10:00-17:00; PH off')).toBe('Mo-Fr 10:00-17:00; PH off');
   });
 });
 
