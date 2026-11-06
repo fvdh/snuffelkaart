@@ -45,6 +45,11 @@ describe('openingstijden van websites', () => {
     expect(oh('Openingstijden winkel\nMaandag tot en met zaterdag van 9.00 - 17.00 uur\nDoneren goederen\nMaandag tot en met zaterdag van 9.00 tot 13.00 uur.')).toBe('Mo-Sa 09:00-17:00');
     expect(oh('openingstijden: di tm za 10.00 - 16.00 uur')).toBe('Tu-Sa 10:00-16:00');
   });
+  it('twee kolommen: eerst de dagen, dan de tijden (De Sjop Texel)', () => {
+    expect(oh('Openingstijden\nMaandag:\nDonderdag:\nVrijdag:\nZaterdag:\n10.00 - 16.00 uur\n10.00 - 16.00 uur\n10.00 - 16.00 uur\n10.00 - 16.00 uur\nHier kunt u ons vinden: Kogerstraat 29'))
+      .toBe('Mo 10:00-16:00; Th-Sa 10:00-16:00');
+    expect(oh('Openingstijden\nMaandag:\nDinsdag:\nWoensdag:\n10.00 - 16.00 uur\n10.00 - 16.00 uur\nContact')).toBeNull(); // ongelijk aantal: twijfel
+  });
   it('één dag alleen als het elke week is', () => {
     expect(oh('Openingstijden: elke zaterdag van 10:00 tot 14:00\nFacebook')).toBe('Sa 10:00-14:00');
     expect(oh('Openingstijden\nElke dinsdag van 10:00 -16:00\nTelefoon')).toBe('Tu 10:00-16:00');

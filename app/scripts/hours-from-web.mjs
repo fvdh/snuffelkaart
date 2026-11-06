@@ -62,6 +62,11 @@ export function parseHoursNL(text) {
     }
     return '\n' + out.join('');
   });
+  // Twee kolommen: eerst alle dagen, dan evenveel tijden onder elkaar (sjoptexel.nl). Even veel = op volgorde koppelen; anders niets.
+  text = text.replace(new RegExp(`((?:^(?:${DAYS_FULL}):?[ \\t]*\\n){2,7})((?:^${CELL}(?:[ \\t]*uur)?[ \\t]*\\n?){2,7})`, 'gim'), (all, ds, ts) => {
+    const d = ds.trim().split('\n'), t = ts.trim().split('\n');
+    return d.length === t.length ? d.map((x, i) => `${x.replace(/:?\s*$/, '')}: ${t[i].trim()}`).join('\n') + '\n' : all;
+  });
   const blocks = []; let cur = null;
   for (const m of text.matchAll(ENTRY)) {
     const e = entry(m); if (!e) continue;
