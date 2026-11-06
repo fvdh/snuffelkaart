@@ -21,7 +21,7 @@ const todo = new Map(), who = new Map(); // key → url, key → winkel (naam en
 // AI-lezer alleen met een token (GitHub Actions: permissions models: read). Gratis tegoed is per dag beperkt: hooguit AI_MAX vragen per run.
 const AI = !!process.env.GITHUB_TOKEN && !process.argv.includes('--no-ai'), AI_MAX = +(process.env.AI_MAX ?? 120); let aiAsked = 0, aiFound = 0, aiOff = !AI;
 for (const p of places) {
-  if ((p.h && p.hs !== 'web') || !p.website || SKIP.test(p.website)) continue; // OSM-tijden gaan voor; websitetijden lezen we opnieuw
+  if ((p.h && (p.hs !== 'web' || process.argv.includes('--alleen-zonder'))) || !p.website || SKIP.test(p.website)) continue; // --alleen-zonder: proef van de AI-lezer // OSM-tijden gaan voor; websitetijden lezen we opnieuw
   const k = siteKey(p.website); if (!k || todo.has(k)) continue;
   who.set(k, p);
   if (cache[k] && Date.now() - Date.parse(cache[k].read) < MAX_AGE) continue;
@@ -104,7 +104,7 @@ async function viaAI(key, pages, at, res) {
     if (prev?.aiHash === h) { res.ai = prev.ai; return prev.ai && prev.oh ? [{ oh: prev.oh }, prev.page] : [null, at]; } // al eens gevraagd, pagina niet veranderd
     if (aiOff || aiAsked >= AI_MAX) return [null, at];
     const p = who.get(key);
-    try { aiAsked++; const r = await askAI(p?.name ?? '', p?.addr ?? '', text); if (r) { aiFound++; res.ai = true; return [r, url]; } }
+    try { aiAsked++; const r = await askAI(p?.name ?? '', p?.addr ?? '', text); if (r) { aiFound++; res.ai = true; console.log(`  AI: ${p?.name} → ${r.oh} (${url})`); return [r, url]; } }
     catch (e) { if (e.limit) { aiOff = true; console.log(`  AI-lezer gestopt: ${e.message}`); } res.aiHash = undefined; } // morgen/volgende week opnieuw
     return [null, at];
   }

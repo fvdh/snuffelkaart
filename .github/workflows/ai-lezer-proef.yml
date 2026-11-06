@@ -1,0 +1,31 @@
+# Proef van de AI-lezer voor websitetijden: leest een aantal sites zonder tijden en toont wat de AI vindt.
+# Schrijft niets weg (geen commit, geen Supabase). Starten: Actions → "AI-lezer proef" → Run workflow.
+name: AI-lezer proef
+on:
+  workflow_dispatch:
+    inputs:
+      aantal:
+        description: Hoeveel websites lezen
+        default: '40'
+permissions:
+  contents: read
+  models: read
+jobs:
+  proef:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+      - run: npm ci
+      - name: Websites lezen (alleen in deze proef, niets bewaard)
+        run: node scripts/fetch-web-hours.mjs --fresh --alleen-zonder --limit=${{ inputs.aantal }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
