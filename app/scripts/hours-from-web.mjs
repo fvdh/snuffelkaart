@@ -49,6 +49,11 @@ export function parseHoursNL(text) {
   // Gewone woorden voor dagen: "werkdagen" = ma t/m vr, "tm" = t/m, "zon- en feestdagen gesloten" = zondag dicht (+ PH off, zie onder).
   text = text.replace(/^werkdagen\b/gim, 'maandag t/m vrijdag').replace(/\btm\b/gi, 't/m')
     .replace(/\bzon-?\s*en feestdagen\s*:?\s*(gesloten|dicht)/gi, 'zondag gesloten\nOp feestdagen gesloten');
+  // Engelse site (Outfit Library LESS): dagen en "to"/"closed" naar Nederlands, de rest van de parser blijft gelijk. ponytail: alleen volle dagnamen en Mon-Sun.
+  const EN = { mon: 'maandag', tue: 'dinsdag', wed: 'woensdag', thu: 'donderdag', fri: 'vrijdag', sat: 'zaterdag', sun: 'zondag' };
+  text = text.replace(/\b(mon|tue|wed|thu|fri|sat|sun)(?:day|sday|nesday|rsday|urday)?\b(?=\s*(?::|-|–|to\b|through\b|\d))/gi, (_, d) => EN[d.toLowerCase()])
+    .replace(/\b(maandag|dinsdag|woensdag|donderdag|vrijdag|zaterdag|zondag)\s+(?:to|through)\s+(?=maandag|dinsdag|woensdag|donderdag|vrijdag|zaterdag|zondag|mon|tue|wed|thu|fri|sat|sun)/gi, '$1 t/m ')
+    .replace(/\bopening hours\b/gi, 'Openingstijden').replace(/:\s*closed\b/gi, ': gesloten');
   // Tabel met twee kolommen (dag, winkel, inleveren onder elkaar, zoals bij Het Goed): alleen de eerste kolom als de kop zegt dat dat de winkel is.
   text = text.replace(COLS, (tbl, at) => {
     const head = text.slice(Math.max(0, at - 80), at), rows = [...tbl.matchAll(/^(\S+)\n(.+)\n(.+)$/gm)];

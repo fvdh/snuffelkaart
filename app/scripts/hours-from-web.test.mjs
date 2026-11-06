@@ -167,3 +167,11 @@ describe('tijdelijk gesloten (J. Brunekreef)', () => {
     expect(tempClosed('Openingstijden\nDi t/m za 10-17\nNieuws: de parkeerplaats is tijdelijk gesloten.')).toBe(false);
   });
 });
+
+describe('Engelse site (Outfit Library LESS)', () => {
+  it('leest Engelse dagen, "to" en "closed"; op afspraak telt niet', async () => {
+    const { parseHoursNL } = await import('./hours-from-web.mjs');
+    expect(parseHoursNL('Nieuwe Plein 13 in Arnhem /\nTuesday: appointments only/\nWednesday: 13:00-18:00 /\nThursday: 13:00-18:00 /\nFriday: 13:00-18:00 /\nSaturday: 13:00-18:00 /\nSunday: appointments only')).toEqual({ oh: 'We-Sa 13:00-18:00' });
+    expect(parseHoursNL('Opening hours\nMonday to Friday: 10:00-17:00\nSaturday: 10:00-16:00\nSunday: closed')).toEqual({ oh: 'Mo-Fr 10:00-17:00; Sa 10:00-16:00' });
+  });
+});
