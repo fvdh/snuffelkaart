@@ -19,6 +19,7 @@ const [sat, sun] = weekendOf(dayStart(from));
 const weekend = markets.filter(m => (m.date === sat || m.date === sun) && m.status !== 'cancel');
 // Zes markten: eerst bevestigd en met tijden, dan op datum en tijd. Zonder locatie kunnen we niet op afstand sorteren; dat doet de kaart.
 const zes = [...weekend].sort((a, b) => +(a.status === 'unconf') - +(b.status === 'unconf') || +(a.timeKnown === false) - +(b.timeKnown === false) || a.date.localeCompare(b.date) || a.start - b.start || a.name.localeCompare(b.name, 'nl')).slice(0, 6);
+const binnen = markets.filter(m => m.indoor === true).length;
 const dagen = [...new Set(weekend.map(m => m.date))].sort();
 const kicker = `${dagen.map(d => dShort(d).toUpperCase()).join(' · ') || 'DIT WEEKEND'} · ${weekend.length} ${weekend.length === 1 ? 'MARKT' : 'MARKTEN'}`;
 const tijd = (m: (typeof zes)[number]) => (m.timeKnown === false ? 'tijden onbekend' : `${hm(m.start)}${m.end ? `–${hm(m.end)}` : ''}`);
@@ -166,7 +167,7 @@ const ic = (id: string) => `<svg class="i" aria-hidden="true" focusable="false">
         <p class="kicker" aria-hidden="true">{kicker}</p>
         <h2 class="h2" id="mk-kop">Rommelmarkten dit weekend</h2>
         <p>{weekend.length
-          ? <>Dit weekend staan er {weekend.length} in de agenda. Hieronder {zes.length === weekend.length ? 'allemaal' : `de eerste ${zes.length}`}; op de kaart zie je ze rond jouw plek.</>
+          ? <>Dit weekend staan er {weekend.length} in de agenda. Hieronder {zes.length === weekend.length ? 'allemaal' : `de eerste ${zes.length}`}; op de kaart zie je ze rond jouw plek. Liever droog? Er zijn {binnen} <a href="/overdekte-vlooienmarkten/">overdekte markten</a> de komende maanden.</>
           : <>Voor dit weekend staan er nog geen markten in de agenda. Op de kaart zie je de markten van de komende weken.</>}</p>
       </div>
       {weekend.length > 0 && <a class="meer" href="/rommelmarkt-dit-weekend/">Alle {weekend.length} markten dit weekend <Fragment set:html={ic('arrow')} /></a>}

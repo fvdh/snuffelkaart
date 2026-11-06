@@ -6,10 +6,10 @@ import { PROVINCES, MARKET_KINDS } from '../lib/seo';
 import { ix, markets, prov, SITE } from '../lib/sitedata';
 interface Props { slug: string }
 const k = MARKET_KINDS.find(x => x.slug === Astro.props.slug)!;
-const ms = markets.filter(m => k.kinds.includes(m.kind));
+const ms = markets.filter(m => k.kinds.includes(m.kind) && (!k.binnen || m.indoor === true));
 const per = PROVINCES.map(p => ({ p, n: ms.filter(m => prov[m.place] === p.pdok).length })).filter(x => x.n);
-const title = `${k.title} in Nederland`;
-const description = `${ms.length} ${ms.length === 1 ? k.one : k.title.split(' ')[0].toLowerCase()} de komende maanden in ${new Set(ms.map(m => m.place)).size} plaatsen, met datum, tijden, entree en of ze doorgaan. Elke nacht gecontroleerd.`;
+const title = `${k.h1 ?? k.title} in Nederland`;
+const description = `${k.intro ? `${k.intro} ` : ''}${ms.length} ${ms.length === 1 ? k.one : k.binnen ? 'markten binnen' : k.title.split(' ')[0].toLowerCase()} de komende maanden in ${new Set(ms.map(m => m.place)).size} plaatsen, met datum, tijden, entree en of ze doorgaan. Elke nacht gecontroleerd.`;
 const ld = { '@context': 'https://schema.org', '@type': 'ItemList', name: title, itemListElement: ms.slice(0, 50).map((m, i) => ({ '@type': 'ListItem', position: i + 1, url: SITE + ix.url(m.id), name: `${m.name}, ${m.date}` })) };
 ---
 <Tekst title={title} description={description} wide>

@@ -96,4 +96,8 @@ export const MARKET_KINDS = [
   { slug: 'vlooienmarkten', title: 'Vlooienmarkten', one: 'vlooienmarkt', kinds: ['Vlooienmarkt', 'Curiosa', 'Verzamelbeurs', 'Platenbeurs'] },
   { slug: 'rommelmarkten', title: 'Rommelmarkten en snuffelmarkten', one: 'rommelmarkt', kinds: ['Rommelmarkt', 'Snuffelmarkt', 'Garagesale', 'Vrijmarkt', 'Jaarmarkt'] },
   { slug: 'kofferbakmarkten', title: 'Kofferbakmarkten', one: 'kofferbakmarkt', kinds: ['Kofferbakmarkt'] },
+  // Winter (nov 2026): alle soorten hierboven, maar alleen binnen (indoor === true; onbekend telt niet mee, we raden niet).
+  { slug: 'overdekte-vlooienmarkten', title: 'Overdekte vlooienmarkten', one: 'overdekte markt', binnen: true, h1: 'Overdekte vlooienmarkten en rommelmarkten',
+    intro: 'Droog snuffelen in sporthallen, beurshallen en evenementenhallen, ook als het regent of vriest.',
+    kinds: ['Vlooienmarkt', 'Curiosa', 'Verzamelbeurs', 'Platenbeurs', 'Rommelmarkt', 'Snuffelmarkt', 'Garagesale', 'Vrijmarkt', 'Jaarmarkt', 'Kofferbakmarkt'] },
 ];
