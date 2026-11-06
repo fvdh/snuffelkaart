@@ -166,7 +166,11 @@ export function hoursLD(html) {
 }
 
 /** Tijden van een pagina: eerst wat de winkel zichtbaar op de pagina zet, dan schema.org (onzichtbaar, vaker verouderd). */
-export const hoursFromHtml = html => parseHoursNL(toText(html)) ?? hoursLD(html);
+/** addr: adres van de winkel. Meerdere vestigingen met eigen tijden op één pagina (Het Boelhuys /winkels): dan het stuk vanaf de eigen straat. */
+export function hoursFromHtml(html, addr = '') {
+  const text = toText(html), street = addr.split(',')[0].trim(), at = street.length > 5 ? text.toLowerCase().indexOf(street.toLowerCase()) : -1;
+  return parseHoursNL(text) ?? (at >= 0 ? parseHoursNL(text.slice(at, at + 1500)) : null) ?? hoursLD(html); // ponytail: vaste 1500 tekens; loopt het in de volgende vestiging, dan botst het en geeft het null
+}
 
 /** Sleutel voor de cache: host + pad, zonder www en slash. Winkels van één keten op één pagina delen hem. */
 export const siteKey = u => { try { const x = new URL(/^https?:/i.test(u) ? u : 'https://' + u); return x.host.replace(/^www\./, '').toLowerCase() + x.pathname.replace(/\/$/, ''); } catch { return null; } };

@@ -149,3 +149,12 @@ it('niet gelezen: laatst gelezen tijden blijven tot 60 dagen, met de oude datum'
   expect(keep({ ...fail, oh: 'Su 12:00-16:00', ok: fail.read }, prev, now).oh).toBe('Su 12:00-16:00'); // nieuw gelezen wint
   expect(keep(fail, undefined, now).oh).toBeNull();
 });
+
+describe('meerdere vestigingen op één pagina (Het Boelhuys /winkels)', () => {
+  const html = '<p>Drs. F. Bijlweg 65</p><p>Openingstijden</p><p>Maandag</p><p>11:00 – 16:00</p><p>Dinsdag</p><p>11:00 – 16:00</p><p>Zaterdag</p><p>11:00 – 16:00</p><p>Spoorstraat 60</p><p>Openingstijden</p><p>Maandag</p><p>Gesloten</p><p>Dinsdag</p><p>11:00 – 16:00</p><p>Zaterdag</p><p>11:00 – 16:00</p>';
+  it('pakt het blok vanaf de eigen straat, zonder adres niets', async () => {
+    const { hoursFromHtml } = await import('./hours-from-web.mjs');
+    expect(hoursFromHtml(html, 'Spoorstraat 60, 1781JH Den Helder')).toEqual({ oh: 'Tu 11:00-16:00; Sa 11:00-16:00' });
+    expect(hoursFromHtml(html)).toBeNull();
+  });
+});
