@@ -40,6 +40,11 @@ describe('AI-lezer: proef 6 nov (Cloudflare)', () => {
     expect(check({ oh: 'Mo 18:30-20:30; Tu 09:00-12:00, 13:00-16:00, 18:30-20:30; Th 09:00-12:00, 13:00-16:00', bron: 'maandagavond van 18.30-20.30 dinsdag van 9.00-12.00 en van 13.00-16.00 en in de avond van 18.30-20.30 donderdag van 9.00-12.00 en van 13.00-16.00' }, t))
       .toEqual({ oh: 'Mo 18:30-20:30; Tu 09:00-12:00,13:00-16:00,18:30-20:30; Th 09:00-12:00,13:00-16:00' });
   });
+  it('één dag in de bron, zes in het antwoord: weigeren (Goirle)', () => {
+    const t = 'Onze winkels zijn vanaf 2 november op maandag geopend van 9:30 tot 17:00 uur';
+    expect(check({ oh: 'Mo 09:30-17:00; Tu-Fr 09:30-17:00; Sa 09:30-17:00', bron: t }, t)).toBeNull();
+    expect(check({ oh: 'Mo 09:30-17:00', bron: t }, t)).toEqual({ oh: 'Mo 09:30-17:00' });
+  });
   it('goede antwoorden blijven goed (De Haagse Dames, Reconsider)', () => {
     expect(check({ oh: 'Tu-Sa 12:00-17:00', bron: 'zijn we open van 12.00 tot 17.00 uur op dinsdag tot en met zaterdag' }, 'Met ingang van dinsdag 22 september zijn we open van 12.00 tot 17.00 uur op dinsdag tot en met zaterdag.')).toEqual({ oh: 'Tu-Sa 12:00-17:00' });
     expect(check({ oh: 'Sa 11:00-18:00', bron: 'Zaterdag van 11:00 tot 18:00' }, 'Openingstijden\nZaterdag van 11:00 tot 18:00, en op afspraak!')).toEqual({ oh: 'Sa 11:00-18:00' });

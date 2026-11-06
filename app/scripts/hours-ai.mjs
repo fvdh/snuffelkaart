@@ -40,6 +40,10 @@ export function check(answer, text, today = todayIso(), addr = '') {
     const pc = /\b([1-9]\d{3})\s?[A-Z]{2}\b/i.exec(addr)?.[1], last = [...T.slice(0, at).matchAll(PC)].pop()?.[1];
     if (!pc || last !== pc) return null;
   }
+  // Eén dag in de bron, meerdere in het antwoord: aangevuld (proef: Goirle, "op maandag geopend" werd ma t/m za).
+  const named = new Set([...Q.matchAll(/\b(ma|di|wo|do|vr|za|zo)(?:andag|nsdag|ensdag|nderdag|ijdag|terdag|ndag)?s?\b/g)].map(m => m[1])).size;
+  const days = oh.split('; ').reduce((n, part) => n + (part.match(/^[A-Za-z,-]+/)[0].split(',').reduce((k, g) => { const [x, y = x] = g.split('-').map(d => 'MoTuWeThFrSaSu'.indexOf(d) / 2); return k + ((y - x + 7) % 7) + 1; }, 0)), 0);
+  if (days > 1 && named < 2 && !/dagelijks|werkdagen|alle dagen|elke dag|7 dagen/.test(Q)) return null;
   const nums = new Set([...Q.matchAll(/\d{1,2}(?=[:.]\d{2}|\s*(?:uur|u\b|-|tot|en))/g)].map(m => +m[0]));
   for (const m of oh.matchAll(/([0-2]\d):[0-5]\d/g)) if (!nums.has(+m[1])) return null; // elke tijd moet in de bron staan
   for (const m of oh.matchAll(/([0-2]\d):([0-5]\d)-([0-2]\d):([0-5]\d)/g)) { const a = +m[1] * 60 + +m[2], b = +m[3] * 60 + +m[4]; if (!(a >= 360 && b <= 1380 && b > a)) return null; }
