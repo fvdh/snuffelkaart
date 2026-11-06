@@ -168,6 +168,7 @@ if (fs.existsSync(WEB)) {
   }
   for (const p of places) {
     const k = !p.h && p.website && siteKey(p.website), w = k && web[k];
+    if (w?.dicht && uses.get(k) === 1) { Object.assign(p, { dicht: (w.ok ?? w.read).slice(0, 10), hu: w.page }); webStat.dicht = (webStat.dicht ?? 0) + 1; continue; }
     if (!w?.oh) continue;
     const pc = /\b([1-9]\d{3})\s?[A-Z]{2}\b/.exec(p.addr ?? '')?.[1];
     // Ketenpagina (bijv. /contact van het hoofdkantoor) hoort niet bij één winkel. Behalve als precies één van de winkels met deze site

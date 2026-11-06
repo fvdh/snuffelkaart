@@ -158,3 +158,12 @@ describe('meerdere vestigingen op één pagina (Het Boelhuys /winkels)', () => {
     expect(hoursFromHtml(html)).toBeNull();
   });
 });
+
+describe('tijdelijk gesloten (J. Brunekreef)', () => {
+  it('herkent het vlak na openingstijden, niet los in een nieuwsbericht', async () => {
+    const { tempClosed } = await import('./hours-from-web.mjs');
+    expect(tempClosed('Veluweweg 52\nOpeningstijden\n-- tijdelijk gesloten --\n')).toBe(true);
+    expect(tempClosed('Wij zijn tijdelijk gesloten wegens ziekte.')).toBe(true);
+    expect(tempClosed('Openingstijden\nDi t/m za 10-17\nNieuws: de parkeerplaats is tijdelijk gesloten.')).toBe(false);
+  });
+});

@@ -166,6 +166,8 @@ export function hoursLD(html) {
 }
 
 /** Tijden van een pagina: eerst wat de winkel zichtbaar op de pagina zet, dan schema.org (onzichtbaar, vaker verouderd). */
+/** "Openingstijden: -- tijdelijk gesloten --" (J. Brunekreef): niet verbergen, wel zo tonen. Alleen vlak na "openingstijden" of als "wij zijn tijdelijk gesloten". */
+export const tempClosed = text => /\b(?:openingstijd\w*|openingsuren)\b[^a-z0-9]{0,20}(?:(?:wij|we) zijn )?(?:tijdelijk|voorlopig) (?:gesloten|dicht)|\b(?:wij zijn|we zijn|de winkel is) (?:tijdelijk|voorlopig) (?:gesloten|dicht)/i.test(text);
 /** addr: adres van de winkel. Meerdere vestigingen met eigen tijden op één pagina (Het Boelhuys /winkels): dan het stuk vanaf de eigen straat. */
 export function hoursFromHtml(html, addr = '') {
   const text = toText(html), street = addr.split(',')[0].trim(), at = street.length > 5 ? text.toLowerCase().indexOf(street.toLowerCase()) : -1;

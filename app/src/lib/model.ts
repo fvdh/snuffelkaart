@@ -11,6 +11,8 @@ export interface Place {
   sub?: 'antiek' | 'kleding' | 'schroot' | 'pandjeshuis' | 'vlooienmarkt'; conf?: number;
   /** Openingstijden van de eigen website van de winkel (hs), gelezen van pagina hu. */
   hs?: 'web' | 'bezoeker'; hu?: string;
+  /** Eigen website meldt "tijdelijk gesloten" (datum gelezen, pagina hu). Alleen zonder tijden. */
+  dicht?: string;
   /** Tijden doorgegeven door een bezoeker (hs = 'bezoeker'): diens schermnaam. */
   hb?: string;
 }

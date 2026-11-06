@@ -10,7 +10,7 @@ const { it, note } = Astro.props;
 const unsure = it.t === 'm' ? it.status === 'unconf' : !it.h, cancel = it.t === 'm' && it.status === 'cancel';
 const line = it.t === 'm'
   ? `${dShort(it.date)}${it.timeKnown === false ? '' : ` · ${hm(it.start)}${it.end ? `–${hm(it.end)}` : ''}`}${cancel ? ' · afgelast' : it.status === 'unconf' ? ' · nog niet bevestigd' : ''}`
-  : `${CAT[catOf(it)][0]}${it.h ? '' : ' · tijden onbekend'}`;
+  : `${CAT[catOf(it)][0]}${it.h ? '' : it.dicht ? ' · tijdelijk gesloten' : ' · tijden onbekend'}`;
 const meta = note ?? (it.t === 'm' ? (it.venue ? `${it.venue}, ${it.place}` : it.place) : (it.addr ?? it.place ?? ''));
 ---
 <li class="rowli" data-id={it.id}>

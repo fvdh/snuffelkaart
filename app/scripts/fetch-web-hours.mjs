@@ -5,7 +5,7 @@
 //          npm run data:web -- --fresh (alles opnieuw)
 //          npm run data:web -- --limit=50 (proef)
 import fs from 'node:fs';
-import { hoursFromHtml, toText, siteKey, keep } from './hours-from-web.mjs';
+import { hoursFromHtml, toText, siteKey, keep, tempClosed } from './hours-from-web.mjs';
 import { snippet, hashOf, askAI } from './hours-ai.mjs';
 
 const PLACES = new URL('../public/data/places.json', import.meta.url), OUT = new URL('../data-raw/web-hours.json', import.meta.url);
@@ -14,7 +14,7 @@ const UA = 'Snuffelkaart-PoC/0.1 (openingstijden van kringlopen; freek@draad.nu)
 const SKIP = /facebook|instagram|marktplaats|g\.page|google\.|linktr\.ee|tiktok|twitter|x\.com|youtube|wa\.me|allekringloopwinkels|kringloopwinkels?\.(nl|info|com)|kringlopen\.nl|tweedehandswinkels|openingstijden\.|openingstijdenwinkels|telefoonboek|telefoongids|cylex|opendi|hotfrog|yelp|tripadvisor|goudengids|bedrijvenpagina|drimble|infobel|kompass|oozo|plaatsengids|nederlandsewinkels/i;
 // MAX_AGE 6 dagen: de wekelijkse run (elke 7 dagen, zelfde tijd) leest dan echt alles opnieuw; bij 7 was het net te vers (6 nov).
 // VERSION ophogen als de parser of de AI-lezer beter wordt: dan wordt alles meteen opnieuw gelezen, niet pas na de cache.
-const WORKERS = 8, PAUSE = 800, MAX_AGE = 6 * 864e5, VERSION = 6; // 3: AI-antwoorden met een dag in twee regels samengevoegd; 4: dagen en tijden in twee kolommen; 5: postcodes ook van de tijdenpagina; 6: vestigingsblok op eigen straat
+const WORKERS = 8, PAUSE = 800, MAX_AGE = 6 * 864e5, VERSION = 7; // 3: AI-antwoorden met een dag in twee regels samengevoegd; 4: dagen en tijden in twee kolommen; 5: postcodes ook van de tijdenpagina; 6: vestigingsblok op eigen straat; 7: tijdelijk gesloten
 
 
 const cache = fs.existsSync(OUT) && !process.argv.includes('--fresh') ? JSON.parse(fs.readFileSync(OUT, 'utf8')) : {};
@@ -88,6 +88,8 @@ async function read(key, url) {
       await sleep(PAUSE); if (!(await allowed(next))) continue;
       try { const r = await get(next); seen.push([r.url, r.html]); hit = hoursFromHtml(r.html, addr); if (hit) { at = r.url; break; } } catch { /* volgende */ }
     }
+    const shut = !hit && seen.find(([, h]) => tempClosed(toText(h)));
+    if (shut) { res.dicht = true; res.page = shut[0]; res.ok = res.read; res.note = 'tijdelijk gesloten'; return res; } // geen AI nodig
     if (!hit) [hit, at] = await viaAI(key, seen, at, res);
     // Postcodes op de pagina (4 cijfers): staat de winkel er niet tussen, dan is het misschien een andere winkel (zie fetch-osm).
     if (hit) { res.oh = hit.oh; res.page = at; res.ok = res.read; res.pc = [...new Set(seen.flatMap(([, h]) => [...toText(h).matchAll(/\b([1-9]\d{3})\s?[A-Z]{2}\b/g)].map(m => m[1])))].slice(0, 12); } // ook van de pagina met de tijden (/contact), niet alleen de homepage
