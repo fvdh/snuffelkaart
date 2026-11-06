@@ -47,7 +47,12 @@ async function fetchOverpass() {
 }
 
 // Geen tweedehands: winkels met nieuwe spullen. Dumpstores en dergelijke blijven, als tweedehandswinkel.
-const NOT_SECOND_HAND = /wereldwinkel|unicef|eine.welt/i;
+// Ook auto-onderdelen, sloperijen, metaal- en schroothandel en milieustraten: tweedehands, maar niets voor snuffelaars (6 nov: 103 plekken).
+const NOT_SECOND_HAND = /wereldwinkel|unicef|eine.welt|auto[- ]?(demontage|sloperij|recycling|parts|onderdelen|bedrijf|berging)|auto.s\b|carparts|car parts|\bsloperij|slopersbedrijf|motorenrevisie|bergingsbedrijf|landrovers|разборка|schroothandel|metaal(recycling|handel)|metalen\b|milieustraat|ecostation|decommissioning/i;
+// Overture "flea_market" is vooral evenementen en organisatoren (rommelroutes, jaarmarkten), zonder vaste tijden. Alleen winkels
+// (die krijgen zo ook websitetijden) en vaste overdekte markten blijven; data:markets doet de markten met datum.
+const FLEA_SHOP = /kringlo|winkel|brocante|loods|schuur|koopjes|snuffelhoek|handelshuis|2dehands|tweedehands|2e hands|secunda|curiosa|at home|oude lampen/i;
+const FLEA_FIXED = /bazaa?r|hallen?\b|zwarte markt|shopperhal/i, FLEA_EVENT = /fair|markt|beurs/i;
 // Handmatig, per OSM-id: soort corrigeren of weglaten (null), met reden. Bij twijfel: OSM zelf verbeteren.
 const FIXES = {
   // 'osm-n123': { kind: 'kringloop', why: 'kringloop volgens eigen website' },
@@ -117,7 +122,7 @@ const isDup = (o, p) => { const d = metres(o, p); return d < 100 || (d < 400 && 
 const nice = s => s && s === s.toUpperCase() ? s.toLowerCase().replace(/(^|[\s-])\p{L}/gu, c => c.toUpperCase()) : s;
 /** Overture geeft 31642158684; wij tonen 0642158684. Buitenlandse nummers krijgen een +. */
 const telNL = t => { if (!t) return null; const d = t.replace(/[^\d]/g, ''); return /^31\d{9}$/.test(d) ? '0' + d.slice(2) : /^0\d{9}$/.test(d) ? d : '+' + d; };
-const ovStat = { enriched: 0, rows: 0, region: 0, closed: 0, dup: 0, notSecondHand: 0, added: 0, release: null };
+const ovStat = { enriched: 0, rows: 0, region: 0, closed: 0, dup: 0, notSecondHand: 0, event: 0, added: 0, release: null };
 if (fs.existsSync(OV)) {
   const ov = JSON.parse(fs.readFileSync(OV, 'utf8')); ovStat.release = ov.release; ovStat.rows = ov.rows.length;
   const osmPlaces = [...places];
@@ -126,6 +131,10 @@ if (fs.existsSync(OV)) {
     if (!inside([o.lon, o.lat], regionPolys)) { ovStat.region++; continue; }
     if (o.status === 'permanently_closed') { ovStat.closed++; continue; }
     if (NOT_SECOND_HAND.test(o.name)) { ovStat.notSecondHand++; continue; }
+    if (o.cat === 'flea_market') {
+      if (FLEA_SHOP.test(o.name) && !FLEA_EVENT.test(o.name)) o.cat = null; // winkel, geen markt
+      else if (!FLEA_FIXED.test(o.name)) { ovStat.event++; continue; }
+    }
     const twin = places.find(p => isDup(o, p));
     if (twin) { // zelfde winkel: lege velden aanvullen uit Overture, OSM houdt voorrang
       ovStat.dup++;
@@ -183,7 +192,7 @@ console.log(`  openingstijden leesbaar: ${count(p => p.h)} (${pct(count(p => p.h
 console.log(`  met controledatum: ${count(p => p.checked)}  adres: ${pct(count(p => p.addr))}  website: ${pct(count(p => p.website))}  telefoon: ${pct(count(p => p.phone))}`);
 console.log(`  weggelaten: buiten regio ${dropped.region}, geen tweedehands ${dropped.notSecondHand}, handmatig ${dropped.manual}`);
 console.log(`  soort: kringloop ${count(p => p.kind === 'kringloop')}, goede doelen ${count(p => p.kind === 'goede-doelen')}, tweedehands (soort onbekend of geen kringloop) ${count(p => p.kind === 'tweedehands')}`);
-if (ovStat.release) console.log(`  Overture ${ovStat.release}: ${ovStat.rows} plekken → ${ovStat.added} toegevoegd (dubbel met OSM/Overture ${ovStat.dup}, waarvan ${ovStat.enriched} OSM-winkels aangevuld met website/telefoon, buiten regio ${ovStat.region}, gesloten ${ovStat.closed}, geen tweedehands ${ovStat.notSecondHand}); alleen in OSM: ${ovStat.osmOnly}`);
+if (ovStat.release) console.log(`  Overture ${ovStat.release}: ${ovStat.rows} plekken → ${ovStat.added} toegevoegd (dubbel met OSM/Overture ${ovStat.dup}, waarvan ${ovStat.enriched} OSM-winkels aangevuld met website/telefoon, buiten regio ${ovStat.region}, gesloten ${ovStat.closed}, geen tweedehands ${ovStat.notSecondHand}, evenement ${ovStat.event}); alleen in OSM: ${ovStat.osmOnly}`);
 if (fs.existsSync(WEB)) console.log(`  tijden van eigen website: ${webStat.used} winkels (overgeslagen: ${webStat.shared} gedeelde ketenpagina, ${webStat.otherShop} andere postcode op de pagina, ${webStat.market} vaste markt); website al een week weg: ${webStat.dead}`);
 console.log(`  bron: OSM ${count(p => p.src === 'osm')}, Overture ${count(p => p.src === 'overture')}`);
 console.log(`  geschreven: ${OUT.pathname} (${(fs.statSync(OUT).size / 1024).toFixed(0)} kB)\n`);
