@@ -110,7 +110,7 @@ const ic = (id: string) => `<svg class="i" aria-hidden="true" focusable="false">
       <nav class="spring" aria-label="Naar een deel van de pagina"><a href="#markten">Markten</a><a href="#plaatsen">Per plaats</a><a href="#organisatoren">Voor organisatoren</a></nav>
     </div>
     <figure class="beeld">
-      <Picture class="foto" src={blikken} formats={['avif', 'webp']} widths={[480, 720, 1000]} sizes="(max-width: 880px) 100vw, 560px" alt="Oude blikken trommels van Verkade, Douwe Egberts en Droste op een marktkraam" fetchpriority="high" loading="eager" />
+      <Picture class="foto" src={blikken} formats={['avif', 'webp']} widths={[480, 720, 1000]} sizes="(max-width: 520px) calc(100vw - 32px), (max-width: 880px) 540px, 560px" alt="Oude blikken trommels van Verkade, Douwe Egberts en Droste op een marktkraam" fetchpriority="high" loading="eager" />
       <figcaption>Waterlooplein, Amsterdam (uitsnede). Foto: <a href="https://commons.wikimedia.org/wiki/File:Flohmarkt_Waterlooplein07.jpg">Hajotthu, Flohmarkt Waterlooplein</a>, <a href="https://creativecommons.org/licenses/by/3.0/deed.nl">CC BY 3.0</a></figcaption>
     </figure>
   </div>
@@ -126,8 +126,8 @@ const ic = (id: string) => `<svg class="i" aria-hidden="true" focusable="false">
     </div>
     <div class="demo">
       <div class="kaart" id="kaart">
-        <Picture class="lt" src={kaartLicht} formats={['avif', 'webp']} widths={[800, 1600]} sizes="(max-width: 720px) 200vw, 1000px" alt="" loading="lazy" />
-        <Picture class="dk" src={kaartDonker} formats={['avif', 'webp']} widths={[800, 1600]} sizes="(max-width: 720px) 200vw, 1000px" alt="" loading="lazy" />
+        <Picture class="lt" src={kaartLicht} formats={['avif', 'webp']} widths={[800, 1200, 1600]} sizes="(max-width: 720px) calc(217vw - 70px), 1000px" alt="" loading="lazy" />
+        <Picture class="dk" src={kaartDonker} formats={['avif', 'webp']} widths={[800, 1200, 1600]} sizes="(max-width: 720px) calc(217vw - 70px), 1000px" alt="" loading="lazy" />
         <svg class="lijn" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true" focusable="false"><path id="lijn" d=""/></svg>
         <span class="bron">© OpenStreetMap · OpenFreeMap</span>
       </div>

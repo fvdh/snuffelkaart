@@ -232,8 +232,8 @@ section{padding-block:clamp(56px,8vw,104px)}
 .markten{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));grid-auto-flow:column;grid-template-rows:repeat(3,auto);gap:0 40px}
 @media (max-width:760px){.markten{grid-template-columns:1fr;grid-auto-flow:row;grid-template-rows:none}}
 .markten li{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 16px;padding:14px 0;border-bottom:1px solid var(--line)}
-.markten .meta a{display:inline-block;padding-block:5px;margin-block:-5px}
-.markten .nm{font-weight:650;text-decoration:none}
+.markten .meta a{display:inline-block;min-height:24px;line-height:24px}
+.markten .nm{font-weight:650;text-decoration:none;display:inline-block;min-height:24px;justify-self:start} /* tikdoel 24 px (WCAG 2.5.8) */
 .markten .nm:hover{text-decoration:underline}
 .markten .meta{grid-column:1;font-size:.8125rem;color:var(--fg-3)}
 .markten .meta a{color:var(--fg-2)}
