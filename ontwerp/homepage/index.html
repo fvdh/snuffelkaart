@@ -1,0 +1,631 @@
+<title>Snuffelkaart homepage</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Figtree:wght@400..800&display=swap">
+<style>
+/* Opbouw: links uitgelijnd op één raster van 1180 px. De kassabon is het beeldmerk van de pagina: in de hero en in de demo.
+   Tokens 1-op-1 uit app/src/styles/design.css. Nieuw: --ui-border (randen van bedieningselementen, 3:1) en --tafel (demo-band).
+   Concept: Google Fonts alleen in deze artifact; op de echte site blijven Figtree en DM Mono zelf gehost. */
+:root{
+  --font:"Figtree",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"DM Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  --paper:oklch(0.978 0.012 88);
+  --paper-ink:oklch(0.25 0.015 262);
+  --bg:oklch(0.972 0.004 85);
+  --surface:oklch(0.995 0.002 85);
+  --surface-2:oklch(0.955 0.005 85);
+  --tafel:oklch(0.945 0.008 92);
+  --line:oklch(0.89 0.006 85);
+  --line-strong:oklch(0.80 0.008 85);
+  --ui-border:oklch(0.62 0.01 85);
+  --fg:oklch(0.24 0.012 260);
+  --fg-2:oklch(0.43 0.012 260);
+  --fg-3:oklch(0.53 0.010 260);
+  --ink:oklch(0.25 0.015 262);
+  --on-ink:oklch(0.985 0.003 85);
+  --kring:oklch(0.47 0.15 262);
+  --kring-soft:oklch(0.93 0.035 262);
+  --tweede:oklch(0.48 0.11 330);
+  --tweede-soft:oklch(0.94 0.03 330);
+  --markt:oklch(0.78 0.15 70);
+  --markt-ink:oklch(0.50 0.12 60);
+  --markt-soft:oklch(0.95 0.05 80);
+  --on-markt:oklch(0.26 0.04 55);
+  --open:oklch(0.62 0.16 150);
+  --open-ink:oklch(0.47 0.13 150);
+  --warn-ink:oklch(0.50 0.12 65);
+  --bad-ink:oklch(0.50 0.18 27);
+  --closed:oklch(0.66 0.008 260);
+  --pin-ic:oklch(0.995 0.002 85);
+  --foto:none;
+  --kaart-f:none;
+  --shadow:0 1px 2px oklch(0.2 0.02 260 / .06),0 6px 20px oklch(0.2 0.02 260 / .08);
+  --pin-shadow:0 1px 2px oklch(0.2 0.02 260 / .25),0 3px 8px oklch(0.2 0.02 260 / .18);
+  --ease:cubic-bezier(0.22,1,0.36,1);
+  --focus:oklch(0.55 0.17 262);
+  --wrap:1180px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:oklch(0.19 0.008 260);--surface:oklch(0.235 0.009 260);--surface-2:oklch(0.27 0.01 260);--tafel:oklch(0.215 0.008 260);
+  --line:oklch(0.32 0.01 260);--line-strong:oklch(0.42 0.012 260);--ui-border:oklch(0.62 0.012 260);
+  --fg:oklch(0.95 0.004 85);--fg-2:oklch(0.80 0.006 85);--fg-3:oklch(0.68 0.008 85);
+  --ink:oklch(0.93 0.006 85);--on-ink:oklch(0.21 0.01 260);
+  --kring:oklch(0.72 0.12 262);--kring-soft:oklch(0.32 0.06 262);--tweede:oklch(0.74 0.10 330);--tweede-soft:oklch(0.33 0.05 330);
+  --markt:oklch(0.80 0.14 75);--markt-ink:oklch(0.82 0.12 75);--markt-soft:oklch(0.33 0.05 70);--on-markt:oklch(0.24 0.04 55);
+  --open:oklch(0.72 0.16 150);--open-ink:oklch(0.78 0.14 150);
+  --warn-ink:oklch(0.84 0.12 80);--bad-ink:oklch(0.76 0.15 27);--closed:oklch(0.55 0.008 260);
+  --pin-ic:oklch(0.21 0.01 260);--foto:brightness(.92);--kaart-f:brightness(.85) contrast(.92);
+  --focus:oklch(0.72 0.12 262);color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:oklch(0.19 0.008 260);--surface:oklch(0.235 0.009 260);--surface-2:oklch(0.27 0.01 260);--tafel:oklch(0.215 0.008 260);
+  --line:oklch(0.32 0.01 260);--line-strong:oklch(0.42 0.012 260);--ui-border:oklch(0.62 0.012 260);
+  --fg:oklch(0.95 0.004 85);--fg-2:oklch(0.80 0.006 85);--fg-3:oklch(0.68 0.008 85);
+  --ink:oklch(0.93 0.006 85);--on-ink:oklch(0.21 0.01 260);
+  --kring:oklch(0.72 0.12 262);--kring-soft:oklch(0.32 0.06 262);--tweede:oklch(0.74 0.10 330);--tweede-soft:oklch(0.33 0.05 330);
+  --markt:oklch(0.80 0.14 75);--markt-ink:oklch(0.82 0.12 75);--markt-soft:oklch(0.33 0.05 70);--on-markt:oklch(0.24 0.04 55);
+  --open:oklch(0.72 0.16 150);--open-ink:oklch(0.78 0.14 150);
+  --warn-ink:oklch(0.84 0.12 80);--bad-ink:oklch(0.76 0.15 27);--closed:oklch(0.55 0.008 260);
+  --pin-ic:oklch(0.21 0.01 260);--foto:brightness(.92);--kaart-f:brightness(.85) contrast(.92);
+  --focus:oklch(0.72 0.12 262);color-scheme:dark}
+
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:400 1rem/1.5 var(--font);-webkit-font-smoothing:antialiased}
+.wrap{max-width:var(--wrap);margin-inline:auto;padding-inline:clamp(16px,4vw,40px)}
+a{color:inherit;text-underline-offset:.18em}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.lijst-r{list-style:none;margin:0;padding:0}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+.i{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none}
+h1,h2,h3{margin:0;text-wrap:balance}
+p{margin:0}
+.h2{font-weight:760;font-size:clamp(1.75rem,3.2vw,2.5rem);line-height:1.08;letter-spacing:-.022em}
+img{filter:var(--foto)}
+
+/* knoppen, zoals in de app */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:10px 18px;border-radius:12px;border:1px solid var(--ui-border);background:var(--surface);color:var(--fg);font:600 .9375rem/1.2 var(--font);text-decoration:none;cursor:pointer;transition:transform .15s var(--ease)}
+.btn:active{transform:scale(.97)}
+.btn.primary{background:var(--ink);color:var(--on-ink);border-color:var(--ink)}
+
+/* kop */
+.top{display:flex;align-items:center;gap:12px 20px;padding-block:16px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:10px;font-weight:780;font-size:1.0625rem;text-decoration:none;letter-spacing:-.01em}
+.mark{width:32px;height:32px;border-radius:9px;background:#1e2229;color:#fbfaf8;display:grid;place-items:center}
+.mark .i{width:19px;height:19px;stroke-width:1.9}
+.nav{display:flex;gap:4px;margin-left:auto;align-items:center}
+.nav a.lnk{padding:10px 12px;border-radius:10px;text-decoration:none;font-weight:560;font-size:.9375rem;color:var(--fg-2)}
+.nav a.lnk:hover{background:var(--surface-2);color:var(--fg)}
+@media (max-width:760px){.nav a.lnk{display:none}}
+
+/* hero */
+.hero{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:clamp(32px,5vw,72px);align-items:center;padding-block:clamp(16px,3vw,40px) clamp(56px,7vw,96px)}
+.hero h1{overflow-wrap:anywhere;hyphens:manual}
+.soorten{display:flex;flex-wrap:wrap;gap:8px}
+.soorten a{display:inline-flex;align-items:center;gap:8px;min-height:40px;padding:6px 14px 6px 8px;border-radius:999px;background:var(--surface);border:1px solid var(--ui-border);text-decoration:none;font-weight:600;font-size:.9375rem}
+.soorten .tile{width:26px;height:26px;border-radius:8px}.soorten .tile.m{border-radius:50%}.soorten .tile .i{width:15px;height:15px}
+.spring{display:none;gap:4px 16px;flex-wrap:wrap;font-size:.9375rem;font-weight:600}
+.spring a{padding-block:8px}
+@media (max-width:760px){.spring{display:flex}}
+.fresh{display:inline-flex;align-items:center;gap:8px;font-size:.875rem;font-weight:560;color:var(--fg-2)}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--open);flex:none}
+.hero h1{margin-top:16px;font-weight:740;font-size:clamp(2.2rem,4vw,3.5rem);line-height:1.04;letter-spacing:-.025em}
+.lede{margin-top:20px;font-size:clamp(1.0625rem,1.5vw,1.1875rem);color:var(--fg-2);max-width:33em}
+.acties{margin-top:28px;display:grid;gap:10px;max-width:500px}
+.acties .btn.primary{min-height:52px;border-radius:14px;font-size:1rem}
+.zoek{display:flex}
+.zoek .veld{padding-right:6px}
+.zoek .veld .btn{min-height:40px;width:40px;padding:0;border-radius:10px}
+.veld{flex:1 1 220px;display:flex;align-items:center;gap:10px;min-height:52px;padding:0 14px;border-radius:14px;background:var(--surface);border:1.5px solid var(--ui-border)}
+.veld:focus-within{outline:2px solid var(--focus);outline-offset:2px;border-color:var(--ink)}
+.veld .i{color:var(--fg-3)}
+.veld input{flex:1;min-width:0;border:0;background:transparent;font:500 1rem var(--font);color:var(--fg);outline:0;padding-block:12px}
+.veld input::placeholder{color:var(--fg-3)}
+.hint{font-size:.875rem;color:var(--fg-2);min-height:1.5em}
+.feitregel{margin-top:28px;padding-top:16px;border-top:1px solid var(--line);font-size:.875rem;color:var(--fg-2);font-variant-numeric:tabular-nums;display:flex;flex-wrap:wrap;gap:4px 18px}
+.feitregel b{color:var(--fg);font-weight:650}
+
+.beeld{margin:0}
+.beeld .foto{display:block;width:100%;aspect-ratio:4/5;object-fit:cover;object-position:60% 70%;border-radius:16px;background:var(--surface-2);filter:brightness(1.06) saturate(1.05)}
+.beeld figcaption{margin-top:10px;font-size:.75rem;color:var(--fg-2)}
+@media (max-width:880px){.hero{grid-template-columns:minmax(0,1fr)}.beeld{max-width:540px}}
+@media (max-width:520px){.beeld .foto{aspect-ratio:4/3}}
+
+/* tegels en status, zoals in de app */
+.tile{width:40px;height:40px;border-radius:11px;display:grid;place-items:center;background:var(--kring-soft);color:var(--kring);flex:none}
+.tile.m{border-radius:50%;background:var(--markt-soft);color:var(--markt-ink)}
+.tile.t{background:var(--tweede-soft);color:var(--tweede)}
+.st{display:inline-flex;align-items:center;gap:7px;font-weight:560;font-size:.875rem;font-variant-numeric:tabular-nums}
+.st::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--closed);flex:none}
+.st.open{color:var(--open-ink)}.st.open::before{background:var(--open)}
+.st.mkt{color:var(--markt-ink)}.st.mkt::before{background:var(--markt)}
+.st.dicht{color:var(--fg-3)}
+.st.vaag{color:var(--warn-ink)}.st.vaag::before{background:transparent;border:1.5px dashed var(--warn-ink);width:6px;height:6px}
+
+/* secties */
+section{padding-block:clamp(56px,8vw,104px)}
+.kop{display:flex;align-items:end;justify-content:space-between;gap:16px 32px;flex-wrap:wrap;margin-bottom:28px}
+.kop p{color:var(--fg-2);max-width:36em;margin-top:10px}
+.kicker{font:500 .75rem/1 var(--mono);letter-spacing:.12em;color:var(--fg-2);margin-bottom:12px}
+.meer{font-weight:600;display:inline-flex;gap:6px;align-items:center;white-space:nowrap;padding-block:10px}
+.tafel{background:var(--tafel)}
+
+/* demo */
+.demo{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr) 300px;grid-template-areas:"kaart lijst bon";gap:16px;align-items:start}
+.kaart{grid-area:kaart}.lijst{grid-area:lijst}.bonvak{grid-area:bon}
+/* Tussen tablet en smalle laptop: bon onder de kaart, lijst ernaast over de volle hoogte. */
+@media (max-width:1100px){.demo{grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-areas:"kaart lijst" "bon lijst";grid-template-rows:auto 1fr}.kaart,.bonvak{position:static}}
+@media (max-width:720px){.demo{grid-template-columns:minmax(0,1fr);grid-template-areas:"kaart" "lijst" "bon";grid-template-rows:none}}
+.kaart{position:sticky;top:24px;border-radius:16px;overflow:hidden;background:var(--surface-2);aspect-ratio:.88;box-shadow:0 0 0 1px var(--line)}
+.bonvak{position:sticky;top:24px}
+@media (max-width:720px){.kaart{position:relative;top:auto}.bonvak{position:static}}
+.kaart img{position:absolute;max-width:none;user-select:none;pointer-events:none;filter:var(--kaart-f)}
+.kaart .dk{display:none}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .kaart .lt{display:none}:root:not([data-theme="light"]) .kaart .dk{display:block}}
+:root[data-theme="dark"] .kaart .lt{display:none}:root[data-theme="dark"] .kaart .dk{display:block}
+.pin{position:absolute;transform:translate(-50%,-50%);width:34px;height:34px;border-radius:9px;border:2px solid var(--surface);background:var(--kring);color:var(--pin-ic);display:grid;place-items:center;box-shadow:var(--pin-shadow);cursor:pointer;padding:0;transition:transform .18s var(--ease)}
+.pin .i{width:17px;height:17px;stroke-width:2}
+.pin.t{background:var(--tweede)}
+.pin.m{border-radius:50%;background:var(--markt);color:var(--on-markt);box-shadow:var(--pin-shadow),0 0 0 3px var(--markt-ink)}
+.pin.dicht{background:var(--closed);color:var(--pin-ic)}
+.pin.dicht::after{content:"";position:absolute;left:-3px;right:-3px;top:50%;height:2.5px;background:var(--fg);transform:rotate(-40deg);border-radius:2px;box-shadow:0 0 0 1.5px var(--surface)}
+.pin:hover{transform:translate(-50%,-50%) scale(1.08)}
+.pin .od{position:absolute;top:-5px;right:-5px;width:12px;height:12px;border-radius:50%;background:var(--open);border:2px solid var(--surface)}
+.pin .n{position:absolute;bottom:-8px;right:-8px;min-width:20px;height:20px;padding:0 4px;border-radius:10px;background:var(--ink);color:var(--on-ink);font:700 .6875rem/16px var(--font);border:2px solid var(--surface)}
+.pin.start{width:16px;height:16px;border-radius:50%;background:var(--ink);border:3px solid var(--surface);cursor:default}
+.pin.start:hover{transform:translate(-50%,-50%)}
+.kaart .bron{position:absolute;right:8px;bottom:6px;font-size:.6875rem;color:var(--fg-2);background:var(--surface);padding:1px 6px;border-radius:6px}
+.kaart svg.lijn{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.kaart svg.lijn path{fill:none;stroke:var(--ink);stroke-width:3;stroke-linecap:round;stroke-linejoin:round;opacity:.6}
+
+.lijst{background:var(--surface);border-radius:16px;box-shadow:0 0 0 1px var(--line);overflow:hidden}
+.lijst .lkop{padding:14px 16px 12px;border-bottom:1px solid var(--line);display:grid;gap:10px}
+.lijst .lkop p{font-size:.8125rem;color:var(--fg-2)}
+.dagen{display:flex;gap:4px;padding:4px;border-radius:12px;background:var(--surface-2)}
+.dagen button{flex:1;min-height:40px;border:0;border-radius:9px;background:transparent;font:600 .9375rem var(--font);color:var(--fg-2);cursor:pointer}
+.dagen button[aria-pressed="true"]{background:var(--ink);color:var(--on-ink)}
+.rijen{list-style:none;margin:0;padding:0}
+.rij{display:grid;grid-template-columns:40px minmax(0,1fr) auto;gap:12px;align-items:center;padding:11px 12px 11px 16px;border-bottom:1px solid var(--line)}
+.rij .nm{font-weight:650;line-height:1.25;overflow-wrap:anywhere}
+.rij .meta{font-size:.8125rem;color:var(--fg-3);margin-top:1px}
+.rij .st{margin-top:3px}
+.plus{width:44px;height:44px;border-radius:12px;border:1px solid var(--ui-border);background:var(--surface);color:var(--fg);display:grid;place-items:center;cursor:pointer;transition:transform .15s var(--ease)}
+.plus:active{transform:scale(.94)}
+.plus[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--on-ink)}
+.planbar{margin:12px;display:flex;align-items:center;gap:12px;min-height:58px;padding:8px 8px 8px 12px;border-radius:16px;background:var(--ink);color:var(--on-ink);flex-wrap:wrap}
+.planbar .pb-n{flex:none;width:32px;height:32px;border-radius:9px;background:color-mix(in oklch,var(--on-ink) 16%,transparent);display:grid;place-items:center;font-weight:750}
+.planbar .pb-t{flex:1;font-weight:600;white-space:nowrap;font-variant-numeric:tabular-nums}
+.planbar .pb-t .let{color:var(--markt)}
+@media (max-width:720px){.planbar{position:sticky;bottom:12px;z-index:2}}
+.planbar a{min-height:42px;display:inline-flex;align-items:center;gap:6px;border-radius:11px;padding:8px 14px;background:var(--on-ink);color:var(--ink);font:650 .9375rem var(--font);text-decoration:none}
+.planbar a:focus-visible{outline-color:var(--on-ink)}
+.terug{margin-top:28px;display:flex;gap:12px 28px;flex-wrap:wrap;color:var(--fg-2)}
+.terug b{color:var(--fg);font-weight:650}
+.terug p{max-width:30em}
+
+/* kassabon: altijd papier, ook in donker (het is een ding) */
+.bonvak{display:grid;justify-items:center;gap:14px}
+.bon{width:100%;max-width:310px;background:var(--paper);color:var(--paper-ink);font:400 .8125rem/1.55 var(--mono);padding:22px 18px 26px;filter:drop-shadow(0 6px 14px oklch(0.2 0.02 260 / .16));
+  --g:radial-gradient(circle 5px at 7px 0,#0000 98%,#000) top / 14px 51% repeat-x,radial-gradient(circle 5px at 7px 100%,#0000 98%,#000) bottom / 14px 51% repeat-x;
+  -webkit-mask:var(--g);mask:var(--g)}
+.bon.print{animation:print .8s var(--ease) both}
+@keyframes print{from{clip-path:inset(0 0 100% 0)}to{clip-path:inset(0 0 0 0)}}
+.bon .shop{text-align:center;letter-spacing:.2em;font-weight:500}
+.bon .sub{text-align:center;font-size:.75rem;color:oklch(0.43 0.012 260);margin-top:2px}
+.bon hr{border:0;border-top:1.5px solid oklch(0.80 0.008 85);margin:12px 0}
+.bon ol{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.bon .stop{display:grid;grid-template-columns:18px 5ch minmax(0,1fr);gap:0 6px}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .bonvak .bon{--paper:oklch(0.90 0.012 88);filter:drop-shadow(0 8px 20px oklch(0 0 0 / .5))}}
+:root[data-theme="dark"] .bonvak .bon{--paper:oklch(0.90 0.012 88);filter:drop-shadow(0 8px 20px oklch(0 0 0 / .5))}
+.bon .w{grid-column:3;font-size:.75rem;color:oklch(0.43 0.012 260)}
+.bon .w.let{color:oklch(0.50 0.12 65)}
+.bon .w.mis{color:oklch(0.50 0.18 27)}
+.bon .tot{display:flex;justify-content:space-between;font-weight:500}
+.bon .tot.big{border-top:1.5px solid currentColor;padding-top:8px;margin-top:8px;font-size:.9375rem}
+.bon .bar{height:34px;margin:16px 10px 6px;background:repeating-linear-gradient(90deg,currentColor 0 2px,#0000 2px 4px,currentColor 4px 5px,#0000 5px 8px,currentColor 8px 11px,#0000 11px 12px);opacity:.85}
+.bon .bye{text-align:center;margin-top:8px}
+.bonvak .btn{width:100%;max-width:310px}
+.leeg{max-width:310px;text-align:center;color:var(--fg-2);font-size:.9375rem;padding:40px 12px;border:1px solid var(--line-strong);border-radius:14px}
+
+/* markten dit weekend */
+.strook{margin:0 0 8px}
+.strook img{display:block;width:100%;aspect-ratio:4/1;object-fit:cover;object-position:50% 55%;border-radius:16px;background:var(--surface-2)}
+.strook figcaption,.cap{margin-top:8px;font-size:.75rem;color:var(--fg-2)}
+.cap a,.strook a{color:var(--fg-2)}
+@media (max-width:720px){.strook{display:none}}
+.markten{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));grid-auto-flow:column;grid-template-rows:repeat(3,auto);gap:0 40px}
+@media (max-width:760px){.markten{grid-template-columns:1fr;grid-auto-flow:row;grid-template-rows:none}}
+.markten li{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 16px;padding:14px 0;border-bottom:1px solid var(--line)}
+.markten .meta a{display:inline-block;padding-block:5px;margin-block:-5px}
+.markten .nm{font-weight:650;text-decoration:none}
+.markten .nm:hover{text-decoration:underline}
+.markten .meta{grid-column:1;font-size:.8125rem;color:var(--fg-3)}
+.markten .meta a{color:var(--fg-2)}
+.markten .st{grid-column:1}
+.markten .rechts{grid-column:2;grid-row:1 / span 3;text-align:right;font-size:.875rem;font-variant-numeric:tabular-nums;color:var(--fg-2);display:grid;align-content:start;gap:2px}
+.markten .rechts b{color:var(--fg);font-weight:650}
+
+/* zo controleren we: een uitgelegd voorbeeld */
+.uitgelegd{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:clamp(32px,6vw,80px);align-items:center}
+@media (max-width:880px){.uitgelegd{grid-template-columns:minmax(0,1fr)}.uitgelegd .voorbeeld{order:-1}}
+.voorbeeld{background:var(--surface);border-radius:16px;box-shadow:var(--shadow),0 0 0 1px var(--line);padding:18px 18px 8px;transform:rotate(.6deg)}
+.voorbeeld .vk{display:grid;grid-template-columns:40px 1fr;gap:4px 12px;align-items:center}
+.voorbeeld .vk b{font-size:1.125rem;font-weight:700}
+.voorbeeld dl{margin:14px 0 0;display:grid;grid-template-columns:auto 1fr;gap:4px 16px;font-size:.9375rem;font-variant-numeric:tabular-nums}
+.voorbeeld dt{color:var(--fg-2)}
+.voorbeeld dd{margin:0}
+.voorbeeld .vandaag{font-weight:700}
+.voorbeeld .bronr{margin-top:12px;padding:10px 0;border-top:1px solid var(--line);font-size:.8125rem;color:var(--fg-2)}
+.voorbeeld .vaagrij{display:grid;grid-template-columns:40px 1fr;gap:4px 12px;align-items:center;padding:12px 0;border-top:1px solid var(--line)}
+.voorbeeld .tile.vaag{background:transparent;border:1.5px dashed var(--markt-ink)}
+.noten{list-style:none;margin:0;padding:0;display:grid;gap:22px;counter-reset:n}
+.noten li{display:grid;grid-template-columns:30px 1fr;gap:12px;color:var(--fg-2)}
+.noten li::before{counter-increment:n;content:counter(n);width:26px;height:26px;border-radius:50%;background:var(--ink);color:var(--on-ink);display:grid;place-items:center;font-weight:700;font-size:.8125rem}
+.noten b{color:var(--fg);font-weight:650;display:block}
+.mark-n{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:50%;background:var(--ink);color:var(--on-ink);font-size:.75rem;font-weight:700;margin-left:6px;vertical-align:1px}
+
+/* organisatoren */
+.org{display:grid;grid-template-columns:minmax(0,.95fr) minmax(0,1.05fr);gap:clamp(32px,6vw,80px);align-items:center}
+@media (max-width:880px){.org{grid-template-columns:1fr}}
+.org figure{margin:0}
+.org figure img{display:block;width:100%;aspect-ratio:900/520;object-fit:cover;border-radius:16px;background:var(--surface-2)}
+.org p.tekst{margin-top:14px;color:var(--fg-2);max-width:34em}
+.aanmeld{margin-top:22px;display:grid;gap:12px;max-width:480px}
+.aanmeld .rij2v{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-areas:"l1 l2" "i1 i2";gap:6px 12px;align-items:end}
+@media (max-width:520px){.aanmeld .rij2v{grid-template-columns:minmax(0,1fr);grid-template-areas:"l1" "i1" "l2" "i2"}.aanmeld .rij2v label[for=waar]{margin-top:10px}}
+.aanmeld label.lbl{font-weight:600;font-size:.9375rem}
+.aanmeld label.lbl small{font-weight:400;color:var(--fg-2)}
+.aanmeld input{box-sizing:border-box;height:48px;width:100%;margin:0;padding:0 14px;border-radius:12px;border:1.5px solid var(--ui-border);background:var(--surface);color:var(--fg);font:500 1rem var(--font)}
+.aanmeld .btn{min-height:48px;justify-self:start}
+.badge{margin-top:32px;padding-top:24px;border-top:1px solid var(--line);display:flex;gap:16px;align-items:center;flex-wrap:wrap;color:var(--fg-2);font-size:.9375rem}
+.badge svg{flex:none}
+.badge span{flex:1 1 240px}
+
+/* plaatsen */
+.plaatsen{columns:4 170px;column-gap:40px;margin:0;padding:0;list-style:none}
+.plaatsen li{break-inside:avoid;display:flex;justify-content:space-between;gap:12px;border-bottom:1px solid var(--line)}
+.plaatsen a{font-weight:560;text-decoration:none;padding-block:10px;flex:1}
+.plaatsen a:hover{text-decoration:underline}
+.plaatsen span{color:var(--fg-3);font-variant-numeric:tabular-nums;font-size:.875rem;padding-block:11px}
+.prov{margin-top:24px;display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 14px;font-size:.9375rem;color:var(--fg-2)}
+.prov a{padding-block:8px}
+
+/* voet */
+footer{border-top:1px solid var(--line);padding-block:40px 56px;color:var(--fg-2);font-size:.875rem}
+footer .rij2{display:flex;gap:16px 32px;flex-wrap:wrap;justify-content:space-between;align-items:center}
+footer nav ul{list-style:none;margin:0;padding:0;display:flex;gap:4px 20px;flex-wrap:wrap}
+footer nav a{display:inline-block;padding-block:8px}
+footer .credits{margin-top:16px;font-size:.75rem;line-height:1.7;color:var(--fg-3);max-width:76em}
+footer .credits a{color:var(--fg-2)}
+
+@media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+</style>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <symbol id="i-tag" viewBox="0 0 24 24"><path d="M3.5 12.2V4.5a1 1 0 0 1 1-1h7.7l8.3 8.3a1.5 1.5 0 0 1 0 2.1l-6.6 6.6a1.5 1.5 0 0 1-2.1 0z"/><circle cx="8.2" cy="8.2" r="1.6"/></symbol>
+  <symbol id="i-kraam" viewBox="0 0 24 24"><path d="M3 9.5 5 4h14l2 5.5"/><path d="M3 9.5a2.25 2.25 0 0 0 4.5 0 2.25 2.25 0 0 0 4.5 0 2.25 2.25 0 0 0 4.5 0 2.25 2.25 0 0 0 4.5 0"/><path d="M5 12v8M19 12v8M3.5 20h17"/><path d="M9 20v-4h6v4"/></symbol>
+  <symbol id="i-hanger" viewBox="0 0 24 24"><path d="M10 6.5a2 2 0 1 1 2.6 1.9c-.4.1-.6.5-.6.9V10"/><path d="M12 10 3.6 15.6A1.2 1.2 0 0 0 4.3 17.8h15.4a1.2 1.2 0 0 0 .7-2.2z"/></symbol>
+  <symbol id="i-map" viewBox="0 0 24 24"><path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2zM9 4v14M15 6v14"/></symbol>
+  <symbol id="i-loc" viewBox="0 0 24 24"><path d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0c0 5.4-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.3"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></symbol>
+  <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></symbol>
+</svg>
+
+<div class="wrap">
+  <header class="top">
+    <a class="brand" href="https://snuffelkaart.nl/"><span class="mark"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-tag"/></svg></span>Snuffelkaart</a>
+    <nav class="nav" aria-label="Hoofdmenu">
+      <a class="lnk" href="#markten">Markten</a>
+      <a class="lnk" href="#plaatsen">Plaatsen</a>
+      <a class="lnk" href="#organisatoren">Voor organisatoren</a>
+      <a class="btn primary" href="https://snuffelkaart.nl/kaart/"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-map"/></svg>Open de kaart</a>
+    </nav>
+  </header>
+</div>
+
+<main>
+<div class="wrap">
+  <div class="hero">
+    <div>
+      <p class="fresh"><span class="dot" aria-hidden="true"></span>Bijgewerkt vanochtend om 8:00</p>
+      <h1>Kringlopen en rommelmarkten bij jou in de buurt, en wanneer ze open zijn</h1>
+      <p class="lede">Je ziet welke kringloop nu open is en welke markten er dit weekend zijn, in heel Nederland. Kies een paar stops, dan zetten wij ze in de beste volgorde, met de tijden erbij. Gratis en zonder account.</p>
+      <div class="acties">
+        <button class="btn primary" type="button" id="buurt"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-loc"/></svg>Wat is er bij mij in de buurt?</button>
+        <form class="zoek" id="zoek" role="search" action="https://snuffelkaart.nl/kaart/" method="get">
+          <div class="veld"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-search"/></svg><label class="sr-only" for="plek">Plaats of postcode</label><input id="plek" name="plek" placeholder="Of typ een plaats of postcode"><button class="btn" type="submit" aria-label="Zoek"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-arrow"/></svg></button></div>
+        </form>
+        <ul class="soorten lijst-r" role="list" aria-label="Direct naar">
+          <li><a href="https://snuffelkaart.nl/kaart/?soort=kringloop"><span class="tile"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-tag"/></svg></span>Kringlopen</a></li>
+          <li><a href="https://snuffelkaart.nl/kaart/?soort=vintage"><span class="tile t"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-hanger"/></svg></span>Vintage en kleding</a></li>
+          <li><a href="https://snuffelkaart.nl/rommelmarkt-dit-weekend/"><span class="tile m"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-kraam"/></svg></span>Markten dit weekend</a></li>
+        </ul>
+        <p class="hint" id="hint" aria-live="polite"><a href="#demo">Eerst zien hoe het werkt? Probeer een zondag in Haarlem</a></p>
+      </div>
+      <p class="feitregel"><span><b>3.694</b> kringlopen en tweedehandswinkels in 539 plaatsen</span><span><b>14</b> markten dit weekend</span><span>Gemaakt door Freek, zonder advertenties</span></p>
+      <nav class="spring" aria-label="Naar een deel van de pagina"><a href="#markten">Markten</a><a href="#plaatsen">Per plaats</a><a href="#organisatoren">Voor organisatoren</a></nav>
+    </div>
+    <figure class="beeld">
+      <img class="foto" src="foto-blikken.jpg" alt="Oude blikken trommels van Verkade, Douwe Egberts en Droste op een marktkraam" fetchpriority="high">
+      <figcaption>Waterlooplein, Amsterdam (uitsnede). Foto: <a href="https://commons.wikimedia.org/wiki/File:Flohmarkt_Waterlooplein07.jpg">Hajotthu, Flohmarkt Waterlooplein</a>, <a href="https://creativecommons.org/licenses/by/3.0/deed.nl">CC BY 3.0</a></figcaption>
+    </figure>
+  </div>
+</div>
+
+<section class="tafel" id="demo" aria-labelledby="demo-kop">
+  <div class="wrap">
+    <div class="kop">
+      <div>
+        <h2 class="h2" id="demo-kop" tabindex="-1">Probeer een zondag in Haarlem</h2>
+        <p>Vijf winkels en een markt in Haarlem, met hun tijden van deze week. Tik op + of op een pin om een stop toe te voegen of weg te halen. Wissel naar zaterdag en kijk wat er verandert.</p>
+      </div>
+    </div>
+    <div class="demo">
+      <div class="kaart" id="kaart">
+        <img class="lt" src="haarlem-light.jpg" alt="">
+        <img class="dk" src="haarlem-dark.jpg" alt="">
+        <svg class="lijn" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true" focusable="false"><path id="lijn" d=""/></svg>
+        <span class="bron">© OpenStreetMap · OpenFreeMap</span>
+      </div>
+      <div class="lijst">
+        <div class="lkop">
+          <h3 class="sr-only">Stops</h3>
+          <div class="dagen" role="group" aria-label="Dag">
+            <button type="button" data-dag="za" aria-pressed="false">Zaterdag 7 nov</button>
+            <button type="button" data-dag="zo" aria-pressed="true">Zondag 8 nov</button>
+          </div>
+          <p>Vanaf Haarlem Centraal om 10:00, op de fiets</p>
+        </div>
+        <ul class="rijen" id="rijen" role="list"></ul>
+        <div class="planbar"><span class="pb-n" id="pb-n" aria-hidden="true">3</span><span class="pb-t" id="pb-t">klaar rond 13:10</span><a href="https://snuffelkaart.nl/kaart/">Maak je eigen dag<svg class="i" aria-hidden="true" focusable="false"><use href="#i-arrow"/></svg></a></div>
+      </div>
+      <div class="bonvak" id="bonvak"></div>
+    </div>
+    <p class="sr-only" id="melding" role="status"></p>
+    <div class="terug">
+      <p><b>Elke vrijdag staan de markten van het weekend erop.</b> Zet snuffelkaart.nl op het beginscherm van je telefoon, dan werkt hij als een app. Zonder app-winkel en zonder account.</p>
+      <p>Je dag blijft op je telefoon bewaard. Onderweg zie je welke stop de volgende is en of hij nog open is.</p>
+    </div>
+  </div>
+</section>
+
+<div class="wrap">
+  <section id="markten" aria-labelledby="mk-kop">
+    <div class="kop">
+      <div>
+        <p class="kicker" aria-hidden="true">ZO 8 NOV · 14 MARKTEN</p>
+        <h2 class="h2" id="mk-kop">Rommelmarkten dit weekend</h2>
+        <p>Dit weekend staan er 14 in de agenda, allemaal op zondag 8 november. Dit zijn de zes dichtstbij Haarlem. Op de kaart zie je ze rond jouw plek.</p>
+      </div>
+      <a class="meer" href="https://snuffelkaart.nl/rommelmarkt-dit-weekend/">Alle 14 markten dit weekend <svg class="i" aria-hidden="true" focusable="false"><use href="#i-arrow"/></svg></a>
+    </div>
+    <figure class="strook"><img src="foto-hero.jpg" alt="Kraam met tweedehands jassen op een markt in de herfst" loading="lazy"><figcaption>Waterlooplein, Amsterdam (uitsnede). Foto: <a href="https://commons.wikimedia.org/wiki/File:View_on_the_flea_market_Waterlooplein_with_second_hand_clothes_stables;_free_photo_Amsterdam_city_by_Fons_Heijnsbroek,_12-10-2021.jpg">Fons Heijnsbroek</a>, CC0</figcaption></figure>
+    <ul class="markten" id="mk" role="list"></ul>
+  </section>
+
+  <section aria-labelledby="hoe-kop" style="padding-top:0">
+    <div class="uitgelegd">
+      <div>
+        <h2 class="h2" id="hoe-kop">Zo sta je niet voor een dichte deur</h2>
+        <p style="margin-top:14px;color:var(--fg-2);max-width:34em">Bij elke winkel en markt zie je waar de gegevens vandaan komen en wanneer we ze voor het laatst controleerden.</p>
+        <ol class="noten" role="list" style="margin-top:28px">
+          <li><span><b>Tijden met een bron</b>Van de website van de winkel zelf, van OpenStreetMap of van bezoekers.</span></li>
+          <li><span><b>Gecontroleerd op een datum</b>Websites van winkels lezen we elke week opnieuw, de agenda's van markten elke nacht. Horen we dat een markt niet doorgaat, dan staat dat er meestal binnen een half uur op.</span></li>
+          <li><span><b>Twijfel zetten we erbij</b>Is een markt alleen aangevraagd bij de gemeente, dan staat er "nog niet bevestigd". Beter dan voor niks fietsen.</span></li>
+        </ol>
+        <p style="margin-top:24px"><a class="meer" href="https://snuffelkaart.nl/hoe-we-controleren/">Hoe we controleren <svg class="i" aria-hidden="true" focusable="false"><use href="#i-arrow"/></svg></a></p>
+      </div>
+      <figure class="voorbeeld" style="margin:0" aria-labelledby="vb-cap">
+        <figcaption id="vb-cap" class="sr-only">Voorbeeld uit de app, met de drie punten genummerd</figcaption>
+        <div class="vk"><span class="tile t"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-hanger"/></svg></span><b>Appel &amp; Ei</b><span></span><span class="st open">Open tot 18:00</span></div>
+        <dl>
+          <dt>Zaterdag</dt><dd>10:00–18:00</dd>
+          <dt class="vandaag">Zondag</dt><dd class="vandaag">12:00–18:00</dd>
+          <dt>Maandag</dt><dd>12:00–18:00</dd>
+        </dl>
+        <p class="bronr">Van de website van de winkel<span class="mark-n"><span class="sr-only">(punt </span>1<span class="sr-only">)</span></span>, gecontroleerd op 2 november<span class="mark-n"><span class="sr-only">(punt </span>2<span class="sr-only">)</span></span></p>
+        <div class="vaagrij"><span class="tile m vaag"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-kraam"/></svg></span><span><b style="font-weight:650;display:block">Vlooienmarkt Gerwen</b><span class="st vaag">Nog niet bevestigd</span><span class="mark-n"><span class="sr-only">(punt </span>3<span class="sr-only">)</span></span></span></div>
+      </figure>
+    </div>
+  </section>
+</div>
+
+<section class="tafel" id="organisatoren" aria-labelledby="org-kop">
+  <div class="wrap org">
+    <figure>
+      <img src="foto-buurt.jpg" alt="Dozen met spullen op straat tijdens de vrijmarkt op Koningsdag" loading="lazy">
+      <figcaption class="cap">Vrijmarkt op Koningsdag, Schouwburgplein Rotterdam (uitsnede, dozen zonder mensen). Foto: <a href="https://commons.wikimedia.org/wiki/File:Schouwburgplein_vrijmarkt_(Koningsdag),_Rotterdam-Centrum,_Rotterdam_(2023)_01.jpg">Donald Trung Quoc Don</a>, <a href="https://creativecommons.org/licenses/by-sa/4.0/deed.nl">CC BY-SA 4.0</a></figcaption>
+    </figure>
+    <div>
+      <h2 class="h2" id="org-kop">Zet straks je garagesale of buurtmarkt op de kaart</h2>
+      <p class="tekst">Organiseer je een garagesale of de vrijmarkt op Koningsdag? Binnenkort maak je er in een paar minuten een kaart van, gratis. Buren zetten zelf hun adres erop, zonder account. Bezoekers zien alle adressen en de kringlopen in de buurt. Na de markt verdwijnen de adressen weer. We willen het klaar hebben voor Koningsdag 2027.</p>
+      <form class="aanmeld" id="aanmeld" method="post" action="https://snuffelkaart.nl/aanmelden/">
+        <div class="rij2v">
+          <label class="lbl" for="mail" style="grid-area:l1">Je e-mailadres</label>
+          <input id="mail" name="mail" type="email" autocomplete="email" required aria-describedby="aanmeld-hint" style="grid-area:i1">
+          <label class="lbl" for="waar" style="grid-area:l2">Waar en wanneer <small>(mag leeg)</small></label>
+          <input id="waar" name="waar" placeholder="Breda, juni" style="grid-area:i2">
+        </div>
+        <button class="btn primary" type="submit">Mail me als het klaar is</button>
+        <p class="hint" id="aanmeld-hint" aria-live="polite">Eén mail, verder niets. We gebruiken je adres nergens anders voor en wissen het daarna. <a href="https://snuffelkaart.nl/privacy/">Privacy</a></p>
+      </form>
+      <div class="badge">
+        <svg width="200" height="48" viewBox="0 0 200 48" role="img" aria-labelledby="badge-t"><title id="badge-t">Badge: Onze markten staan op Snuffelkaart</title><rect x=".75" y=".75" width="198.5" height="46.5" rx="11" fill="#fbf8f0" stroke="#1e2229" stroke-width="1.5"/><rect x="9" y="9" width="30" height="30" rx="8" fill="#1e2229"/><g transform="translate(12.6 12.6)" fill="none" stroke="#fbfaf8" stroke-width="1.9" stroke-linejoin="round"><path d="M3.5 12.2V4.5a1 1 0 0 1 1-1h7.7l8.3 8.3a1.5 1.5 0 0 1 0 2.1l-6.6 6.6a1.5 1.5 0 0 1-2.1 0z"/><circle cx="8.2" cy="8.2" r="1.6"/></g><text x="48" y="21" font-family="Figtree,sans-serif" font-size="11" fill="#545a66">Onze markten staan op</text><text x="48" y="36" font-family="Figtree,sans-serif" font-size="15" font-weight="760" fill="#1e2229">Snuffelkaart</text></svg>
+        <span>Organiseer je vlooienmarkten? Dan staan ze er waarschijnlijk al op. <a href="https://snuffelkaart.nl/markten/">Zoek je organisatie bij de markten</a> en zet de badge op je eigen site.</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="wrap">
+  <section id="plaatsen" aria-labelledby="pl-kop">
+    <div class="kop">
+      <div><h2 class="h2" id="pl-kop">Kringlopen per plaats</h2><p>Per plaats zie je wat er vandaag open is en welke markten er in de buurt zijn. Hieronder de grootste; ze staan er <a href="https://snuffelkaart.nl/plaatsen/">alle 539</a>.</p></div>
+    </div>
+    <ul class="plaatsen" id="pl" role="list"></ul>
+    <p class="prov" id="prov"></p>
+  </section>
+</div>
+</main>
+
+<footer>
+  <div class="wrap">
+    <div class="rij2">
+      <a class="brand" href="https://snuffelkaart.nl/"><span class="mark"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-tag"/></svg></span>Snuffelkaart</a>
+      <nav aria-label="Over Snuffelkaart"><ul role="list">
+        <li><a href="https://snuffelkaart.nl/hoe-we-controleren/">Hoe we controleren</a></li>
+        <li><a href="#organisatoren">Voor organisatoren</a></li>
+        <li><a href="https://snuffelkaart.nl/privacy/">Privacy</a></li>
+        <li><a href="https://snuffelkaart.nl/colofon/">Colofon</a></li>
+      </ul></nav>
+    </div>
+    <p style="margin-top:16px">Gemaakt door Freek van der Horst. Geen advertenties, geen account nodig. Zie je een fout, of ben je journalist of gemeente? Mail naar <a href="mailto:info@freekvanderhorst.com" style="display:inline-block;padding-block:6px;color:var(--fg)">info@freekvanderhorst.com</a>. In de app kan het ook: tik bij een winkel of markt op <b>Klopt er iets niet?</b></p>
+    <p class="credits">Kaartgegevens © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap-bijdragers</a> (ODbL) en Overture Maps Foundation. Kaartstijl OpenFreeMap. Foto's via Wikimedia Commons, auteur en licentie staan bij elke foto. Concept van 6 november 2026: winkels, tijden en markten komen uit de export van vanochtend. Links naar /kaart/ werken pas als de nieuwe homepage live staat.</p>
+  </div>
+</footer>
+
+<script>
+(() => {
+  // Echte gegevens uit app/public/data (export 6 nov 2026). x/y = plek op de kaartafbeelding (0-1), uit MapLibre project().
+  const START = { lat: 52.3874, lon: 4.6383, x: .5074, y: .4136 }; // Haarlem Centraal
+  const STOPS = [
+    { id: 'mk', t: 'm', name: 'Snuffelmarkt Haarlem', kort: 'Snuffelmarkt', addr: 'IJsbaanlaan 4A', lat: 52.40042, lon: 4.62708, x: .4033, y: .1257, za: [], zo: [[540, 960]], extra: 'entree\u00a0€\u00a04,50', stay: 75 },
+    { id: 'rz', t: 'k', name: 'RataPlan', kort: 'RataPlan Zijlstraat', addr: 'Zijlstraat 12', lat: 52.38301, lon: 4.63043, x: .4344, y: .5108, za: [[600, 1080]], zo: [[720, 1020]], stay: 35 },
+    { id: 'ae', t: 't', name: 'Appel & Ei', kort: 'Appel & Ei', addr: 'Kruisweg 52', lat: 52.38673, lon: 4.63649, x: .4906, y: .4286, za: [[600, 1080]], zo: [[720, 1080]], stay: 30 },
+    { id: 'rs', t: 'k', name: 'RataPlan', kort: 'RataPlan Spaarndamseweg', addr: 'Spaarndamseweg 214', lat: 52.39257, lon: 4.64969, x: .6131, y: .2994, za: [[600, 1020]], zo: [[720, 1020]], stay: 35 },
+    { id: 'nl', t: 't', name: 'Negen Levens', kort: 'Negen Levens', addr: 'Zijlweg 80', lat: 52.3849, lon: 4.62494, x: .3834, y: .469, za: [[600, 1020]], zo: [], stay: 25 },
+    { id: 'zz', t: 't', name: 'Zazoe', kort: 'Zazoe', addr: 'Kleverparkweg 21b', lat: 52.392, lon: 4.63124, x: .4419, y: .312, za: [[720, 1020]], zo: [], stay: 25 },
+  ];
+  const ICON = { m: 'kraam', k: 'tag', t: 'hanger' }, SOORT = { m: 'Vlooienmarkt', k: 'Kringloop', t: 'Vintage en tweedehands' };
+  const DAG = { za: { naam: 'zaterdag', datum: 'za 7 nov' }, zo: { naam: 'zondag', datum: 'zo 8 nov' } };
+  const CROP = { x0: .27, x1: .73, y0: .02, y1: .78 }; // uitsnede van de kaartafbeelding (1600 × 1100)
+  const hm = m => `${Math.floor(m / 60)}:${String(m % 60).padStart(2, '0')}`;
+  const km = (a, b) => { const R = 6371, r = Math.PI / 180, dl = (b.lat - a.lat) * r, dn = (b.lon - a.lon) * r; const h = Math.sin(dl / 2) ** 2 + Math.cos(a.lat * r) * Math.cos(b.lat * r) * Math.sin(dn / 2) ** 2; return 2 * R * Math.asin(Math.sqrt(h)) * 1.3; }; // × 1,3: niet hemelsbreed
+  const FIETS = 15; // km/u
+  const STIL = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let dag = 'zo', gekozen = new Set(['mk', 'rz', 'ae']);
+  const $ = s => document.querySelector(s);
+  const use = id => `<svg class="i" aria-hidden="true" focusable="false"><use href="#i-${id}"/></svg>`;
+  const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;');
+
+  const kaart = $('#kaart');
+  const plaats = () => kaart.querySelectorAll('img').forEach(img => { const w = 100 / (CROP.x1 - CROP.x0), h = 100 / (CROP.y1 - CROP.y0); Object.assign(img.style, { width: w + '%', height: h + '%', left: -CROP.x0 * w + '%', top: -CROP.y0 * h + '%' }); });
+  plaats();
+  const pos = s => ({ l: (s.x - CROP.x0) / (CROP.x1 - CROP.x0) * 100, t: (s.y - CROP.y0) / (CROP.y1 - CROP.y0) * 100 });
+
+  const status = (s, d = dag) => {
+    const iv = s[d];
+    if (!iv.length) return s.t === 'm' ? { c: 'dicht', txt: 'Alleen op zondag' } : { c: 'dicht', txt: `Dicht op ${DAG[d].naam}` };
+    return s.t === 'm' ? { c: 'mkt', txt: `Markt ${hm(iv[0][0])}–${hm(iv[0][1])}` } : { c: 'open', txt: `Open ${hm(iv[0][0])}–${hm(iv[0][1])}` };
+  };
+
+  // Slimste volgorde: alle volgordes proberen (hooguit 6 stops = 720), minste wachten + fietsen, niets dicht bij aankomst.
+  function plan(ids, d = dag) {
+    const stops = STOPS.filter(s => ids.has(s.id));
+    const perms = a => a.length <= 1 ? [a] : a.flatMap((x, i) => perms([...a.slice(0, i), ...a.slice(i + 1)]).map(p => [x, ...p]));
+    let best = null;
+    for (const p of perms(stops)) {
+      let t = 600, here = START, kmTot = 0, fiets = 0, cost = 0; const rows = [];
+      for (const s of p) {
+        const d1 = km(here, s), reis = Math.round(d1 / FIETS * 60); t += reis; kmTot += d1; fiets += reis; cost += reis;
+        const iv = s[d][0], aankomst = t; let w = null;
+        if (!iv) { w = { c: 'mis', sr: 'Kan niet: ', txt: s.t === 'm' ? `geen markt op ${DAG[d].naam}` : `${DAG[d].naam} dicht` }; cost += 1000; }
+        else if (t < iv[0]) { const wacht = iv[0] - t; w = { c: 'let', sr: 'Let op: ', txt: `je wacht ${wacht} min, open om ${hm(iv[0])}` }; cost += wacht; t = iv[0]; }
+        else if (t + 10 > iv[1]) { w = { c: 'mis', sr: 'Dicht: ', txt: `dicht om ${hm(iv[1])}` }; cost += 1000; }
+        rows.push({ s, aankomst, w, iv }); if (iv) t += s.stay; here = s;
+      }
+      if (!best || cost < best.cost) best = { rows, cost, kmTot, fiets, eind: t };
+    }
+    return best;
+  }
+  const rond = m => hm(Math.round(m / 5) * 5);
+
+  function bonHtml(p, d, print) {
+    return `<div class="bon${print && !STIL ? ' print' : ''}">
+      <div class="shop">SNUFFELKAART</div>
+      <div class="sub">${DAG[d].naam.toUpperCase()} ${d === 'za' ? '7' : '8'} NOV 2026 · HAARLEM</div>
+      <hr>
+      <div class="stop"><span></span><span>10:00</span><span>vertrek Haarlem Centraal</span></div>
+      <ol style="margin-top:8px">${p.rows.map((r, i) => `<li class="stop"><span aria-hidden="true">${i + 1}</span><span>${hm(r.aankomst)}</span><span>${esc(r.s.kort)}</span>${r.w ? `<span class="w ${r.w.c}"><span aria-hidden="true">${r.w.c === 'mis' ? '✕' : '!'}</span><span class="sr-only">${r.w.sr}</span> ${r.w.txt}</span>` : `<span class="w">open tot ${hm(r.iv[1])}</span>`}</li>`).join('')}</ol>
+      <hr>
+      <div class="tot"><span>STOPS</span><span>${p.rows.length}</span></div>
+      <div class="tot"><span>FIETSEN</span><span>${p.kmTot.toFixed(1).replace('.', ',')} km · ${p.fiets} min</span></div>
+      <div class="tot big"><span>KLAAR ROND</span><span>${rond(p.eind)}</span></div>
+      <div class="bar" aria-hidden="true"></div>
+      <div class="bye">Fijne ${DAG[d].naam}!</div>
+    </div>`;
+  }
+
+  // Lijst en pins één keer bouwen; daarna alleen bijwerken (focus blijft waar hij is).
+  $('#rijen').innerHTML = STOPS.map(s => `<li class="rij" data-id="${s.id}">
+    <span class="tile ${s.t === 'm' ? 'm' : s.t === 't' ? 't' : ''}">${use(ICON[s.t])}</span>
+    <div><div class="nm">${esc(s.name)}</div><div class="meta">${SOORT[s.t]} · ${esc(s.addr).replace(/ (\S+)$/, '\u00a0$1')}${s.extra ? ' · ' + s.extra : ''}</div><div class="st"></div></div>
+    <button type="button" class="plus" data-id="${s.id}"></button>
+  </li>`).join('');
+  const sp = document.createElement('span'), st0 = pos(START); sp.className = 'pin start'; sp.setAttribute('aria-hidden', 'true'); sp.style.left = st0.l + '%'; sp.style.top = st0.t + '%'; kaart.append(sp);
+  for (const s of STOPS) {
+    // Pins doen hetzelfde als de knoppen in de lijst: voor toetsenbord en schermlezer is de lijst de ingang.
+    const b = document.createElement('button'), q = pos(s);
+    b.type = 'button'; b.dataset.id = s.id; b.tabIndex = -1; b.setAttribute('aria-hidden', 'true');
+    b.style.left = q.l + '%'; b.style.top = q.t + '%';
+    b.onclick = () => wissel(s.id);
+    kaart.append(b);
+  }
+  $('#rijen').querySelectorAll('.plus').forEach(b => b.onclick = () => wissel(b.dataset.id));
+
+  function teken(print, melden) {
+    document.querySelectorAll('.dagen button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.dag === dag)));
+    const p = gekozen.size ? plan(gekozen) : null, nr = new Map(p ? p.rows.map((r, i) => [r.s.id, i + 1]) : []);
+    for (const s of STOPS) {
+      const x = status(s), in_ = gekozen.has(s.id), open = s[dag].length > 0;
+      const rij = $(`.rij[data-id="${s.id}"]`), st = rij.querySelector('.st');
+      st.className = `st ${x.c}`; st.textContent = x.txt;
+      const b = rij.querySelector('.plus');
+      b.setAttribute('aria-pressed', String(in_)); b.setAttribute('aria-label', `Zet ${s.name}, ${s.addr}, in je dag`); b.innerHTML = use(in_ ? 'check' : 'plus');
+      const pin = kaart.querySelector(`.pin[data-id="${s.id}"]`) || kaart.querySelector(`button[data-id="${s.id}"]`);
+      pin.className = `pin ${s.t}${open ? '' : ' dicht'}`;
+      pin.innerHTML = use(ICON[s.t]) + (open && s.t !== 'm' ? '<span class="od"></span>' : '') + (nr.has(s.id) ? `<span class="n">${nr.get(s.id)}</span>` : '');
+    }
+    const pts = p ? [START, ...p.rows.map(r => r.s)].map(pos) : [];
+    const lijn = $('#lijn'); lijn.setAttribute('d', pts.length > 1 ? 'M' + pts.map(q => `${q.l} ${q.t}`).join(' L') : ''); lijn.setAttribute('vector-effect', 'non-scaling-stroke');
+    $('#pb-n').textContent = gekozen.size;
+    const mis = p ? p.rows.filter(r => r.w && r.w.c === 'mis').map(r => r.s.kort) : [];
+    $('#pb-t').innerHTML = p ? `klaar rond ${rond(p.eind)}${mis.length ? ` <span class="let">· ${mis.length} kan niet</span>` : ''}` : 'nog geen stops';
+    const vak = $('#bonvak');
+    if (!p) { vak.innerHTML = '<p class="leeg">Tik op + of op een pin om stops te kiezen.</p>'; if (melden) $('#melding').textContent = 'Geen stops gekozen.'; return; }
+    vak.innerHTML = `<h3 class="sr-only">Je dagplan</h3>${bonHtml(p, dag, print)}`;
+    if (melden) $('#melding').textContent = `${DAG[dag].naam[0].toUpperCase() + DAG[dag].naam.slice(1)}: ${p.rows.length} ${p.rows.length === 1 ? 'stop' : 'stops'}, klaar rond ${rond(p.eind)}${mis.length ? `. Let op: ${mis.join(' en ')} kan die dag niet` : ''}.`;
+  }
+  function wissel(id) { gekozen.has(id) ? gekozen.delete(id) : gekozen.size < 6 && gekozen.add(id); teken(true, true); }
+  document.querySelectorAll('.dagen button').forEach(b => b.onclick = () => { dag = b.dataset.dag; teken(true, true); });
+  teken(false, false);
+
+  // Hero: in de echte site gaan deze naar /kaart/. Hier alleen uitleg.
+  const hint = $('#hint');
+  $('#buurt').onclick = () => { hint.textContent = 'Op snuffelkaart.nl vraagt je telefoon nu of hij je locatie mag delen, en opent de kaart rond jou. In dit concept kan dat niet.'; };
+  $('#zoek').onsubmit = e => { e.preventDefault(); const v = $('#plek').value.trim(); if (!v) { hint.textContent = 'Typ een plaats of postcode, bijvoorbeeld Haarlem of 2011.'; $('#plek').focus(); return; } hint.textContent = `Op snuffelkaart.nl opent nu de kaart rond ${v}. Hieronder alvast een zondag in Haarlem.`; $('#melding').textContent = hint.textContent; $('#demo').scrollIntoView({ behavior: STIL ? 'auto' : 'smooth' }); $('#demo-kop').focus({ preventScroll: true }); };
+  $('#aanmeld').onsubmit = e => { e.preventDefault(); $('#aanmeld-hint').textContent = 'Dank je. In dit concept wordt nog niets verstuurd; in het echt krijg je eerst een mail om je adres te bevestigen.'; };
+
+  // Markten zondag 8 november (markets.json), dichtstbij Haarlem eerst. 0 = nog niet bevestigd (alleen aangevraagd).
+  const MK = [
+    ['Snuffelmarkt Haarlem', 'snuffelmarkt-haarlem-2026-11-08', 'Haarlem', 'Van Aerle', 'van-aerle-vlooienmarkten-nl', '9:00–16:00', '€ 4,50', 2, 1],
+    ['Snuffelmarkt Zaandam', 'snuffelmarkt-zaandam-2026-11-08', 'Zaandam', 'Don Events', 'don-events', '9:00–16:00', '€ 5', 14, 1],
+    ['Vlooienmarkt Winkel', 'vlooienmarkt-winkel-2026-11-08', 'Winkel', 'gemeenteblad', '', 'vanaf 9:00', '', 45, 1],
+    ['Rommelmarkt Breda', 'rommelmarkt-breda-2026-11-08', 'Breda', 'De Evenementenlijn', 'de-evenementenlijn', '9:00–16:00', '€ 3', 90, 1],
+    ['Rommelmarkt Raalte', 'rommelmarkt-raalte-2026-11-08', 'Raalte', 'gemeenteblad', '', 'vanaf 9:00', '', 110, 0],
+    ['Vlooienmarkt Gerwen', 'vlooienmarkt-gerwen-2026-11-08', 'Gerwen', 'gemeenteblad', '', 'vanaf 9:00', '', 118, 0],
+  ];
+  $('#mk').innerHTML = MK.map(([n, slug, pl, org, orgSlug, tijd, prijs, afst, zeker]) => `<li>
+    <a class="nm" href="https://snuffelkaart.nl/markt/${slug}/">${n}</a>
+    <span class="meta">${pl} · ${orgSlug ? `<a href="https://snuffelkaart.nl/organisator/${orgSlug}/">${org}</a>` : 'via het ' + org}</span>
+    <span class="st ${zeker ? 'mkt' : 'vaag'}">${zeker ? tijd : 'Nog niet bevestigd, ' + tijd}</span>
+    <span class="rechts"><b>${afst} km<span class="sr-only"> vanaf Haarlem</span></b>${prijs ? `<span>entree\u00a0${prijs}</span>` : ''}</span>
+  </li>`).join('');
+
+  const slug = n => n.toLowerCase().replace(/ /g, '-');
+  const PL = [['Amsterdam', 167], ['Den Haag', 92], ['Rotterdam', 76], ['Utrecht', 48], ['Tilburg', 43], ['Haarlem', 43], ['Groningen', 41], ['Eindhoven', 39], ['Nijmegen', 34], ['Dordrecht', 33], ['Breda', 31], ['Maastricht', 31], ['Apeldoorn', 30], ['Enschede', 29], ['Zwolle', 29], ['Leiden', 28]];
+  $('#pl').innerHTML = PL.map(([n, c]) => `<li><a href="https://snuffelkaart.nl/${slug(n)}/">${n}</a><span>${c} winkels</span></li>`).join('');
+  const PROV = ['Drenthe', 'Flevoland', 'Friesland', 'Gelderland', 'Groningen', 'Limburg', 'Noord-Brabant', 'Noord-Holland', 'Overijssel', 'Utrecht', 'Zeeland', 'Zuid-Holland'];
+  $('#prov').innerHTML = '<span style="color:var(--fg)">Per provincie:</span> ' + PROV.map(p => `<a href="https://snuffelkaart.nl/provincie/${slug(p)}/">${p}</a>`).join(' ');
+})();
+</script>
