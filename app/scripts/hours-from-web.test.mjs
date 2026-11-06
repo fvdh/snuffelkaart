@@ -175,3 +175,13 @@ describe('Engelse site (Outfit Library LESS)', () => {
     expect(parseHoursNL('Opening hours\nMonday to Friday: 10:00-17:00\nSaturday: 10:00-16:00\nSunday: closed')).toEqual({ oh: 'Mo-Fr 10:00-17:00; Sa 10:00-16:00' });
   });
 });
+
+describe('twee vestigingen, "Openingstijden en inname" (Kringloop De Liemers)', () => {
+  const html = '<p>Kringloop de Liemers</p><p>Hengelder 26A 6902 PA Zevenaar</p><p>Zevenaar</p><p>Hengelder 26A 6902 PA Zevenaar Tel: 0316-529232</p><p>Openingstijden en inname Maandag t/m vrijdag 08:30 uur tot 17:00 uur Zaterdag 10:00 uur tot 17:00 uur.</p><p>s-Heerenberg</p><p>Molenpoort 1-b 7041BD s-Heerenberg Tel: 0314-668458</p><p>Openingstijden en inname Maandag t/m vrijdag 10:00 uur tot 17:00 uur Zaterdag 10:00 uur tot 16:00 uur.</p>';
+  it('vindt de vestiging op postcode als de straat anders gespeld is', async () => {
+    const { hoursFromHtml } = await import('./hours-from-web.mjs');
+    expect(hoursFromHtml(html, 'Hengelderweg 26-A, 6902 PA Zevenaar')).toEqual({ oh: 'Mo-Fr 08:30-17:00; Sa 10:00-17:00' });
+    expect(hoursFromHtml(html, 'Molenpoort 1b, 7041BD s-Heerenberg')).toEqual({ oh: 'Mo-Fr 10:00-17:00; Sa 10:00-16:00' });
+    expect(hoursFromHtml(html)).toBeNull();
+  });
+});

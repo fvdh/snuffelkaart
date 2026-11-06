@@ -5,7 +5,7 @@
 //          npm run data:web -- --fresh (alles opnieuw)
 //          npm run data:web -- --limit=50 (proef)
 import fs from 'node:fs';
-import { hoursFromHtml, toText, siteKey, keep, tempClosed } from './hours-from-web.mjs';
+import { hoursFromHtml, parseHoursNL, toText, siteKey, keep, tempClosed } from './hours-from-web.mjs';
 import { snippet, hashOf, askAI } from './hours-ai.mjs';
 
 const PLACES = new URL('../public/data/places.json', import.meta.url), OUT = new URL('../data-raw/web-hours.json', import.meta.url);
@@ -14,17 +14,19 @@ const UA = 'Snuffelkaart-PoC/0.1 (openingstijden van kringlopen; freek@draad.nu)
 const SKIP = /facebook|instagram|marktplaats|g\.page|google\.|linktr\.ee|tiktok|twitter|x\.com|youtube|wa\.me|allekringloopwinkels|kringloopwinkels?\.(nl|info|com)|kringlopen\.nl|tweedehandswinkels|openingstijden\.|openingstijdenwinkels|telefoonboek|telefoongids|cylex|opendi|hotfrog|yelp|tripadvisor|goudengids|bedrijvenpagina|drimble|infobel|kompass|oozo|plaatsengids|nederlandsewinkels/i;
 // MAX_AGE 6 dagen: de wekelijkse run (elke 7 dagen, zelfde tijd) leest dan echt alles opnieuw; bij 7 was het net te vers (6 nov).
 // VERSION ophogen als de parser of de AI-lezer beter wordt: dan wordt alles meteen opnieuw gelezen, niet pas na de cache.
-const WORKERS = 8, PAUSE = 800, MAX_AGE = 6 * 864e5, VERSION = 8; // 3: AI-antwoorden met een dag in twee regels samengevoegd; 4: dagen en tijden in twee kolommen; 5: postcodes ook van de tijdenpagina; 6: vestigingsblok op eigen straat; 7: tijdelijk gesloten; 8: Engelse dagen
+const WORKERS = 8, PAUSE = 800, MAX_AGE = 6 * 864e5, VERSION = 9; // 3: AI-antwoorden met een dag in twee regels samengevoegd; 4: dagen en tijden in twee kolommen; 5: postcodes ook van de tijdenpagina; 6: vestigingsblok op eigen straat; 7: tijdelijk gesloten; 8: Engelse dagen; 9: vestiging op postcode, "openingstijden en inname"
 
 
 const cache = fs.existsSync(OUT) && !process.argv.includes('--fresh') ? JSON.parse(fs.readFileSync(OUT, 'utf8')) : {};
 const places = JSON.parse(fs.readFileSync(PLACES, 'utf8')).places;
-const todo = new Map(), who = new Map(); // key → url, key → winkel (naam en adres voor de AI-lezer)
+const SITE = process.argv.find(a => a.startsWith('--site='))?.slice(7); // één site opnieuw lezen: --site=kringloopdeliemers.nl --fresh
+const todo = new Map(), who = new Map(), sharing = new Map(); // key → url, key → winkel (naam en adres voor de AI-lezer), key → alle winkels met die site
 // AI-lezer alleen met CF_ACCOUNT_ID en CF_AI_TOKEN (GitHub-secrets). Gratis tegoed is per dag beperkt: hooguit AI_MAX vragen per run.
 const AI = !!(process.env.CF_ACCOUNT_ID && process.env.CF_AI_TOKEN) && !process.argv.includes('--no-ai'), AI_MAX = +(process.env.AI_MAX ?? 120); let aiAsked = 0, aiFound = 0, aiErr = 0, aiOff = !AI;
 for (const p of places) {
   if ((p.h && (p.hs !== 'web' || process.argv.includes('--alleen-zonder'))) || !p.website || SKIP.test(p.website)) continue; // --alleen-zonder: proef van de AI-lezer // OSM-tijden gaan voor; websitetijden lezen we opnieuw
-  const k = siteKey(p.website); if (!k || todo.has(k)) continue;
+  const k = siteKey(p.website); if (!k || (SITE && k !== SITE)) continue;
+  sharing.set(k, [...(sharing.get(k) ?? []), p]); if (todo.has(k) || who.has(k)) continue;
   who.set(k, p);
   if (cache[k] && cache[k].v === VERSION && Date.now() - Date.parse(cache[k].read) < MAX_AGE) continue;
   todo.set(k, /^https?:/i.test(p.website) ? p.website : 'https://' + p.website);
@@ -87,6 +89,12 @@ async function read(key, url) {
     for (const next of hit ? [] : candidates(html, at)) {
       await sleep(PAUSE); if (!(await allowed(next))) continue;
       try { const r = await get(next); seen.push([r.url, r.html]); hit = hoursFromHtml(r.html, addr); if (hit) { at = r.url; break; } } catch { /* volgende */ }
+    }
+    // Meerdere winkels met deze site en een pagina met vestigingsblokken (De Liemers: Zevenaar en 's-Heerenberg): per winkel de tijden onder het eigen adres.
+    const PCK = a => /\b([1-9]\d{3})\s?([A-Z]{2})\b/i.exec(a ?? '')?.slice(1).join('').toUpperCase();
+    for (const q of (sharing.get(key)?.length > 1 ? sharing.get(key) : [])) for (const [u, h] of seen) {
+      if (!PCK(q.addr) || res.per?.[PCK(q.addr)] || parseHoursNL(toText(h))) continue; // hele pagina leesbaar = één lijst voor iedereen, geen blokken
+      const own = hoursFromHtml(h, q.addr); if (own) (res.per ??= {})[PCK(q.addr)] = { oh: own.oh, page: u };
     }
     const shut = !hit && seen.find(([, h]) => tempClosed(toText(h)));
     if (shut) { res.dicht = true; res.page = shut[0]; res.ok = res.read; res.note = 'tijdelijk gesloten'; return res; } // geen AI nodig

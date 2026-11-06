@@ -88,7 +88,9 @@ export function parseHoursNL(text) {
     // erboven of ertussen ("U kunt woensdag tot vrijdag uw goederen inleveren.") die over iets anders gaat.
     const hi = lines.slice(-3).findLastIndex(l => /^\s*openings/i.test(l)), tail = lines.slice(-3);
     const before = hi >= 0 ? [tail[hi], ...tail.slice(hi + 1).filter(l => l.length <= 60)].join(' ') : near.join(' ');
-    if (NOT_SHOP.test(before) || NOT_SHOP.test(inside)) continue;
+    // "Openingstijden en inname" (De Liemers): winkel én inname, dus wel de winkeltijden.
+    const both = x => x.replace(/(openingstijden|winkel|verkoop)\s*(en|&)\s*(inname|inbreng|inleveren)/gi, '$1');
+    if (NOT_SHOP.test(both(before)) || NOT_SHOP.test(inside)) continue;
     // Gaat de lijst verder met een dag die we niet konden lezen? Dan is hij half: liever niets dan "za dicht" terwijl ze open zijn.
     if (new RegExp(`^\\s*${D}\\b`, 'i').test(text.slice(b.end, b.end + 60))) continue;
     const header = /openingstijd|openingsuren|winkel|geopend/i.test(before);
@@ -175,8 +177,13 @@ export function hoursLD(html) {
 export const tempClosed = text => /\b(?:openingstijd\w*|openingsuren)\b[^a-z0-9]{0,20}(?:(?:wij|we) zijn )?(?:tijdelijk|voorlopig) (?:gesloten|dicht)|\b(?:wij zijn|we zijn|de winkel is) (?:tijdelijk|voorlopig) (?:gesloten|dicht)/i.test(text);
 /** addr: adres van de winkel. Meerdere vestigingen met eigen tijden op één pagina (Het Boelhuys /winkels): dan het stuk vanaf de eigen straat. */
 export function hoursFromHtml(html, addr = '') {
-  const text = toText(html), street = addr.split(',')[0].trim(), at = street.length > 5 ? text.toLowerCase().indexOf(street.toLowerCase()) : -1;
-  return parseHoursNL(text) ?? (at >= 0 ? parseHoursNL(text.slice(at, at + 1500)) : null) ?? hoursLD(html); // ponytail: vaste 1500 tekens; loopt het in de volgende vestiging, dan botst het en geeft het null
+  // Ankers: de straat ("Spoorstraat 60") of anders de postcode ("6902 PA": De Liemers schrijft "Hengelder 26A", OSM "Hengelderweg 26-A").
+  // Het blok loopt tot de volgende postcode (volgende vestiging), anders 1500 tekens; loopt het toch in een andere vestiging, dan botst het en geeft het null.
+  const text = toText(html), low = text.toLowerCase(), street = addr.split(',')[0].trim().toLowerCase(), pc = /\b[1-9]\d{3}\s?[a-z]{2}\b/i.exec(addr)?.[0];
+  const find = s => [...low.matchAll(new RegExp(s, 'g'))].map(m => m.index); // elke plek: de eerste is soms de kop of voet van de pagina
+  const ats = street.length > 5 && low.includes(street) ? find(street.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')) : pc ? find(`\\b${pc.slice(0, 4)}\\s?${pc.slice(-2).toLowerCase()}\\b`) : [];
+  const block = at => { const nx = text.slice(at + 12).search(/\b[1-9]\d{3}\s?[A-Z]{2}\b/); return parseHoursNL(text.slice(at, at + 12 + (nx >= 0 ? nx : 1500))); };
+  return parseHoursNL(text) ?? ats.reduce((r, at) => r ?? block(at), null) ?? hoursLD(html);
 }
 
 /** Sleutel voor de cache: host + pad, zonder www en slash. Winkels van één keten op één pagina delen hem. */
