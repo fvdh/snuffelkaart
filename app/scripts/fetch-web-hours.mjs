@@ -64,7 +64,7 @@ function candidates(html, base) {
   for (const m of html.matchAll(/<a\b[^>]*href=["']([^"'#]+)["'][^>]*>([\s\S]*?)<\/a>/gi)) {
     const label = (m[2].replace(/<[^>]+>/g, ' ') + ' ' + m[1]).toLowerCase();
     const score = /openingstijd|openingsuren|tijden/.test(label) ? 3 : /contact|bezoek|route|adres/.test(label) ? 2 : /winkel/.test(label) ? 1 : 0;
-    if (!score) continue;
+    if (!score || /klantcontact/.test(label)) continue; // tijden van het loket, niet van de winkel (KDC Kaatsheuvel)
     try { const u = new URL(m[1], base); if (u.host === new URL(base).host && /^https?:$/.test(u.protocol)) out.push([score, u.href.split('#')[0]]); } catch { /* ongeldige link */ }
   }
   return [...new Map(out.sort((a, b) => b[0] - a[0]).map(([, u]) => [u, u])).keys()].slice(0, 2);

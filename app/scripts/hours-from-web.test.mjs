@@ -30,6 +30,27 @@ describe('openingstijden van websites', () => {
     expect(oh('Contact\nEuropalaan 40-42\nOpeningstijden winkel\nWoensdag: 10.00 – 16.00 uur\nZaterdag: 10.00 – 16.00 uur\nInbrengmomenten van nette\n& verkoopbare spullen\nDi & do: 09.00 – 11.00 uur\nWo & za: 10.00 – 15.30 uur'))
       .toBe('We 10:00-16:00; Sa 10:00-16:00');
   });
+  it('steekproef 6 nov: koopavond komt bij de dag, "én" als opsomming', () => {
+    expect(oh('Openingstijden\nMaandag t/m vrijdag: 9.30 uur tot 18.00\nZaterdag: 9.00 uur tot 17.00\nDonderdag koopavond: 19:00-21:00\nWij zijn gesloten op:\nNieuwjaarsdag'))
+      .toBe('Mo-We 09:30-18:00; Th 09:30-18:00,19:00-21:00; Fr 09:30-18:00; Sa 09:00-17:00');
+    expect(oh('Openingstijden winkel\nWoensdag én zaterdag van 10-16 uur.\nInname goederen\nMaandag, dinsdag, donderdag en vrijdag van 9-12.30 uur.\nWoensdag en zaterdag van 10-15.30 uur.'))
+      .toBe('We 10:00-16:00; Sa 10:00-16:00');
+  });
+  it('steekproef 6 nov: "open van", "zijn wij gesloten", werkdagen, zon- en feestdagen, tm, doneren', () => {
+    expect(oh('Openingstijden\nMaandag: open van 10:00 tot 16:30.\nDinsdag: open van 10:00 tot 16:30.\nWoensdag: open van 10:00 tot 16:30.')).toBe('Mo-We 10:00-16:30');
+    expect(oh('openingstijden\nmaandag 13:00 t/m 17:00\ndinsdag 10:00 t/m 17:00\nzaterdag 10:00 t/m 16:00\nzondag zijn wij gesloten\nContact gegevens')).toBe('Mo 13:00-17:00; Tu 10:00-17:00; Sa 10:00-16:00');
+    expect(oh('Openingstijden\nWerkdagen van 09.00-17.00 uur\nZaterdags van 09.00-16.00 uur\nDinsdags gesloten\nHardenberg')).toBe('Mo 09:00-17:00; We-Fr 09:00-17:00; Sa 09:00-16:00');
+    expect(oh('Openingstijden Rieteweg\nMaandag 13:00 – 17:30 uur\nDinsdag 08:30 – 17:30 uur\nZaterdag 08:30 – 17:00 uur\nZon en feestdagen Gesloten\nVestiging'))
+      .toBe('Mo 13:00-17:30; Tu 08:30-17:30; Sa 08:30-17:00; PH off');
+    expect(oh('Openingstijden winkel\nMaandag tot en met zaterdag van 9.00 - 17.00 uur\nDoneren goederen\nMaandag tot en met zaterdag van 9.00 tot 13.00 uur.')).toBe('Mo-Sa 09:00-17:00');
+    expect(oh('openingstijden: di tm za 10.00 - 16.00 uur')).toBe('Tu-Sa 10:00-16:00');
+  });
+  it('één dag alleen als het elke week is', () => {
+    expect(oh('Openingstijden: elke zaterdag van 10:00 tot 14:00\nFacebook')).toBe('Sa 10:00-14:00');
+    expect(oh('Openingstijden\nElke dinsdag van 10:00 -16:00\nTelefoon')).toBe('Tu 10:00-16:00');
+    expect(oh('Openingstijden\nDe verkoop is elke derde zaterdag van 10:00 tot 14:00')).toBeNull();
+    expect(oh('Openingstijden\nZaterdag 10:00 - 14:00')).toBeNull();
+  });
   it('halve lijst (dag met opmerking ertussen) geeft niets', () => {
     expect(oh('Openingstijden winkel\nMaandag\n9.00 - 12.00\nDinsdag\n9.00 - 12.00\nWoensdag\n13.00 - 16.00\nDonderdag (gesloten op 24/12 kerstavond)\n18.00 - 20.30\nVrijdag\nGesloten\nZaterdag (gesloten op 26/12)\n9.00 - 12.00')).toBeNull();
   });
