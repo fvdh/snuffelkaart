@@ -14,7 +14,7 @@ const UA = 'Snuffelkaart-PoC/0.1 (openingstijden van kringlopen; freek@draad.nu)
 const SKIP = /facebook|instagram|marktplaats|g\.page|google\.|linktr\.ee|tiktok|twitter|x\.com|youtube|wa\.me|allekringloopwinkels|kringloopwinkels?\.(nl|info|com)|kringlopen\.nl|tweedehandswinkels|openingstijden\.|openingstijdenwinkels|telefoonboek|telefoongids|cylex|opendi|hotfrog|yelp|tripadvisor|goudengids|bedrijvenpagina|drimble|infobel|kompass|oozo|plaatsengids|nederlandsewinkels/i;
 // MAX_AGE 6 dagen: de wekelijkse run (elke 7 dagen, zelfde tijd) leest dan echt alles opnieuw; bij 7 was het net te vers (6 nov).
 // VERSION ophogen als de parser of de AI-lezer beter wordt: dan wordt alles meteen opnieuw gelezen, niet pas na de cache.
-const WORKERS = 8, PAUSE = 800, MAX_AGE = 6 * 864e5, VERSION = 10; // 3: AI-antwoorden met een dag in twee regels samengevoegd; 4: dagen en tijden in twee kolommen; 5: postcodes ook van de tijdenpagina; 6: vestigingsblok op eigen straat; 7: tijdelijk gesloten; 8: Engelse dagen; 9: vestiging op postcode, "openingstijden en inname"; 10: links "Onze winkel", niet de homepage zelf
+const WORKERS = 8, PAUSE = 800, MAX_AGE = 6 * 864e5, VERSION = 11; // 3: AI-antwoorden met een dag in twee regels samengevoegd; 4: dagen en tijden in twee kolommen; 5: postcodes ook van de tijdenpagina; 6: vestigingsblok op eigen straat; 7: tijdelijk gesloten; 8: Engelse dagen; 9: vestiging op postcode, "openingstijden en inname"; 10: links "Onze winkel", niet de homepage zelf
 
 
 const cache = fs.existsSync(OUT) && !process.argv.includes('--fresh') ? JSON.parse(fs.readFileSync(OUT, 'utf8')) : {};
@@ -66,6 +66,15 @@ async function allowed(url) {
   }
   return !robots.get(origin).some(r => pathname.startsWith(r));
 }
+/** Ketensite met een pagina per vestiging (Aktief: /kringloopwinkels/winterswijk): de link met de plaatsnaam van de winkel. */
+function cityLink(html, base, place) {
+  const slug = (place ?? '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f']/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+  if (slug.length < 3) return null;
+  for (const m of html.matchAll(/href=["']([^"'#]+)["']/gi)) {
+    try { const u = new URL(m[1], base); if (u.host === new URL(base).host && new RegExp(`(^|[/-])${slug}(/|$|-|\\.)`).test(u.pathname.toLowerCase())) return u.href; } catch { /* ongeldige link */ }
+  }
+  return null;
+}
 /** Links op dezelfde site die waarschijnlijk de tijden hebben. */
 function candidates(html, base) {
   const out = [];
@@ -78,6 +87,7 @@ function candidates(html, base) {
   return [...new Map(out.sort((a, b) => b[0] - a[0]).map(([, u]) => [u, u])).keys()].slice(0, 2);
 }
 
+const PCK0 = a => /\b([1-9]\d{3})\s?([A-Z]{2})\b/i.exec(a ?? '')?.slice(1).join('').toUpperCase();
 async function read(key, url) {
   const res = { url, read: new Date().toISOString(), oh: null, page: null, note: null, v: VERSION };
   try {
@@ -90,11 +100,23 @@ async function read(key, url) {
       await sleep(PAUSE); if (!(await allowed(next))) continue;
       try { const r = await get(next); seen.push([r.url, r.html]); hit = hoursFromHtml(r.html, addr); if (hit) { at = r.url; break; } } catch { /* volgende */ }
     }
-    // Meerdere winkels met deze site en een pagina met vestigingsblokken (De Liemers: Zevenaar en 's-Heerenberg): per winkel de tijden onder het eigen adres.
-    const PCK = a => /\b([1-9]\d{3})\s?([A-Z]{2})\b/i.exec(a ?? '')?.slice(1).join('').toUpperCase();
-    for (const q of (sharing.get(key)?.length > 1 ? sharing.get(key) : [])) for (const [u, h] of seen) {
-      if (!PCK(q.addr) || res.per?.[PCK(q.addr)] || parseHoursNL(toText(h))) continue; // hele pagina leesbaar = één lijst voor iedereen, geen blokken
-      const own = hoursFromHtml(h, q.addr); if (own) (res.per ??= {})[PCK(q.addr)] = { oh: own.oh, page: u };
+    // Ketensite met een pagina per plaats (Aktief: /kringloopwinkels/winterswijk): voor elke winkel met deze site de eigen plaatspagina.
+    const shops = sharing.get(key)?.length > 1 ? sharing.get(key) : [who.get(key)], city = new Map(), html0 = first.html;
+    for (const q of shops) {
+      const c = (q === who.get(key) ? !hit : PCK0(q.addr)) && cityLink(html0, first.url, q?.place); if (!c || !(await allowed(c))) continue;
+      if (!seen.some(([u]) => u === c)) try { await sleep(PAUSE); const r = await get(c); seen.push([c, r.html]); } catch { continue; }
+      city.set(q, c);
+    }
+    const pageOf = u => seen.find(([x]) => x === u)?.[1];
+    if (!hit && city.has(who.get(key))) { hit = hoursFromHtml(pageOf(city.get(who.get(key))), addr); if (hit) at = city.get(who.get(key)); }
+    // Meerdere winkels met deze site: per winkel de eigen plaatspagina, of anders het blok onder het eigen adres (De Liemers: Zevenaar en 's-Heerenberg).
+    if (shops.length > 1) for (const q of shops) {
+      const k = PCK0(q.addr); if (!k) continue;
+      if (city.has(q)) { const own = hoursFromHtml(pageOf(city.get(q)), q.addr); if (own) (res.per ??= {})[k] = { oh: own.oh, page: city.get(q) }; continue; }
+      for (const [u, h] of seen) {
+        if (res.per?.[k] || parseHoursNL(toText(h))) continue; // hele pagina leesbaar = één lijst voor iedereen, geen blokken
+        const own = hoursFromHtml(h, q.addr); if (own) (res.per ??= {})[k] = { oh: own.oh, page: u };
+      }
     }
     const shut = !hit && seen.find(([, h]) => tempClosed(toText(h)));
     if (shut) { res.dicht = true; res.page = shut[0]; res.ok = res.read; res.note = 'tijdelijk gesloten'; return res; } // geen AI nodig

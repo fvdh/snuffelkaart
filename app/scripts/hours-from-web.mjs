@@ -3,7 +3,7 @@
 
 /** HTML → platte tekst met regeleinden op blokgrenzen. */
 export function toText(html) {
-  return html.replace(/<(script|style|noscript|svg)[^>]*>[\s\S]*?<\/\1>/gi, ' ')
+  return html.replace(/<!--[\s\S]*?-->/g, ' ').replace(/<(script|style|noscript|svg)[^>]*>[\s\S]*?<\/\1>/gi, ' ') // commentaar: oude verborgen tekst (Aktief)
     .replace(/<br\s*\/?>|<\/(p|div|li|tr|td|th|h\d|section|article|dd|dt)>/gi, '\n').replace(/<[^>]+>/g, ' ')
     .replace(/&nbsp;|&#160;/g, ' ').replace(/&amp;/g, '&').replace(/&#8211;|&ndash;|&#8212;|&mdash;/g, '–').replace(/&#\d+;|&\w+;/g, ' ')
     .replace(/[ \t ]+/g, ' ').replace(/ *\n[\s]*/g, '\n').replace(/^ +| +$/gm, '');
