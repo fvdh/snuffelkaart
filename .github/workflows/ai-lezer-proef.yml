@@ -9,7 +9,6 @@ on:
         default: '150'
 permissions:
   contents: read
-  models: read
 jobs:
   proef:
     runs-on: ubuntu-latest
@@ -28,5 +27,6 @@ jobs:
       - name: Websites lezen (alleen in deze proef, niets bewaard)
         run: node scripts/fetch-web-hours.mjs --fresh --alleen-zonder --limit=${{ inputs.aantal }}
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }} # AI-lezer (Cloudflare Workers AI); ontbreekt hij, dan staat de AI-lezer uit
+          CF_AI_TOKEN: ${{ secrets.CF_AI_TOKEN }}
           AI_DEBUG: '1' # toon ook afgewezen antwoorden

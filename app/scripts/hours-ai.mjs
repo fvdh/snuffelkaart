@@ -1,4 +1,4 @@
-// Tweede lezer voor websitetijden: een taalmodel (GitHub Models, gratis met de GITHUB_TOKEN van de workflow) leest wat de
+// Tweede lezer voor websitetijden: een taalmodel (Cloudflare Workers AI, gratis dagtegoed, geen betaalmethode) leest wat de
 // parser niet kan ("tussen 11 en 17 uur", pagina's met meerdere vestigingen). Wantrouwig: het model moet de zin letterlijk
 // overnemen, elke tijd moet in die zin staan en de uitkomst moet geldige OSM-syntax zijn. Anders null.
 // ponytail: één model, één poging per pagina; cache op de tekst (fetch-web-hours) zodat ongewijzigde pagina's niets kosten.
@@ -47,21 +47,23 @@ of als er meerdere winkels staan en niet duidelijk is welke bij dit adres hoort.
 Tekst:
 ${text}`;
 
-/** Vraag het model. Gooit bij 429 (dagtegoed op) een fout met .limit, zodat de aanroeper stopt. */
-export async function askAI(name, addr, text, { token = process.env.GITHUB_TOKEN, model = 'openai/gpt-4.1-mini' } = {}, tries = 3) {
-  const r = await fetch('https://models.github.ai/inference/chat/completions', {
-    method: 'POST', signal: AbortSignal.timeout(30000),
+/** Vraag het model (Cloudflare Workers AI, OpenAI-vorm). Gooit bij dagtegoed op of geen toegang een fout met .limit, zodat de aanroeper stopt.
+ *  GitHub Models was de eerste keus, maar is op 30 juli 2026 gestopt (het adres antwoordt alleen nog "OK"). */
+export async function askAI(name, addr, text, { account = process.env.CF_ACCOUNT_ID, token = process.env.CF_AI_TOKEN, model = '@cf/meta/llama-3.3-70b-instruct-fp8-fast' } = {}, tries = 3) {
+  const r = await fetch(`https://api.cloudflare.com/client/v4/accounts/${account}/ai/v1/chat/completions`, {
+    method: 'POST', signal: AbortSignal.timeout(60000),
     headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ model, temperature: 0, response_format: { type: 'json_object' }, messages: [{ role: 'user', content: PROMPT(name, addr, text) }] }),
+    body: JSON.stringify({ model, temperature: 0, max_tokens: 400, messages: [{ role: 'user', content: PROMPT(name, addr, text) }] }),
   });
-  // 429 met korte wachttijd = minuutgrens (±15 per minuut): even wachten. Lange wachttijd of 403 = dagtegoed op of geen toegang: stoppen.
+  const body = await r.text(), short = body.replace(/\s+/g, ' ').slice(0, 200);
+  // 429 met korte wachttijd: even wachten. Anders (dagtegoed op, 401/403 geen toegang): stoppen.
   const wait = +(r.headers.get('retry-after') ?? 0);
-  if (r.status === 429 && wait && wait <= 90 && tries > 1) { await new Promise(ok => setTimeout(ok, wait * 1000)); return askAI(name, addr, text, { token, model }, tries - 1); }
-  if (r.status === 429 || r.status === 403) throw Object.assign(new Error(`model ${r.status}${wait ? `, opnieuw over ${wait} s` : ''}: ${(await r.text()).replace(/\s+/g, ' ').slice(0, 200)}`), { limit: true });
-  if (!r.ok) throw new Error(`model ${r.status}: ${(await r.text()).replace(/\s+/g, ' ').slice(0, 200)}`);
-  const j = await r.json();
+  if (r.status === 429 && wait && wait <= 90 && tries > 1) { await new Promise(ok => setTimeout(ok, wait * 1000)); return askAI(name, addr, text, { account, token, model }, tries - 1); }
+  if ([401, 403, 429].includes(r.status) || /allocation|quota|neurons/i.test(short)) throw Object.assign(new Error(`model ${r.status}: ${short}`), { limit: true });
+  if (!r.ok) throw new Error(`model ${r.status}: ${short}`);
+  let j; try { j = JSON.parse(body); } catch { throw Object.assign(new Error(`model gaf geen JSON: ${short}`), { limit: true }); } // verkeerd adres: niet 120 keer proberen
   const raw = j.choices?.[0]?.message?.content ?? '';
-  let ans = null; try { ans = JSON.parse(raw); } catch { /* geen JSON */ }
+  let ans = null; try { ans = JSON.parse(raw.slice(raw.indexOf('{'), raw.lastIndexOf('}') + 1)); } catch { /* geen JSON in het antwoord */ }
   const ok = check(ans, text);
   if (!ok && process.env.AI_DEBUG) console.log(`  AI afgewezen: ${name} → ${raw.replace(/\s+/g, ' ').slice(0, 300)}`);
   return ok;
