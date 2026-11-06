@@ -6,7 +6,7 @@ import { Picture } from 'astro:assets';
 import Deel from '../components/Deel.astro';
 import Meten from '../components/Meten.astro';
 import { PROVINCES } from '../lib/seo';
-import { weekendOf, dayStart, dShort, hm } from '../lib/model';
+import { weekendOf, dayStart, dShort, hm, km } from '../lib/model';
 import { ix, places, markets, from, generated, SITE } from '../lib/sitedata';
 import blikken from '../assets/home/foto-blikken.jpg';
 import jassen from '../assets/home/foto-hero.jpg';
@@ -22,6 +22,9 @@ const zes = [...weekend].sort((a, b) => +(a.status === 'unconf') - +(b.status ==
 const dagen = [...new Set(weekend.map(m => m.date))].sort();
 const kicker = `${dagen.map(d => dShort(d).toUpperCase()).join(' · ') || 'DIT WEEKEND'} · ${weekend.length} ${weekend.length === 1 ? 'MARKT' : 'MARKTEN'}`;
 const tijd = (m: (typeof zes)[number]) => (m.timeKnown === false ? 'tijden onbekend' : `${hm(m.start)}${m.end ? `–${hm(m.end)}` : ''}`);
+// Het envelopje bij de weekendmail: wat iemand in Haarlem deze week zou krijgen (zelfde regels als scripts/weekmail.mjs, 25 km).
+const briefPlek = 'Haarlem', HAARLEM = { lat: 52.3874, lon: 4.6383 };
+const brief = weekend.map(m => ({ m, d: km(HAARLEM, m) })).filter(x => x.d <= 25).sort((a, b) => a.m.date.localeCompare(b.m.date) || a.d - b.d).slice(0, 3);
 const grootste = [...ix.cities].sort((a, b) => b.shops.length - a.shops.length || a.name.localeCompare(b.name, 'nl')).slice(0, 16);
 const bijgewerkt = new Date(generated).toLocaleString('nl-NL', { timeZone: 'Europe/Amsterdam', weekday: 'long', day: 'numeric', month: 'long', hour: 'numeric', minute: '2-digit' });
 const title = 'Snuffelkaart · Kringlopen en rommelmarkten bij jou in de buurt';
@@ -175,23 +178,47 @@ const ic = (id: string) => `<svg class="i" aria-hidden="true" focusable="false">
           <span class="rechts"><b>{dShort(m.date)}</b>{m.entree && !/onbekend/i.test(m.entree) && <span>entree&nbsp;{m.entree}</span>}</span>
         </li>); })}
     </ul>
-    <form class="aanmeld weekmail" id="mail" method="post" action="/api/aanmelden" aria-labelledby="wm-kop">
-      <h3 id="wm-kop">Elke donderdag de markten bij jou in de buurt</h3>
-      <p class="tekst">Een korte mail met de rommelmarkten van het weekend, binnen de afstand die je kiest. Geen markten in de buurt, dan geen mail.</p>
-      <input type="hidden" name="lijst" value="weekend">
-      <div class="rij2v">
-        <label class="lbl" for="wm-mail" style="grid-area:l1">Je e-mailadres</label>
-        <input id="wm-mail" name="email" type="email" autocomplete="email" required style="grid-area:i1">
-        <label class="lbl" for="wm-plek" style="grid-area:l2">Plaats of postcode</label>
-        <input id="wm-plek" name="plek" required autocomplete="address-level2" placeholder="Haarlem" style="grid-area:i2">
-      </div>
-      <div class="wm-rij"><label class="lbl" for="wm-km">Binnen</label><select id="wm-km" name="km"><option value="10">10 km</option><option value="25" selected>25 km</option><option value="50">50 km</option></select><button class="btn primary" type="submit">Aanmelden</button></div>
-      <p class="hint">Je krijgt eerst een mail om je aanmelding te bevestigen. Afmelden kan altijd met één klik. <a href="/privacy/#mail">Wat we bewaren</a></p>
-      <div class="hp" aria-hidden="true"><label>Laat dit leeg <input name="website" tabindex="-1" autocomplete="off"></label></div>
-    </form>
   </section>
+</div>
 
-  <section aria-labelledby="hoe-kop" style="padding-top:0">
+<section class="post" id="mail" aria-labelledby="wm-kop">
+  <div class="wrap post-in">
+    <div class="post-tekst">
+      <p class="kicker post-k" aria-hidden="true">ELKE DONDERDAG · 15:00</p>
+      <h2 class="h2" id="wm-kop">De markten van het weekend, donderdag in je mail</h2>
+      <p class="post-lede">Alleen de rommelmarkten binnen de afstand die je kiest, met tijden en entree. Zijn er geen markten in de buurt, dan krijg je die week niets.</p>
+      <form class="post-form" method="post" action="/api/aanmelden">
+        <input type="hidden" name="lijst" value="weekend">
+        <div class="post-velden">
+          <label for="wm-mail" style="grid-area:l1">Je e-mailadres</label>
+          <input id="wm-mail" name="email" type="email" autocomplete="email" required style="grid-area:i1">
+          <label for="wm-plek" style="grid-area:l2">Plaats of postcode</label>
+          <input id="wm-plek" name="plek" required autocomplete="address-level2" placeholder="Haarlem" style="grid-area:i2">
+          <label for="wm-km" style="grid-area:l3">Afstand</label>
+          <select id="wm-km" name="km" style="grid-area:i3"><option value="10">10 km</option><option value="25" selected>25 km</option><option value="50">50 km</option></select>
+          <button class="post-knop" type="submit" style="grid-area:b">Aanmelden<Fragment set:html={ic('arrow')} /></button>
+        </div>
+        <p class="post-hint">Je krijgt eerst een mail om te bevestigen. Afmelden kan met één klik. <a href="/privacy/#mail">Wat we bewaren</a></p>
+        <div class="hp" aria-hidden="true"><label>Laat dit leeg <input name="website" tabindex="-1" autocomplete="off"></label></div>
+      </form>
+    </div>
+    <figure class="envelop" aria-labelledby="env-cap">
+      <figcaption id="env-cap" class="sr-only">Voorbeeld van de mail, met de markten van dit weekend rond Haarlem</figcaption>
+      <span class="zegel" aria-hidden="true"><Fragment set:html={ic('kraam')} /></span>
+      <dl class="env-kop">
+        <dt>Van</dt><dd>Snuffelkaart</dd>
+        <dt>Onderwerp</dt><dd><b>{brief.length ? `${brief.length} ${brief.length === 1 ? 'markt' : 'markten'} rond ${briefPlek} dit weekend` : 'De markten van het weekend'}</b></dd>
+      </dl>
+      {brief.length > 0
+        ? <ul class="env-lijst" role="list">{brief.map(({ m, d }) => <li><b>{m.name}</b><span>{dShort(m.date)} · {tijd(m)} · {Math.round(d)} km</span></li>)}</ul>
+        : <p class="env-leeg">Elke donderdag de markten bij jou in de buurt, met tijden, entree en of ze doorgaan.</p>}
+      <p class="env-voet">Afmelden kan altijd, met één klik.</p>
+    </figure>
+  </div>
+</section>
+
+<div class="wrap">
+  <section aria-labelledby="hoe-kop">
     <div class="uitgelegd">
       <div>
         <h2 class="h2" id="hoe-kop">Zo sta je niet voor een dichte deur</h2>

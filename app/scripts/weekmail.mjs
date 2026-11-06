@@ -26,7 +26,7 @@ export function kies(markets, sub, [za, zo]) {
 }
 
 export function mail(sub, lijst, [za, zo]) {
-  const afmeld = `${SITE}/api/afmelden?t=${sub.token}`, kaart = `${SITE}/kaart/?plek=${encodeURIComponent(sub.plek)}&lat=${sub.lat}&lon=${sub.lon}`;
+  const afmeld = `${SITE}/api/afmelden?t=${sub.token}`, kaart = `${SITE}/kaart/?plek=${encodeURIComponent(sub.plek)}&lat=${sub.lat}&lon=${sub.lon}&markten=${lijst.map(x => encodeURIComponent(x.m.id)).join(',')}`; // alleen deze markten, rond je plek
   const tijd = m => (m.timeKnown === false ? 'tijden nog onbekend' : `${hm(m.start)}${m.end ? `–${hm(m.end)}` : ''}`);
   const regel = ({ m, d }) => `<li style="margin:0 0 12px"><a href="${SITE}/kaart/?open=${encodeURIComponent(m.id)}" style="color:#1e2229;font-weight:600">${esc(m.name)}</a><br>`
     + `<span style="color:#545a66">${dag(m.date)} · ${tijd(m)} · ${esc(m.venue ? `${m.venue}, ${m.place}` : m.place)} · ${Math.round(d)} km`
@@ -37,7 +37,7 @@ export function mail(sub, lijst, [za, zo]) {
     headers: { 'List-Unsubscribe': `<${afmeld}>`, 'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click' },
     html: `<div style="font-family:sans-serif;font-size:15px;line-height:1.5;color:#1e2229;max-width:560px">`
       + `<p>Dit weekend (${dag(za)} en ${dag(zo)}) binnen ${sub.km} km van ${esc(sub.plek)}:</p><ul style="padding-left:18px">${lijst.map(regel).join('')}</ul>`
-      + `<p><a href="${kaart}">Bekijk ze op de kaart</a>, samen met de kringlopen die open zijn. Gaat een markt niet door, dan zie je dat daar.</p>`
+      + `<p><a href="${kaart}">Bekijk ze op de kaart</a>. Tik daar op <b>Dit weekend</b> om ook de kringlopen in de buurt te zien. Gaat een markt niet door, dan zie je dat op de kaart.</p>`
       + `<p style="color:#545a66;font-size:13px">Je krijgt deze mail omdat je je aanmeldde op snuffelkaart.nl. <a href="${afmeld}" style="color:#545a66">Afmelden</a> kan altijd, met één klik.</p></div>`,
     text: `Dit weekend binnen ${sub.km} km van ${sub.plek}:\n\n${lijst.map(({ m, d }) => `- ${m.name}: ${dag(m.date)}, ${tijd(m)}, ${m.place} (${Math.round(d)} km)\n  ${SITE}/kaart/?open=${encodeURIComponent(m.id)}`).join('\n')}\n\nAfmelden: ${afmeld}`,
   };

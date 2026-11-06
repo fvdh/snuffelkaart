@@ -261,6 +261,8 @@ export default function App() {
   };
   // Vanaf een statische pagina: ?open=<id> opent die winkel of markt, ?plek=…&lat=…&lon=… zet de kaart op een plaats.
   const deep = useRef(new URLSearchParams(location.search));
+  // Een link met een plek of iets om te openen gaat voor je locatie: dan niet stilletjes je locatie ophalen (Freek, 6 nov: mail → kaart toonde zijn eigen plek).
+  const viaLink = useRef(/[?&](plek|open|org|markten|dag)=/.test(location.search));
   useEffect(() => {
     const q = deep.current, id = q.get('open'), plek = q.get('plek'), lat = Number(q.get('lat')), lon = Number(q.get('lon'));
     if (plek && Number.isFinite(lat) && Number.isFinite(lon) && lat) { q.delete('plek'); pickSpot({ label: plek, sub: '', lat, lon }); }
@@ -278,11 +280,17 @@ export default function App() {
       q.delete('org'); const ms = markets.filter(m => m.org && slugify(m.org) === org);
       if (ms.length) { setFState(o => ({ ...o, only: ms.map(m => m.id), onlyName: ms[0].org, open: false, q: '', type: 'all', hide: [], gratis: false, overdekt: false })); setFit({ pts: ms, key: Date.now() }); }
     }
-    if (!q.has('open') && !q.has('plek') && !q.has('org') && /[?&](open|plek|plan|dag|s|org|bij|soort)=/.test(location.search)) history.replaceState(null, '', location.pathname + (q.toString() ? `?${q}` : ''));
+    // Vanuit de weekendmail (scripts/weekmail.mjs): ?markten=<id>,<id> toont alleen die markten, ingezoomd.
+    const mk = q.get('markten');
+    if (mk && allMarkets.length) {
+      q.delete('markten'); const ms = mk.split(',').map(id => byId.get(id)).filter(Boolean).slice(0, 20) as Item[];
+      if (ms.length) { setFState(o => ({ ...o, only: ms.map(m => m.id), onlyName: 'Dit weekend', open: false, q: '', type: 'all', hide: [], gratis: false, overdekt: false })); setFit({ pts: ms, key: Date.now() }); }
+    }
+    if (!q.has('open') && !q.has('plek') && !q.has('org') && !q.has('markten') && /[?&](open|plek|plan|dag|s|org|bij|soort|markten)=/.test(location.search)) history.replaceState(null, '', location.pathname + (q.toString() ? `?${q}` : ''));
   }, [byId, allMarkets.length]);
   // Al eerder toestemming gegeven? Dan zonder vragen opnieuw ophalen.
   // Safari (iPhone) meldt een eerdere toestemming niet via de permissions-API; daarom onthouden we zelf dat het eerder lukte.
-  useEffect(() => { let ok = false; try { ok = !!localStorage.getItem('snuffel-loc-ok'); } catch { /* niets */ } if (ok) locate(true); else navigator.permissions?.query({ name: 'geolocation' }).then(s => s.state === 'granted' && locate(true)).catch(() => {}); }, []);
+  useEffect(() => { if (viaLink.current) return; let ok = false; try { ok = !!localStorage.getItem('snuffel-loc-ok'); } catch { /* niets */ } if (ok) locate(true); else navigator.permissions?.query({ name: 'geolocation' }).then(s => s.state === 'granted' && locate(true)).catch(() => {}); }, []);
   const here: From = me ? { ...me, label: 'je locatie', me: true } : spot ? { lat: spot.lat, lon: spot.lon, label: spot.label } : { ...DEFAULT_CENTER, label: 'Amersfoort', fallback: true };
   hereRef.current = here;
   const [shared, setShared] = useState<{ day: string; start: number; stops: string[] } | null>(null);

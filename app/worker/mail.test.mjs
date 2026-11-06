@@ -76,4 +76,5 @@ it('weekmail: weekend, markten binnen de straal, afgelast niet; mail met afmeldk
   expect(m.subject).toBe('2 markten rond Haarlem dit weekend');
   expect(m.headers['List-Unsubscribe']).toBe(`<https://snuffelkaart.nl/api/afmelden?t=${T}>`);
   expect(m.html).toContain('zaterdag 7 nov · 9:00–16:00');
+  expect(m.html).toContain('/kaart/?plek=Haarlem&amp;lat=52.3874&amp;lon=4.6383&amp;markten=za,zo'.replace(/&amp;/g, '&'));
 });

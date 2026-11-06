@@ -296,10 +296,42 @@ footer .credits a{color:var(--fg-2)}
 
 @media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
 
-/* mail-aanmeldingen (worker/mail.js) */
-.weekmail{margin-top:40px;max-width:620px;padding:24px;border-radius:16px;background:var(--surface);box-shadow:0 0 0 1px var(--line)}
-.weekmail h3{font-size:1.25rem;font-weight:720;letter-spacing:-.01em}
-.weekmail p.tekst{color:var(--fg-2);margin-top:-4px}
-.wm-rij{display:flex;gap:10px 12px;align-items:center;flex-wrap:wrap}
-.wm-rij select{height:48px;padding:0 12px;border-radius:12px;border:1.5px solid var(--ui-border);background:var(--surface);color:var(--fg);font:500 1rem var(--font)}
+/* weekendmail (worker/mail.js): donkere band over de volle breedte, met een envelopje als voorbeeld van de mail.
+   Het envelopje is altijd papier, net als de kassabon; de luchtpostrand in de kleuren van kringloop en markt. */
+.post{background:var(--ink);color:var(--on-ink)}
+.post-in{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,.8fr);gap:clamp(40px,6vw,96px);align-items:center}
+@media (max-width:960px){.post-in{grid-template-columns:minmax(0,1fr)}}
+.post .kicker{color:color-mix(in oklch,var(--on-ink) 72%,var(--ink))}
+.post .h2{max-width:15em}
+.post-lede{margin-top:16px;max-width:34em;font-size:1.0625rem;color:color-mix(in oklch,var(--on-ink) 82%,var(--ink))}
+.post-form{margin-top:32px}
+.post-velden{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr) 7.5rem auto;grid-template-areas:"l1 l2 l3 ." "i1 i2 i3 b";gap:8px 12px;align-items:end}
+@media (max-width:1100px){.post-velden{grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-areas:"l1 l2" "i1 i2" "l3 ." "i3 b"}}
+@media (max-width:560px){.post-velden{grid-template-areas:"l1 l1" "i1 i1" "l2 l2" "i2 i2" "l3 ." "i3 b"}}
+.post-velden label{font-weight:600;font-size:.875rem}
+.post-velden input,.post-velden select{box-sizing:border-box;height:52px;width:100%;margin:0;padding:0 14px;border:0;border-radius:12px;background:var(--on-ink);color:var(--ink);font:500 1rem var(--font)}
+.post-velden input::placeholder{color:color-mix(in oklch,var(--ink) 55%,var(--on-ink))}
+.post :focus-visible{outline:2px solid var(--on-ink);outline-offset:3px}
+.post-knop{height:52px;display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:0 22px;border:0;border-radius:12px;background:var(--markt);color:var(--on-markt);font:700 1rem var(--font);cursor:pointer;white-space:nowrap;transition:transform .15s var(--ease)}
+.post-knop:hover{transform:translateY(-1px)}.post-knop:active{transform:scale(.97)}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .post-knop{background:var(--on-ink);color:var(--markt)}}
+:root[data-theme="dark"] .post-knop{background:var(--on-ink);color:var(--markt)}
+.post-hint{margin-top:14px;font-size:.875rem;color:color-mix(in oklch,var(--on-ink) 78%,var(--ink))}
+.post-hint a{color:var(--on-ink)}
 .hp{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
+
+.envelop{position:relative;margin:0;max-width:420px;justify-self:center;width:100%;background:var(--paper);color:var(--paper-ink);border-radius:6px;padding:34px 26px 20px;transform:rotate(-2deg);box-shadow:0 1px 0 oklch(0 0 0 / .08),0 22px 48px oklch(0.1 0.02 260 / .38)}
+.envelop::before{content:"";position:absolute;inset:0 0 auto;height:8px;border-radius:6px 6px 0 0;background:repeating-linear-gradient(-45deg,var(--kring) 0 9px,var(--paper) 9px 15px,var(--markt) 15px 24px,var(--paper) 24px 30px)}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .envelop{box-shadow:0 0 0 1px oklch(0.80 0.01 85),0 22px 48px oklch(0 0 0 / .25)}}
+:root[data-theme="dark"] .envelop{box-shadow:0 0 0 1px oklch(0.80 0.01 85),0 22px 48px oklch(0 0 0 / .25)}
+@media (max-width:960px){.envelop{justify-self:start;transform:rotate(-1deg)}}
+.zegel{position:absolute;top:24px;right:20px;width:58px;height:68px;display:grid;place-items:center;background:var(--markt);color:var(--on-markt);border-radius:3px;outline:2px dashed var(--paper);outline-offset:-6px;transform:rotate(5deg)}
+.zegel .i{width:28px;height:28px;stroke-width:1.7}
+.env-kop{margin:0;padding:0 72px 14px 0;display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:.8125rem;border-bottom:1.5px solid oklch(0.82 0.008 85)}
+.env-kop dt{color:oklch(0.45 0.012 260)}.env-kop dd{margin:0}
+.env-kop b{font-weight:650}
+.env-lijst{list-style:none;margin:14px 0 0;padding:0;display:grid;gap:12px}
+.env-lijst b{display:block;font-weight:650}
+.env-lijst span{font:400 .75rem/1.5 var(--mono);color:oklch(0.43 0.012 260)}
+.env-leeg{margin-top:14px;font-size:.9375rem}
+.env-voet{margin-top:16px;padding-top:10px;border-top:1px dashed oklch(0.80 0.008 85);font-size:.75rem;color:oklch(0.45 0.012 260)}
