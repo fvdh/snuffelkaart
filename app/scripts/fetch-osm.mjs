@@ -169,9 +169,14 @@ if (fs.existsSync(WEB)) {
   for (const p of places) {
     const k = !p.h && p.website && siteKey(p.website), w = k && web[k];
     if (!w?.oh) continue;
-    if (uses.get(k) > 1) { webStat.shared++; continue; } // ketenpagina (bijv. /contact van het hoofdkantoor): hoort niet bij één winkel
-    if (p.sub === 'vlooienmarkt') { webStat.market++; continue; } // vaste markt: tijden gelden alleen op marktdagen, niet elke week
     const pc = /\b([1-9]\d{3})\s?[A-Z]{2}\b/.exec(p.addr ?? '')?.[1];
+    // Ketenpagina (bijv. /contact van het hoofdkantoor) hoort niet bij één winkel. Behalve als precies één van de winkels met deze site
+    // exact de postcode op de pagina heeft (Zolder van Den Helder: 1785, de stichting op een ander adres 1784).
+    if (uses.get(k) > 1) {
+      const pcOf = x => /\b([1-9]\d{3})\s?[A-Z]{2}\b/.exec(x.addr ?? '')?.[1], hits = places.filter(x => x.website && siteKey(x.website) === k && w.pc?.includes(pcOf(x)));
+      if (!(hits.length === 1 && hits[0] === p)) { webStat.shared++; continue; }
+    }
+    if (p.sub === 'vlooienmarkt') { webStat.market++; continue; } // vaste markt: tijden gelden alleen op marktdagen, niet elke week
     // Pagina noemt alleen postcodes uit een andere buurt (eerste 3 cijfers): waarschijnlijk een andere winkel of het hoofdkantoor.
     // Niet exact vergelijken: de postcode in OSM/Overture wijkt vaak een paar huizen af (4131 ↔ 4132).
     if (pc && w.pc?.length && !w.pc.some(x => x.slice(0, 3) === pc.slice(0, 3))) { webStat.otherShop++; continue; }
