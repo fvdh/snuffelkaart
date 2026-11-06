@@ -12,7 +12,9 @@ const PLACES = new URL('../public/data/places.json', import.meta.url), OUT = new
 const UA = 'Snuffelkaart-PoC/0.1 (openingstijden van kringlopen; freek@draad.nu)';
 // Sociale media en gidssites van anderen: niet uitlezen (voorwaarden, databankenrecht §5).
 const SKIP = /facebook|instagram|marktplaats|g\.page|google\.|linktr\.ee|tiktok|twitter|x\.com|youtube|wa\.me|allekringloopwinkels|kringloopwinkels?\.(nl|info|com)|kringlopen\.nl|tweedehandswinkels|openingstijden\.|openingstijdenwinkels|telefoonboek|telefoongids|cylex|opendi|hotfrog|yelp|tripadvisor|goudengids|bedrijvenpagina|drimble|infobel|kompass|oozo|plaatsengids|nederlandsewinkels/i;
-const WORKERS = 8, PAUSE = 800, MAX_AGE = 7 * 864e5;
+// MAX_AGE 6 dagen: de wekelijkse run (elke 7 dagen, zelfde tijd) leest dan echt alles opnieuw; bij 7 was het net te vers (6 nov).
+// VERSION ophogen als de parser of de AI-lezer beter wordt: dan wordt alles meteen opnieuw gelezen, niet pas na de cache.
+const WORKERS = 8, PAUSE = 800, MAX_AGE = 6 * 864e5, VERSION = 2;
 
 
 const cache = fs.existsSync(OUT) && !process.argv.includes('--fresh') ? JSON.parse(fs.readFileSync(OUT, 'utf8')) : {};
@@ -24,7 +26,7 @@ for (const p of places) {
   if ((p.h && (p.hs !== 'web' || process.argv.includes('--alleen-zonder'))) || !p.website || SKIP.test(p.website)) continue; // --alleen-zonder: proef van de AI-lezer // OSM-tijden gaan voor; websitetijden lezen we opnieuw
   const k = siteKey(p.website); if (!k || todo.has(k)) continue;
   who.set(k, p);
-  if (cache[k] && Date.now() - Date.parse(cache[k].read) < MAX_AGE) continue;
+  if (cache[k] && cache[k].v === VERSION && Date.now() - Date.parse(cache[k].read) < MAX_AGE) continue;
   todo.set(k, /^https?:/i.test(p.website) ? p.website : 'https://' + p.website);
 }
 const LIMIT = +(process.argv.find(a => a.startsWith('--limit='))?.slice(8) ?? Infinity); // proefrun
@@ -75,7 +77,7 @@ function candidates(html, base) {
 }
 
 async function read(key, url) {
-  const res = { url, read: new Date().toISOString(), oh: null, page: null, note: null };
+  const res = { url, read: new Date().toISOString(), oh: null, page: null, note: null, v: VERSION };
   try {
     if (!(await allowed(url))) { res.note = 'robots.txt'; return res; }
     const first = await getAny(url); let html = first.html, at = first.url;
