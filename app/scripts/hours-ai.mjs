@@ -57,8 +57,8 @@ export async function askAI(name, addr, text, { token = process.env.GITHUB_TOKEN
   // 429 met korte wachttijd = minuutgrens (±15 per minuut): even wachten. Lange wachttijd of 403 = dagtegoed op of geen toegang: stoppen.
   const wait = +(r.headers.get('retry-after') ?? 0);
   if (r.status === 429 && wait && wait <= 90 && tries > 1) { await new Promise(ok => setTimeout(ok, wait * 1000)); return askAI(name, addr, text, { token, model }, tries - 1); }
-  if (r.status === 429 || r.status === 403) throw Object.assign(new Error(`model ${r.status}${wait ? `, opnieuw over ${wait} s` : ''}`), { limit: true });
-  if (!r.ok) throw new Error(`model ${r.status}`);
+  if (r.status === 429 || r.status === 403) throw Object.assign(new Error(`model ${r.status}${wait ? `, opnieuw over ${wait} s` : ''}: ${(await r.text()).replace(/\s+/g, ' ').slice(0, 200)}`), { limit: true });
+  if (!r.ok) throw new Error(`model ${r.status}: ${(await r.text()).replace(/\s+/g, ' ').slice(0, 200)}`);
   const j = await r.json();
   const raw = j.choices?.[0]?.message?.content ?? '';
   let ans = null; try { ans = JSON.parse(raw); } catch { /* geen JSON */ }

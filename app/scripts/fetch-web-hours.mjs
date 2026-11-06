@@ -19,7 +19,7 @@ const cache = fs.existsSync(OUT) && !process.argv.includes('--fresh') ? JSON.par
 const places = JSON.parse(fs.readFileSync(PLACES, 'utf8')).places;
 const todo = new Map(), who = new Map(); // key → url, key → winkel (naam en adres voor de AI-lezer)
 // AI-lezer alleen met een token (GitHub Actions: permissions models: read). Gratis tegoed is per dag beperkt: hooguit AI_MAX vragen per run.
-const AI = !!process.env.GITHUB_TOKEN && !process.argv.includes('--no-ai'), AI_MAX = +(process.env.AI_MAX ?? 120); let aiAsked = 0, aiFound = 0, aiOff = !AI;
+const AI = !!process.env.GITHUB_TOKEN && !process.argv.includes('--no-ai'), AI_MAX = +(process.env.AI_MAX ?? 120); let aiAsked = 0, aiFound = 0, aiErr = 0, aiOff = !AI;
 for (const p of places) {
   if ((p.h && (p.hs !== 'web' || process.argv.includes('--alleen-zonder'))) || !p.website || SKIP.test(p.website)) continue; // --alleen-zonder: proef van de AI-lezer // OSM-tijden gaan voor; websitetijden lezen we opnieuw
   const k = siteKey(p.website); if (!k || todo.has(k)) continue;
@@ -105,7 +105,7 @@ async function viaAI(key, pages, at, res) {
     if (aiOff || aiAsked >= AI_MAX) return [null, at];
     const p = who.get(key);
     try { aiAsked++; const r = await askAI(p?.name ?? '', p?.addr ?? '', text); if (r) { aiFound++; res.ai = true; console.log(`  AI: ${p?.name} → ${r.oh} (${url})`); return [r, url]; } }
-    catch (e) { if (e.limit) { aiOff = true; console.log(`  AI-lezer gestopt: ${e.message}`); } res.aiHash = undefined; } // morgen/volgende week opnieuw
+    catch (e) { if (e.limit) { aiOff = true; console.log(`  AI-lezer gestopt: ${e.message}`); } else if (aiErr++ < 3) console.log(`  AI-fout: ${e.message}`); res.aiHash = undefined; } // morgen/volgende week opnieuw
     return [null, at];
   }
   return [null, at];
@@ -125,7 +125,7 @@ save();
 const all = Object.values(cache), notes = {};
 for (const r of all) if (!r.oh) { const n = r.note?.startsWith('fout') ? 'fout (site niet bereikbaar)' : r.note; notes[n] = (notes[n] ?? 0) + 1; }
 const kept = all.filter(r => r.oh && r.ok !== r.read && Date.parse(r.read) > Date.now() - 864e5).length;
-console.log(`AI-lezer: ${aiFound} van ${aiAsked} gevraagd met tijden${AI ? '' : ' (uit: geen GITHUB_TOKEN)'}`);
+console.log(`AI-lezer: ${aiFound} van ${aiAsked} gevraagd met tijden, ${aiErr} fouten${AI ? '' : ' (uit: geen GITHUB_TOKEN)'}`);
 console.log(`Klaar: ${found} van ${done} nieuw gelezen sites met tijden (waarvan ${kept} oude tijden bewaard). In cache: ${all.filter(r => r.oh).length} van ${all.length} met tijden.`, notes);
 // Zichtbaar in het GitHub-overzicht (annotaties), ook zonder in de logs te kijken.
 if (process.env.GITHUB_ACTIONS) console.log(`::notice title=Websitetijden::${found} van ${done} gelezen met tijden, ${kept} oude bewaard. Zonder tijden: ${Object.entries(notes).map(([k, v]) => `${k} ${v}`).join(', ')}`);
