@@ -53,6 +53,9 @@ const ld = { '@context': 'https://schema.org', '@type': 'Store', name: p.name, u
     {week ? <><dl class="tp-hours">{week.map(d => <><dt data-dag={d.day}>{d.day}</dt><dd data-dag={d.day}>{d.txt}</dd></>)}</dl>
       <p style="font-size:.875rem;color:var(--fg-3)">{p.hs === 'bezoeker' ? `Doorgegeven door ${p.hb} en door ons gecontroleerd` : p.hs === 'web' ? <>Van <a href={p.hu}>de website van de winkel</a></> : `Bron: ${p.src === 'osm' ? 'OpenStreetMap' : 'Overture Maps'}`}{checked ? `, gecontroleerd op ${checked}` : ''}. Rond feestdagen kunnen de tijden afwijken.</p></>
       : <p>We weten de openingstijden nog niet. {p.src === 'osm' ? 'Deze winkel staat op OpenStreetMap, maar zonder tijden.' : 'Deze winkel komt uit Overture Maps en is nog niet door ons gecontroleerd; misschien bestaat hij niet meer.'} Bel even of kijk op de website voordat je gaat.</p>}
+    {/* Winkeliers zoeken hun eigen naam op en komen hier: laat ze hun tijden zelf neerzetten (zelfde formulier, wij controleren). */}
+    {!week && <div class="banner" style="flex-direction:column;margin-top:12px"><p style="margin:0"><b>Is dit jouw winkel?</b> Zet je openingstijden erop. Gratis, en snuffelaars in de buurt zien meteen wanneer je open bent.</p>
+      <p style="margin:0"><a class="btn primary" href={`/kaart/?open=${encodeURIComponent(p.id)}&tijden=1`} rel="nofollow">Openingstijden doorgeven</a></p></div>}
   </section>
 
   {(p.phone || web) && <section>

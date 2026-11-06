@@ -130,9 +130,9 @@ export function PhotoView({ p, b, back }: { p: Place; b: Bij; back: () => void }
     </div></>);
 }
 
-export function SuggestView({ p, b, back }: { p: Place; b: Bij; back: () => void }) {
+export function SuggestView({ p, b, back, owner = false }: { p: Place; b: Bij; back: () => void; owner?: boolean }) {
   const today = isoDay(new Date()), base = prefill(p, today);
-  const [days, setDays] = useState<Day[]>(base), [how, setHow] = useState('Ik was er en zag het bord'), [seen, setSeen] = useState(today);
+  const [days, setDays] = useState<Day[]>(base), [how, setHow] = useState(owner ? 'Dit is mijn winkel' : 'Ik was er en zag het bord'), [seen, setSeen] = useState(today);
   const s = useSend(b), set = (i: number, d: Partial<Day>) => setDays(ds => ds.map((x, j) => (j === i ? { ...x, ...d } : x)));
   const same = (a: Day, c: Day) => a.open === c.open && (!a.open || (a.from === c.from && a.to === c.to));
   const bad = days.some(d => d.open && d.from >= d.to), none = !days.some(d => d.open);
@@ -147,7 +147,7 @@ export function SuggestView({ p, b, back }: { p: Place; b: Bij; back: () => void
         <span className="switch"><input type="checkbox" checked={d.open} onChange={e => set(i, { open: e.target.checked })} aria-label={`Open op ${DAYS_NL[i].toLowerCase()}`} /><span /></span></div>)}</div>
       {bad && <p role="alert" style={{ color: 'var(--bad-ink)', fontSize: '.875rem' }}>Een sluitingstijd ligt vóór de openingstijd. Open tot na middernacht? Mail ons even.</p>}
       {none && <p className="src"><Ic n="info" /><span>Is de winkel helemaal dicht of verhuisd? Gebruik dan <b>Klopt er iets niet?</b> onderaan bij de winkel.</span></p>}
-      <div className="field"><label htmlFor="sg-hoe">Hoe weet je dit?</label><select className="select" id="sg-hoe" value={how} onChange={e => setHow(e.target.value)}>{['Ik was er en zag het bord', 'Website van de winkel', 'Ik werk er'].map(o => <option key={o}>{o}</option>)}</select></div>
+      <div className="field"><label htmlFor="sg-hoe">Hoe weet je dit?</label><select className="select" id="sg-hoe" value={how} onChange={e => setHow(e.target.value)}>{['Ik was er en zag het bord', 'Website van de winkel', 'Ik werk er', 'Dit is mijn winkel'].map(o => <option key={o}>{o}</option>)}</select></div>
       <div className="field"><label htmlFor="sg-wanneer">Wanneer zag je dit?</label><input className="input" type="date" id="sg-wanneer" value={seen} max={today} min={isoDay(new Date(Date.now() - 90 * 864e5))} onChange={e => setSeen(e.target.value)} required /></div>
       {s.nameField}{s.error}
       <button className="btn primary block" disabled={bad || none || s.busy}>{s.busy ? 'Versturen…' : 'Stuur voorstel'}</button>

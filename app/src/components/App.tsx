@@ -260,7 +260,7 @@ export default function App() {
       { enableHighAccuracy: false, timeout: 8000, maximumAge: 300_000 });
   };
   // Vanaf een statische pagina: ?open=<id> opent die winkel of markt, ?plek=…&lat=…&lon=… zet de kaart op een plaats.
-  const deep = useRef(new URLSearchParams(location.search));
+  const deep = useRef(new URLSearchParams(location.search)), owner = useRef(false); // owner: via "Is dit jouw winkel?" op de winkelpagina
   // Een link met een plek of iets om te openen gaat voor je locatie: dan niet stilletjes je locatie ophalen (Freek, 6 nov: mail → kaart toonde zijn eigen plek).
   const viaLink = useRef(/[?&](plek|open|org|markten|dag)=/.test(location.search));
   useEffect(() => {
@@ -271,7 +271,7 @@ export default function App() {
     if (q.get('bij') === 'mij') { q.delete('bij'); locate(); }
     const soort = q.get('soort') as Cat | null;
     if (soort && CATS.includes(soort)) { q.delete('soort'); setFState(o => ({ ...o, type: 'k', hide: CATS.filter(c => c !== soort) })); }
-    if (id && byId.has(id)) { const it = byId.get(id)!; if (!spot && !me) pickSpot({ label: it.place ?? it.name, sub: '', lat: it.lat, lon: it.lon }); q.delete('open'); go(id); if (q.get('plan') === '1') { q.delete('plan'); if (!planRef.current.stops.includes(id)) toggleStop(id); } } // rond de winkel, niet rond Amersfoort (UX-test 30 okt)
+    if (id && byId.has(id)) { const it = byId.get(id)!; if (!spot && !me) pickSpot({ label: it.place ?? it.name, sub: '', lat: it.lat, lon: it.lon }); q.delete('open'); go(id); if (q.get('tijden') === '1' && it.t === 'k') { q.delete('tijden'); owner.current = true; setView('suggest'); } /* winkelier vanaf de winkelpagina */ if (q.get('plan') === '1') { q.delete('plan'); if (!planRef.current.stops.includes(id)) toggleStop(id); } } // rond de winkel, niet rond Amersfoort (UX-test 30 okt)
     const sd = q.get('dag'), ss = q.get('s');
     if (sd && ss && byId.size) { setShared({ day: sd >= today ? sd : today, start: Math.max(0, Math.min(1439, Number(q.get('v')) || 600)), stops: ss.split(',').slice(0, 8) }); ['dag', 'v', 's'].forEach(k => q.delete(k)); setView('gedeeld'); setSnap('full'); }
     // Vanaf een organisatorpagina: ?org=<slug> toont alleen hun markten, ingezoomd. Wacht tot de markten er zijn.
@@ -397,7 +397,7 @@ export default function App() {
               : view === 'detail' && selItem ? <DetailView it={selItem} c={c} backLabel={PLANISH.includes(prev as never) ? `Mijn ${DAYS_LONG[dayStart(plan.day).getDay()]}` : prev === 'me' ? 'Jij' : prev === 'gedeeld' ? 'Gedeeld rondje' : 'Kaart'} />
               : view === 'me' ? <MeView c={c} items={items} showFavs={showFavs} login={() => { setDir('fwd'); setView('login'); setSnap('full'); scrollTop(); }} logout={logout} download={download} remove={removeAccount} />
               : view === 'login' ? <LoginView c={c} send={email => sendLink(email, location.origin + '/')} done={s => { sessionStorage.setItem('snuffel-samenvoegen', '1'); setSess(s); setDir('back'); if (!resume()) setView('me'); scrollTop(); }} />
-              : (view === 'review' || view === 'photo' || view === 'suggest') && selItem?.t === 'k' ? (view === 'review' ? <ReviewView p={selItem} b={bij} back={back} /> : view === 'photo' ? <PhotoView p={selItem} b={bij} back={back} /> : <SuggestView p={selItem} b={bij} back={back} />)
+              : (view === 'review' || view === 'photo' || view === 'suggest') && selItem?.t === 'k' ? (view === 'review' ? <ReviewView p={selItem} b={bij} back={back} /> : view === 'photo' ? <PhotoView p={selItem} b={bij} back={back} /> : <SuggestView p={selItem} b={bij} back={back} owner={owner.current} />)
               : view === 'contrib' ? <ContribView b={bij} items={items} back={back} open={id => { setPrev('contrib'); go(id); }} />
               : view === 'waar' ? <WaarView c={c} count={counts.open + counts.later} />
               : view === 'gedeeld' && shared ? <GedeeldView c={c} items={items} shared={shared} plan={plan} take={() => { setPlan({ ...shared, done: [], skip: [] }); setShared(null); openPlan(); }} />
