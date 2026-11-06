@@ -71,7 +71,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     }
     if (!g) continue;
     r.data.binnenBron = g.bron; n++; console.log(`${g.indoor ? 'binnen' : 'buiten'}  ${m.name} (${r.date}): ${g.bron}`);
-    if (!dry) await req(`markets?id=eq.${encodeURIComponent(r.id)}`, { method: 'PATCH', body: JSON.stringify({ data: { ...r.data, indoor: g.indoor, binnenBron: g.bron } }) });
+    if (!dry) await req(`markets?id=eq.${encodeURIComponent(r.id)}`, { method: 'PATCH', body: JSON.stringify({ data: { ...r.data, indoor: g.indoor, binnenBron: g.bron }, updated_at: new Date().toISOString() }) }); // updated_at: de kwartier-run publiceert pas als die verschuift (geen trigger)
   }
   console.log(`${n} van ${open.length} markten zonder binnen/buiten aangevuld${dry ? ' (dry)' : ''}.`);
   if (process.argv.includes('--rest')) for (const r of open.filter(r => !r.data.binnenBron)) console.log('  ?', r.date, r.data.name, '|', r.data.venue ?? '', '|', r.data.addr ?? '');
