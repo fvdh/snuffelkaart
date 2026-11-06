@@ -51,7 +51,7 @@ const ld = { '@context': 'https://schema.org', '@type': 'Event', name: m.name, u
     <h2>Praktisch</h2>
     <dl class="tp-hours">
       <dt>Entree</dt><dd>{m.entree === 'gratis' ? 'Gratis' : m.entree === 'onbekend' || !m.entree ? 'Staat niet in de agenda' : m.entree}</dd>
-      <dt>Overdekt</dt><dd>{m.indoor === undefined ? 'Onbekend' : m.indoor ? 'Ja, binnen' : 'Nee, buiten'}</dd>
+      <dt>Overdekt</dt><dd>{m.indoor === undefined ? 'Onbekend' : m.indoor ? 'Ja, binnen' : 'Nee, buiten'}{m.binnenBron && <small style="display:block;color:var(--fg-3)">Afgeleid: {m.binnenBron}</small>}</dd>
       {m.addr && <><dt>Adres</dt><dd>{m.addr}</dd></>}
       {m.kramen && <><dt>Kramen</dt><dd>±{m.kramen}</dd></>}
       {m.kraamhuur && <><dt>Kraam huren</dt><dd>{m.kraamhuur}</dd></>}

@@ -60,6 +60,11 @@ jobs:
         run: node scripts/fetch-gemeenteblad.mjs
         continue-on-error: true
         env: *supabase
+      - name: Binnen of buiten aanvullen (soort, locatie, adres, Kadaster)
+        if: steps.w.outputs.doe == 'alles'
+        run: node scripts/binnen.mjs
+        continue-on-error: true # lukt PDOK niet, dan blijft het een nacht 'onbekend'
+        env: *supabase
       - name: Mail bij nieuwe meldingen
         if: steps.w.outputs.doe == 'alles'
         run: node scripts/meldingen-mail.mjs

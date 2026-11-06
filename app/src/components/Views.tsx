@@ -328,7 +328,7 @@ function MarketDetail({ m, c, top, d, actions }: { m: Market; c: Ctx; top: React
     <section className="dv-sec"><h3>Praktisch</h3><dl className="facts">
       <dt>Entree</dt><dd>{m.entree === 'gratis' ? 'Gratis' : m.entree === 'onbekend' ? 'Staat niet in de agenda' : m.entree}</dd>
       {!m.end && <><dt>Eindtijd</dt><dd>Onbekend; de organisator noemt er geen</dd></>}
-      <dt>Overdekt</dt><dd>{m.indoor === undefined ? 'Onbekend' : m.indoor ? 'Ja, binnen' : 'Nee, buiten'}</dd>
+      <dt>Overdekt</dt><dd>{m.indoor === undefined ? 'Onbekend' : m.indoor ? 'Ja, binnen' : 'Nee, buiten'}{m.binnenBron && <small style={{ display: 'block', color: 'var(--fg-3)' }}>Afgeleid: {m.binnenBron}</small>}</dd>
       {m.addr !== undefined && <><dt>Adres</dt><dd>{m.addr ?? `${m.place}; de precieze plek staat bij de organisator`}</dd></>}
       {m.kraamhuur && <><dt>Kraam huren</dt><dd>{m.kraamhuur}</dd></>}
       {m.area && <><dt>Waar</dt><dd>{m.area}</dd></>}

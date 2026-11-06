@@ -19,7 +19,7 @@ export interface Market {
   id: string; t: 'm'; name: string; kind: string; place: string; lat: number; lon: number;
   date: string; start: number; end: number | null; status: Confirm; checked?: string;
   /** undefined = we weten niet of het binnen of buiten is (niet raden). */
-  indoor?: boolean; entree: string; kramen?: number; schema: string; org: string;
+  indoor?: boolean; /** Waarom we binnen/buiten denken als de organisator het niet zegt (scripts/binnen.mjs). */ binnenBron?: string; entree: string; kramen?: number; schema: string; org: string;
   area?: string; cancelWhy?: string; sample?: true;
   /** Uit de agenda van de organisator: hal, adres, hun marktpagina, kraamhuur. */
   venue?: string | null; addr?: string | null; url?: string; kraamhuur?: string; exact?: boolean;
