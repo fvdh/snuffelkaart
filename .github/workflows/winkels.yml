@@ -9,6 +9,7 @@ on:
   workflow_dispatch: # maandag 00:30 UTC gestart door de klok (app/worker/klok.js), ruim vóór de nachtelijke export
 permissions:
   contents: write # websitetijden bewaren in de repo
+  models: read # AI-lezer voor websitetijden (GitHub Models, gratis tegoed)
 jobs:
   winkels:
     runs-on: ubuntu-latest
@@ -37,6 +38,8 @@ jobs:
         run: node scripts/fetch-overture.mjs "${{ steps.ov.outputs.release }}"
       - name: Openingstijden van websites
         run: node scripts/fetch-web-hours.mjs
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         timeout-minutes: 45
         continue-on-error: true # deels gelezen is ook goed; het bestand wordt tussendoor bewaard
       - name: Websitetijden bewaren in de repo

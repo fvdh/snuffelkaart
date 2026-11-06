@@ -6,6 +6,7 @@
 //          npm run data:web -- --limit=50 (proef)
 import fs from 'node:fs';
 import { hoursFromHtml, toText, siteKey, keep } from './hours-from-web.mjs';
+import { snippet, hashOf, askAI } from './hours-ai.mjs';
 
 const PLACES = new URL('../public/data/places.json', import.meta.url), OUT = new URL('../data-raw/web-hours.json', import.meta.url);
 const UA = 'Snuffelkaart-PoC/0.1 (openingstijden van kringlopen; freek@draad.nu)';
@@ -16,10 +17,13 @@ const WORKERS = 8, PAUSE = 800, MAX_AGE = 7 * 864e5;
 
 const cache = fs.existsSync(OUT) && !process.argv.includes('--fresh') ? JSON.parse(fs.readFileSync(OUT, 'utf8')) : {};
 const places = JSON.parse(fs.readFileSync(PLACES, 'utf8')).places;
-const todo = new Map(); // key → url
+const todo = new Map(), who = new Map(); // key → url, key → winkel (naam en adres voor de AI-lezer)
+// AI-lezer alleen met een token (GitHub Actions: permissions models: read). Gratis tegoed is per dag beperkt: hooguit AI_MAX vragen per run.
+const AI = !!process.env.GITHUB_TOKEN && !process.argv.includes('--no-ai'), AI_MAX = +(process.env.AI_MAX ?? 120); let aiAsked = 0, aiFound = 0, aiOff = !AI;
 for (const p of places) {
   if ((p.h && p.hs !== 'web') || !p.website || SKIP.test(p.website)) continue; // OSM-tijden gaan voor; websitetijden lezen we opnieuw
   const k = siteKey(p.website); if (!k || todo.has(k)) continue;
+  who.set(k, p);
   if (cache[k] && Date.now() - Date.parse(cache[k].read) < MAX_AGE) continue;
   todo.set(k, /^https?:/i.test(p.website) ? p.website : 'https://' + p.website);
 }
@@ -76,10 +80,12 @@ async function read(key, url) {
     if (!(await allowed(url))) { res.note = 'robots.txt'; return res; }
     const first = await getAny(url); let html = first.html, at = first.url;
     let hit = hoursFromHtml(html);
+    const seen = [[at, html]];
     for (const next of hit ? [] : candidates(html, at)) {
       await sleep(PAUSE); if (!(await allowed(next))) continue;
-      try { const r = await get(next); hit = hoursFromHtml(r.html); if (hit) { at = r.url; break; } } catch { /* volgende */ }
+      try { const r = await get(next); seen.push([r.url, r.html]); hit = hoursFromHtml(r.html); if (hit) { at = r.url; break; } } catch { /* volgende */ }
     }
+    if (!hit) [hit, at] = await viaAI(key, seen, at, res);
     // Postcodes op de pagina (4 cijfers): staat de winkel er niet tussen, dan is het misschien een andere winkel (zie fetch-osm).
     if (hit) { res.oh = hit.oh; res.page = at; res.ok = res.read; res.pc = [...new Set([...toText(html).matchAll(/\b([1-9]\d{3})\s?[A-Z]{2}\b/g)].map(m => m[1]))].slice(0, 12); } else res.note = 'geen tijden gevonden';
   } catch (e) {
@@ -88,6 +94,21 @@ async function read(key, url) {
     if (gone(e)) { const prev = cache[key]; res.dead = prev?.dead ?? (prev?.note?.startsWith('fout') ? prev.read : res.read); }
   }
   return keep(res, cache[key]);
+}
+/** Parser vond niets: laat de AI-lezer het stuk tekst rond "openingstijden" lezen. Zelfde tekst als vorige keer = zelfde antwoord, gratis. */
+async function viaAI(key, pages, at, res) {
+  for (const [url, html] of pages) {
+    const text = snippet(toText(html)); if (!text) continue;
+    const h = hashOf(text), prev = cache[key];
+    res.aiHash = h;
+    if (prev?.aiHash === h) { res.ai = prev.ai; return prev.ai && prev.oh ? [{ oh: prev.oh }, prev.page] : [null, at]; } // al eens gevraagd, pagina niet veranderd
+    if (aiOff || aiAsked >= AI_MAX) return [null, at];
+    const p = who.get(key);
+    try { aiAsked++; const r = await askAI(p?.name ?? '', p?.addr ?? '', text); if (r) { aiFound++; res.ai = true; return [r, url]; } }
+    catch (e) { if (e.limit) { aiOff = true; console.log(`  AI-lezer gestopt: ${e.message}`); } res.aiHash = undefined; } // morgen/volgende week opnieuw
+    return [null, at];
+  }
+  return [null, at];
 }
 const gone = e => e.cause?.code === 'ENOTFOUND' || /status 40[4]|status 410/.test(e.message); // verlopen certificaat, 403, 5xx: kan tijdelijk zijn
 
@@ -104,6 +125,7 @@ save();
 const all = Object.values(cache), notes = {};
 for (const r of all) if (!r.oh) { const n = r.note?.startsWith('fout') ? 'fout (site niet bereikbaar)' : r.note; notes[n] = (notes[n] ?? 0) + 1; }
 const kept = all.filter(r => r.oh && r.ok !== r.read && Date.parse(r.read) > Date.now() - 864e5).length;
+console.log(`AI-lezer: ${aiFound} van ${aiAsked} gevraagd met tijden${AI ? '' : ' (uit: geen GITHUB_TOKEN)'}`);
 console.log(`Klaar: ${found} van ${done} nieuw gelezen sites met tijden (waarvan ${kept} oude tijden bewaard). In cache: ${all.filter(r => r.oh).length} van ${all.length} met tijden.`, notes);
 // Zichtbaar in het GitHub-overzicht (annotaties), ook zonder in de logs te kijken.
 if (process.env.GITHUB_ACTIONS) console.log(`::notice title=Websitetijden::${found} van ${done} gelezen met tijden, ${kept} oude bewaard. Zonder tijden: ${Object.entries(notes).map(([k, v]) => `${k} ${v}`).join(', ')}`);
