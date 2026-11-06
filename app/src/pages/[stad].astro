@@ -42,7 +42,7 @@ const ld = { '@context': 'https://schema.org', '@type': 'ItemList', name: title,
   <p class="tp-crumbs"><a href="/">Snuffelkaart</a> › <a href="/plaatsen/">Plaatsen</a> › {province && <><a href={`/provincie/${province.slug}/`}>{province.name}</a> › </>}{city.name}</p>
   <h1>{title}</h1>
   <p class="lede">{description}</p>
-  <KaartBlok items={[...city.shops, ...around]} href={`/?plek=${encodeURIComponent(city.name)}&lat=${city.lat.toFixed(5)}&lon=${city.lon.toFixed(5)}`} label={`Open de kaart rond ${city.name}`} />
+  <KaartBlok items={[...city.shops, ...around]} href={`/kaart/?plek=${encodeURIComponent(city.name)}&lat=${city.lat.toFixed(5)}&lon=${city.lon.toFixed(5)}`} label={`Open de kaart rond ${city.name}`} />
   <div class="tp-cta"><b>Plan je snuffeldag</b><p>Kies stops op de kaart. Snuffelkaart zet ze in de slimste volgorde en kijkt of alles open is als je er bent.</p></div>
 
   {(satOpen.length > 0 || sunOpen.length > 0) && <section>

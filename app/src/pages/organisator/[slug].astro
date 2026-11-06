@@ -30,7 +30,7 @@ const ld = { '@context': 'https://schema.org', '@type': 'Organization', name, ..
   <p class="tp-crumbs"><a href="/">Snuffelkaart</a> › <a href="/markten/">Markten</a> › {name}</p>
   <h1>{h1}</h1>
   <p class="lede">{description}</p>
-  <KaartBlok items={ms} href={`/?org=${slug}`} label={`Bekijk ${ms.length === 1 ? 'de markt' : `alle ${ms.length} markten`} op de kaart`} />
+  <KaartBlok items={ms} href={`/kaart/?org=${slug}`} label={`Bekijk ${ms.length === 1 ? 'de markt' : `alle ${ms.length} markten`} op de kaart`} />
   <MarktAgenda markets={ms} empty={`Dit weekend geen markt van ${name}.`} />
   {site && <section>
     <h2>Over {name}</h2>

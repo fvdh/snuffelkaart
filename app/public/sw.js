@@ -1,10 +1,10 @@
 // Snuffelkaart offline: app en gegevens werken zonder bereik (bijv. in een sporthal), met de laatst geladen stand.
 // Verhoog VERSION bij een wijziging in dit bestand; de app-bestanden zelf hebben al een hash in hun naam.
-const VERSION = 'v5', APP = `app-${VERSION}`, DATA = 'data', TILES = 'tiles', MAX_TILES = 1500;
+const VERSION = 'v6', APP = `app-${VERSION}`, DATA = 'data', TILES = 'tiles', MAX_TILES = 1500;
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(APP).then(async c => {
-    await c.addAll(['/', '/offline/', '/manifest.webmanifest', '/icons/icon-192.png', '/favicon.svg', '/fonts/figtree.woff2']);
+    await c.addAll(['/', '/kaart/', '/offline/', '/manifest.webmanifest', '/icons/icon-192.png', '/favicon.svg', '/fonts/figtree.woff2']);
     const html = await (await c.match('/offline/')).text(); // de opmaak van de offline-pagina ook bewaren, anders is hij kaal
     await c.addAll([...html.matchAll(/href="(\/_astro\/[^"]+\.css)"/g)].map(m => m[1]));
   }).then(() => self.skipWaiting()));
@@ -35,8 +35,8 @@ self.addEventListener('fetch', e => {
   const req = e.request, u = new URL(req.url);
   if (req.method !== 'GET') return;
   if (u.origin === location.origin) {
-    if (u.pathname.startsWith('/beheer')) return; // altijd vers, en niet bewaren als '/' (dan opent de app offline als beheer)
-    if (req.mode === 'navigate') return e.respondWith(networkFirst(req, APP, u.pathname === '/' ? '/' : undefined)); // elke pagina onder haar eigen adres
+    if (u.pathname.startsWith('/beheer')) return; // altijd vers, en niet bewaren als '/kaart/' (dan opent de app offline als beheer)
+    if (req.mode === 'navigate') return e.respondWith(networkFirst(req, APP, u.pathname === '/kaart/' ? '/kaart/' : undefined)); // elke pagina onder haar eigen adres; de app zonder ?open= enz.
     if (u.pathname.startsWith('/data/')) return e.respondWith(networkFirst(req, DATA));
     if (/^\/(_astro|icons|fonts)\//.test(u.pathname)) return e.respondWith(cacheFirst(req, APP));
     return;

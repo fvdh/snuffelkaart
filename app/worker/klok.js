@@ -2,7 +2,7 @@
 // Waarom niet GitHubs eigen planning: die startte in deze repository niet (28 okt 2026, ook niet na uit/aan). Zie DECISIONS.md.
 // Secret GITHUB_TOKEN: fine-grained token, alleen fvdh/snuffelkaart, Actions: read and write. Zonder token doet de klok niets.
 // De site zelf blijft statisch: elk verzoek gaat naar de bestanden in dist/ (ASSETS).
-const REPO = 'fvdh/snuffelkaart';
+const REPO = 'fvdh/snuffelkaart', DEEP = /[?&](open|plek|org|dag|s|plan|nu)=/;
 
 /** Welke workflows bij dit tijdstip (UTC) horen. Tijden zoals voorheen in de workflows stonden. */
 export function due(d) {
@@ -23,7 +23,12 @@ async function dispatch(env, file, inputs) {
 }
 
 export default {
-  fetch: (req, env) => env.ASSETS.fetch(req),
+  fetch(req, env) {
+    // De kaart woonde op / tot de homepage kwam (nov 2026): oude links (?open=, ?plek=, ?dag=, gedeelde rondjes) naar /kaart/ met dezelfde vraag.
+    const u = new URL(req.url);
+    if (u.pathname === '/' && DEEP.test(u.search)) return Response.redirect(`${u.origin}/kaart/${u.search}`, 302);
+    return env.ASSETS.fetch(req);
+  },
   async scheduled(event, env, ctx) {
     if (!env.GITHUB_TOKEN) return console.warn('GITHUB_TOKEN ontbreekt: geen workflows gestart');
     ctx.waitUntil(Promise.all(due(new Date(event.scheduledTime)).map(([f, i]) => dispatch(env, f, i))));

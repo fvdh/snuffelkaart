@@ -1,39 +1,270 @@
 ---
-import '../styles/design.css';
-import '../styles/app.css';
-import 'maplibre-gl/dist/maplibre-gl.css';
-import App from '../components/App.tsx';
+// Homepage (nov 2026): uitleg, een demo en wat er dit weekend is. De app zelf staat op /kaart/. Ontwerp: ontwerp/homepage/index.html (v7).
+// Elke nacht opnieuw gebouwd: aantallen, markten en plaatsen komen uit dezelfde data als de app. Alleen de demo (Haarlem) is een vast voorbeeld.
+import '../styles/home.css';
+import { Picture } from 'astro:assets';
 import Deel from '../components/Deel.astro';
-import { SITE } from '../lib/sitedata';
-import Sprite from '../components/Sprite.astro';
 import Meten from '../components/Meten.astro';
+import { PROVINCES } from '../lib/seo';
+import { weekendOf, dayStart, dShort, hm } from '../lib/model';
+import { ix, places, markets, from, generated, SITE } from '../lib/sitedata';
+import blikken from '../assets/home/foto-blikken.jpg';
+import jassen from '../assets/home/foto-hero.jpg';
+import buurt from '../assets/home/foto-buurt.jpg';
+import kaartLicht from '../assets/home/haarlem-light.jpg';
+import kaartDonker from '../assets/home/haarlem-dark.jpg';
+
+const nl = (n: number) => n.toLocaleString('nl-NL');
+const [sat, sun] = weekendOf(dayStart(from));
+const weekend = markets.filter(m => (m.date === sat || m.date === sun) && m.status !== 'cancel');
+// Zes markten: eerst bevestigd en met tijden, dan op datum en tijd. Zonder locatie kunnen we niet op afstand sorteren; dat doet de kaart.
+const zes = [...weekend].sort((a, b) => +(a.status === 'unconf') - +(b.status === 'unconf') || +(a.timeKnown === false) - +(b.timeKnown === false) || a.date.localeCompare(b.date) || a.start - b.start || a.name.localeCompare(b.name, 'nl')).slice(0, 6);
+const dagen = [...new Set(weekend.map(m => m.date))].sort();
+const kicker = `${dagen.map(d => dShort(d).toUpperCase()).join(' · ') || 'DIT WEEKEND'} · ${weekend.length} ${weekend.length === 1 ? 'MARKT' : 'MARKTEN'}`;
+const tijd = (m: (typeof zes)[number]) => (m.timeKnown === false ? 'tijden onbekend' : `${hm(m.start)}${m.end ? `–${hm(m.end)}` : ''}`);
+const grootste = [...ix.cities].sort((a, b) => b.shops.length - a.shops.length || a.name.localeCompare(b.name, 'nl')).slice(0, 16);
+const bijgewerkt = new Date(generated).toLocaleString('nl-NL', { timeZone: 'Europe/Amsterdam', weekday: 'long', day: 'numeric', month: 'long', hour: 'numeric', minute: '2-digit' });
+const title = 'Snuffelkaart · Kringlopen en rommelmarkten bij jou in de buurt';
+const description = 'Zie welke kringloop nu open is en welke rommelmarkten er dit weekend zijn, in heel Nederland. Plan je route langs een paar stops. Gratis, zonder account.';
+const ld = [
+  { '@context': 'https://schema.org', '@type': 'WebSite', name: 'Snuffelkaart', url: SITE + '/', inLanguage: 'nl' },
+  { '@context': 'https://schema.org', '@type': 'Organization', name: 'Snuffelkaart', url: SITE + '/', logo: SITE + '/icons/icon-512.png', email: 'info@freekvanderhorst.com' },
+];
+const ic = (id: string) => `<svg class="i" aria-hidden="true" focusable="false"><use href="#i-${id}"/></svg>`;
 ---
 <html lang="nl">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script is:inline>
+      // Wie de app al gebruikt (iets bewaard, of als app op het beginscherm) en niet vanaf een eigen pagina komt, gaat direct naar de kaart.
+      // Inloglinks (#access_token, ?code=) horen ook bij de app. Nooit op user-agent: Google ziet altijd de homepage.
+      (function () { try {
+        var q = location.search, h = location.hash, eigen = document.referrer.indexOf(location.origin + '/') === 0;
+        var app = matchMedia('(display-mode: standalone)').matches || Object.keys(localStorage).some(function (k) { return k.indexOf('snuffel') === 0; });
+        if (/access_token|error_description/.test(h) || /[?&]code=/.test(q) || (app && !eigen)) location.replace('/kaart/' + q + h);
+      } catch (e) {} })();
+    </script>
     <meta name="theme-color" content="#f7f6f3" />
     <link rel="manifest" href="/manifest.webmanifest" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-    <link rel="preload" href="/fonts/figtree.woff2" as="font" type="font/woff2" crossorigin />
-    <!-- De lijst wacht op de winkels en markten: die alvast ophalen terwijl de app-code laadt (Lighthouse: LCP is de lijst). -->
-    <link rel="preload" href="/data/places.json" as="fetch" crossorigin />
-    <link rel="preload" href="/data/markets.json" as="fetch" crossorigin />
     <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
-    <meta name="apple-mobile-web-app-title" content="Snuffelkaart" />
+    <link rel="preload" href="/fonts/figtree.woff2" as="font" type="font/woff2" crossorigin />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={SITE + '/'} />
+    <meta name="msvalidate.01" content="1B8302EE3C0F80DEB2AD0692CF65CA49" /><!-- Bing Webmaster Tools -->
+    <Deel title="Snuffelkaart" description={description} url={SITE + '/'} />
+    <script type="application/ld+json" set:html={JSON.stringify(ld)} />
+    <Meten />
     <script>
-      // Offline (public/sw.js), alleen in de gebouwde site: in dev zit de service worker Vite in de weg.
       if (import.meta.env.PROD && 'serviceWorker' in navigator) addEventListener('load', () => navigator.serviceWorker.register('/sw.js'));
     </script>
-    <Meten />
-    <title>Snuffelkaart · Kringlopen en rommelmarkten bij jou in de buurt</title>
-    <meta name="description" content="Kringlopen en rommelmarkten op één kaart. Zie wat er nu open is en plan je zaterdag." />
-    <meta name="msvalidate.01" content="1B8302EE3C0F80DEB2AD0692CF65CA49" /><!-- Bing Webmaster Tools -->
-    <Deel title="Snuffelkaart" description="Kringlopen en rommelmarkten op één kaart. Zie wat er nu open is en plan je zaterdag." url={SITE + '/'} />
   </head>
   <body>
-    <Sprite />
-    <h1 class="sr-only">Kringlopen en rommelmarkten bij jou in de buurt</h1>
-    <App client:only="react" />
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <symbol id="i-tag" viewBox="0 0 24 24"><path d="M3.5 12.2V4.5a1 1 0 0 1 1-1h7.7l8.3 8.3a1.5 1.5 0 0 1 0 2.1l-6.6 6.6a1.5 1.5 0 0 1-2.1 0z"/><circle cx="8.2" cy="8.2" r="1.6"/></symbol>
+  <symbol id="i-kraam" viewBox="0 0 24 24"><path d="M3 9.5 5 4h14l2 5.5"/><path d="M3 9.5a2.25 2.25 0 0 0 4.5 0 2.25 2.25 0 0 0 4.5 0 2.25 2.25 0 0 0 4.5 0 2.25 2.25 0 0 0 4.5 0"/><path d="M5 12v8M19 12v8M3.5 20h17"/><path d="M9 20v-4h6v4"/></symbol>
+  <symbol id="i-hanger" viewBox="0 0 24 24"><path d="M10 6.5a2 2 0 1 1 2.6 1.9c-.4.1-.6.5-.6.9V10"/><path d="M12 10 3.6 15.6A1.2 1.2 0 0 0 4.3 17.8h15.4a1.2 1.2 0 0 0 .7-2.2z"/></symbol>
+  <symbol id="i-map" viewBox="0 0 24 24"><path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2zM9 4v14M15 6v14"/></symbol>
+  <symbol id="i-loc" viewBox="0 0 24 24"><path d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0c0 5.4-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.3"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></symbol>
+  <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></symbol>
+  <symbol id="i-mail" viewBox="0 0 24 24"><rect x="3.5" y="5.5" width="17" height="13" rx="2"/><path d="m4 7 8 6 8-6"/></symbol>
+</svg>
+
+<div class="wrap">
+  <header class="top">
+    <a class="brand" href="/"><span class="mark"><Fragment set:html={ic('tag')} /></span>Snuffelkaart</a>
+    <nav class="nav" aria-label="Hoofdmenu">
+      <a class="lnk" href="#markten">Markten</a>
+      <a class="lnk" href="#plaatsen">Plaatsen</a>
+      <a class="lnk" href="#organisatoren">Voor organisatoren</a>
+      <a class="btn primary" href="/kaart/"><Fragment set:html={ic('map')} />Open de kaart</a>
+    </nav>
+  </header>
+</div>
+
+<main>
+<div class="wrap">
+  <div class="hero">
+    <div>
+      <p class="fresh"><span class="dot" aria-hidden="true"></span>Gegevens bijgewerkt op {bijgewerkt}</p>
+      <h1>Kringlopen en rommelmarkten bij jou in de buurt, en wanneer ze open zijn</h1>
+      <p class="lede">Je ziet welke kringloop nu open is en welke markten er dit weekend zijn, in heel Nederland. Kies een paar stops, dan zetten wij ze in de beste volgorde, met de tijden erbij. Gratis en zonder account.</p>
+      <div class="acties">
+        <a class="btn primary" href="/kaart/?bij=mij"><Fragment set:html={ic('loc')} />Wat is er bij mij in de buurt?</a>
+        <form class="zoek" role="search" action="/kaart/" method="get">
+          <div class="veld"><Fragment set:html={ic('search')} /><label class="sr-only" for="plek">Plaats of postcode</label><input id="plek" name="plek" required autocomplete="address-level2" placeholder="Of typ een plaats of postcode"><button class="btn" type="submit" aria-label="Zoek"><Fragment set:html={ic('arrow')} /></button></div>
+        </form>
+        <ul class="soorten lijst-r" role="list" aria-label="Direct naar">
+          <li><a href="/kaart/?soort=kringloop"><span class="tile"><Fragment set:html={ic('tag')} /></span>Kringlopen</a></li>
+          <li><a href="/kaart/?soort=kleding"><span class="tile t"><Fragment set:html={ic('hanger')} /></span>Vintage en kleding</a></li>
+          <li><a href="/rommelmarkt-dit-weekend/"><span class="tile m"><Fragment set:html={ic('kraam')} /></span>Markten dit weekend</a></li>
+        </ul>
+        <p class="hint"><a href="#demo">Eerst zien hoe het werkt? Probeer een zondag in Haarlem</a></p>
+      </div>
+      <p class="feitregel"><span><b>{nl(places.length)}</b> kringlopen en tweedehandswinkels in {nl(ix.cities.length)} plaatsen</span><span><b>{weekend.length}</b> {weekend.length === 1 ? 'markt' : 'markten'} dit weekend</span><span>Gemaakt door Freek, zonder advertenties</span></p>
+      <nav class="spring" aria-label="Naar een deel van de pagina"><a href="#markten">Markten</a><a href="#plaatsen">Per plaats</a><a href="#organisatoren">Voor organisatoren</a></nav>
+    </div>
+    <figure class="beeld">
+      <Picture class="foto" src={blikken} formats={['avif', 'webp']} widths={[480, 720, 1000]} sizes="(max-width: 880px) 100vw, 560px" alt="Oude blikken trommels van Verkade, Douwe Egberts en Droste op een marktkraam" fetchpriority="high" loading="eager" />
+      <figcaption>Waterlooplein, Amsterdam (uitsnede). Foto: <a href="https://commons.wikimedia.org/wiki/File:Flohmarkt_Waterlooplein07.jpg">Hajotthu, Flohmarkt Waterlooplein</a>, <a href="https://creativecommons.org/licenses/by/3.0/deed.nl">CC BY 3.0</a></figcaption>
+    </figure>
+  </div>
+</div>
+
+<section class="tafel" id="demo" aria-labelledby="demo-kop">
+  <div class="wrap">
+    <div class="kop">
+      <div>
+        <h2 class="h2" id="demo-kop" tabindex="-1">Probeer een zondag in Haarlem</h2>
+        <p>Een voorbeeld met vijf winkels en een markt in Haarlem. Tik op + of op een pin om een stop toe te voegen of weg te halen. Wissel naar zaterdag en kijk wat er verandert.</p>
+      </div>
+    </div>
+    <div class="demo">
+      <div class="kaart" id="kaart">
+        <Picture class="lt" src={kaartLicht} formats={['avif', 'webp']} widths={[800, 1600]} sizes="(max-width: 720px) 200vw, 1000px" alt="" loading="lazy" />
+        <Picture class="dk" src={kaartDonker} formats={['avif', 'webp']} widths={[800, 1600]} sizes="(max-width: 720px) 200vw, 1000px" alt="" loading="lazy" />
+        <svg class="lijn" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true" focusable="false"><path id="lijn" d=""/></svg>
+        <span class="bron">© OpenStreetMap · OpenFreeMap</span>
+      </div>
+      <div class="lijst">
+        <div class="lkop">
+          <h3 class="sr-only">Stops</h3>
+          <div class="dagen" role="group" aria-label="Dag">
+            <button type="button" data-dag="za" aria-pressed="false">Zaterdag</button>
+            <button type="button" data-dag="zo" aria-pressed="true">Zondag</button>
+          </div>
+          <p>Vanaf Haarlem Centraal om 10:00, op de fiets</p>
+        </div>
+        <ul class="rijen" id="rijen" role="list"></ul>
+        <div class="planbar"><span class="pb-n" id="pb-n" aria-hidden="true">3</span><span class="pb-t" id="pb-t">klaar rond 13:10</span><a href="/kaart/">Maak je eigen dag<Fragment set:html={ic('arrow')} /></a></div>
+      </div>
+      <div class="bonvak" id="bonvak"></div>
+    </div>
+    <p class="sr-only" id="melding" role="status"></p>
+    <div class="terug">
+      <p><b>Elke vrijdag staan de markten van het weekend erop.</b> Zet snuffelkaart.nl op het beginscherm van je telefoon, dan werkt hij als een app. Zonder app-winkel en zonder account.</p>
+      <p>Je dag blijft op je telefoon bewaard. Onderweg zie je welke stop de volgende is en of hij nog open is.</p>
+    </div>
+  </div>
+</section>
+
+<div class="wrap">
+  <section id="markten" aria-labelledby="mk-kop">
+    <div class="kop">
+      <div>
+        <p class="kicker" aria-hidden="true">{kicker}</p>
+        <h2 class="h2" id="mk-kop">Rommelmarkten dit weekend</h2>
+        <p>{weekend.length
+          ? <>Dit weekend staan er {weekend.length} in de agenda. Hieronder {zes.length === weekend.length ? 'allemaal' : `de eerste ${zes.length}`}; op de kaart zie je ze rond jouw plek.</>
+          : <>Voor dit weekend staan er nog geen markten in de agenda. Op de kaart zie je de markten van de komende weken.</>}</p>
+      </div>
+      {weekend.length > 0 && <a class="meer" href="/rommelmarkt-dit-weekend/">Alle {weekend.length} markten dit weekend <Fragment set:html={ic('arrow')} /></a>}
+    </div>
+    <figure class="strook"><Picture src={jassen} formats={['avif', 'webp']} widths={[800, 1200, 1600]} sizes="(max-width: 1180px) 100vw, 1100px" alt="Kraam met tweedehands jassen op een markt in de herfst" loading="lazy" /><figcaption>Waterlooplein, Amsterdam (uitsnede). Foto: <a href="https://commons.wikimedia.org/wiki/File:View_on_the_flea_market_Waterlooplein_with_second_hand_clothes_stables;_free_photo_Amsterdam_city_by_Fons_Heijnsbroek,_12-10-2021.jpg">Fons Heijnsbroek</a>, CC0</figcaption></figure>
+    <ul class="markten" role="list">
+      {zes.map(m => { const org = ix.orgUrl(m.org), vaag = m.status === 'unconf'; return (
+        <li>
+          <a class="nm" href={ix.url(m.id)}>{m.name}</a>
+          <span class="meta">{m.place} · {org ? <a href={org}>{m.org}</a> : /^Gemeenteblad/.test(m.org) ? 'via het gemeenteblad' : m.org}</span>
+          <span class={`st ${vaag ? 'vaag' : 'mkt'}`}>{vaag ? `Nog niet bevestigd, ${tijd(m)}` : tijd(m)}</span>
+          <span class="rechts"><b>{dShort(m.date)}</b>{m.entree && !/onbekend/i.test(m.entree) && <span>entree&nbsp;{m.entree}</span>}</span>
+        </li>); })}
+    </ul>
+  </section>
+
+  <section aria-labelledby="hoe-kop" style="padding-top:0">
+    <div class="uitgelegd">
+      <div>
+        <h2 class="h2" id="hoe-kop">Zo sta je niet voor een dichte deur</h2>
+        <p style="margin-top:14px;color:var(--fg-2);max-width:34em">Bij elke winkel en markt zie je waar de gegevens vandaan komen en wanneer we ze voor het laatst controleerden.</p>
+        <ol class="noten" role="list" style="margin-top:28px">
+          <li><span><b>Tijden met een bron</b>Van de website van de winkel zelf, van OpenStreetMap of van bezoekers.</span></li>
+          <li><span><b>Gecontroleerd op een datum</b>Websites van winkels lezen we elke week opnieuw, de agenda's van markten elke nacht. Horen we dat een markt niet doorgaat, dan staat dat er meestal binnen een half uur op.</span></li>
+          <li><span><b>Twijfel zetten we erbij</b>Is een markt alleen aangevraagd bij de gemeente, dan staat er "nog niet bevestigd". Beter dan voor niks fietsen.</span></li>
+        </ol>
+        <p style="margin-top:24px"><a class="meer" href="/hoe-we-controleren/">Hoe we controleren <Fragment set:html={ic('arrow')} /></a></p>
+      </div>
+      <figure class="voorbeeld" style="margin:0" aria-labelledby="vb-cap">
+        <figcaption id="vb-cap" class="sr-only">Voorbeeld uit de app, met de drie punten genummerd</figcaption>
+        <div class="vk"><span class="tile t"><Fragment set:html={ic('hanger')} /></span><b>Appel &amp; Ei</b><span></span><span class="st open">Open tot 18:00</span></div>
+        <dl>
+          <dt>Zaterdag</dt><dd>10:00–18:00</dd>
+          <dt class="vandaag">Zondag</dt><dd class="vandaag">12:00–18:00</dd>
+          <dt>Maandag</dt><dd>12:00–18:00</dd>
+        </dl>
+        <p class="bronr">Van de website van de winkel<span class="mark-n"><span class="sr-only">(punt </span>1<span class="sr-only">)</span></span>, gecontroleerd op 2 november<span class="mark-n"><span class="sr-only">(punt </span>2<span class="sr-only">)</span></span></p>
+        <div class="vaagrij"><span class="tile m vaag"><Fragment set:html={ic('kraam')} /></span><span><b style="font-weight:650;display:block">Vlooienmarkt Gerwen</b><span class="st vaag">Nog niet bevestigd</span><span class="mark-n"><span class="sr-only">(punt </span>3<span class="sr-only">)</span></span></span></div>
+      </figure>
+    </div>
+  </section>
+</div>
+
+<section class="tafel" id="organisatoren" aria-labelledby="org-kop">
+  <div class="wrap org">
+    <figure>
+      <Picture src={buurt} formats={['avif', 'webp']} widths={[600, 900]} sizes="(max-width: 880px) 100vw, 520px" alt="Dozen met spullen op straat tijdens de vrijmarkt op Koningsdag" loading="lazy" />
+      <figcaption class="cap">Vrijmarkt op Koningsdag, Schouwburgplein Rotterdam (uitsnede, dozen zonder mensen). Foto: <a href="https://commons.wikimedia.org/wiki/File:Schouwburgplein_vrijmarkt_(Koningsdag),_Rotterdam-Centrum,_Rotterdam_(2023)_01.jpg">Donald Trung Quoc Don</a>, <a href="https://creativecommons.org/licenses/by-sa/4.0/deed.nl">CC BY-SA 4.0</a></figcaption>
+    </figure>
+    <div>
+      <h2 class="h2" id="org-kop">Zet straks je garagesale of buurtmarkt op de kaart</h2>
+      <p class="tekst">Organiseer je een garagesale of de vrijmarkt op Koningsdag? Binnenkort maak je er in een paar minuten een kaart van, gratis. Buren zetten zelf hun adres erop, zonder account. Bezoekers zien alle adressen en de kringlopen in de buurt. Na de markt verdwijnen de adressen weer. We willen het klaar hebben voor Koningsdag 2027.</p>
+      <!-- ponytail: mailto in plaats van het aanmeldformulier; dat komt met dubbele opt-in en privacytekst (BACKLOG). -->
+      <p class="aanmeld"><a class="btn primary" href="mailto:info@freekvanderhorst.com?subject=Kaartmaker%20voor%20onze%20markt&body=Waar%20en%20wanneer%3A%20">
+        <Fragment set:html={ic('mail')} />Mail me als het klaar is</a></p>
+      <p class="hint">Stuur een mailtje met waar en wanneer je markt is. We mailen één keer terug als het klaar is.</p>
+      <div class="badge">
+        <svg width="200" height="48" viewBox="0 0 200 48" role="img" aria-labelledby="badge-t"><title id="badge-t">Badge: Onze markten staan op Snuffelkaart</title><rect x=".75" y=".75" width="198.5" height="46.5" rx="11" fill="#fbf8f0" stroke="#1e2229" stroke-width="1.5"/><rect x="9" y="9" width="30" height="30" rx="8" fill="#1e2229"/><g transform="translate(12.6 12.6)" fill="none" stroke="#fbfaf8" stroke-width="1.9" stroke-linejoin="round"><path d="M3.5 12.2V4.5a1 1 0 0 1 1-1h7.7l8.3 8.3a1.5 1.5 0 0 1 0 2.1l-6.6 6.6a1.5 1.5 0 0 1-2.1 0z"/><circle cx="8.2" cy="8.2" r="1.6"/></g><text x="48" y="21" font-family="Figtree,sans-serif" font-size="11" fill="#545a66">Onze markten staan op</text><text x="48" y="36" font-family="Figtree,sans-serif" font-size="15" font-weight="760" fill="#1e2229">Snuffelkaart</text></svg>
+        <span>Organiseer je vlooienmarkten? Dan staan ze er waarschijnlijk al op. <a href="/markten/">Zoek je organisatie bij de markten</a> en zet de badge op je eigen site.</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="wrap">
+  <section id="plaatsen" aria-labelledby="pl-kop">
+    <div class="kop">
+      <div><h2 class="h2" id="pl-kop">Kringlopen per plaats</h2><p>Per plaats zie je wat er vandaag open is en welke markten er in de buurt zijn. Hieronder de grootste; ze staan er <a href="/plaatsen/">alle {nl(ix.cities.length)}</a>.</p></div>
+    </div>
+    <ul class="plaatsen" role="list">
+      {grootste.map(c => <li><a href={`/${c.slug}/`}>{c.name}</a><span>{c.shops.length} winkels</span></li>)}
+    </ul>
+    <p class="prov"><span style="color:var(--fg)">Per provincie:</span> {PROVINCES.map(p => <a href={`/provincie/${p.slug}/`}>{p.name}</a>)}</p>
+  </section>
+</div>
+</main>
+
+<footer>
+  <div class="wrap">
+    <div class="rij2">
+      <a class="brand" href="/"><span class="mark"><Fragment set:html={ic('tag')} /></span>Snuffelkaart</a>
+      <nav aria-label="Over Snuffelkaart"><ul role="list">
+        <li><a href="/hoe-we-controleren/">Hoe we controleren</a></li>
+        <li><a href="#organisatoren">Voor organisatoren</a></li>
+        <li><a href="/privacy/">Privacy</a></li>
+        <li><a href="/voorwaarden/">Voorwaarden</a></li>
+        <li><a href="/colofon/">Colofon</a></li>
+        <li><a href="/data/places.json">Open data (ODbL)</a></li>
+      </ul></nav>
+    </div>
+    <p style="margin-top:16px">Gemaakt door Freek van der Horst. Geen advertenties, geen account nodig. Zie je een fout, of ben je journalist of gemeente? Mail naar <a href="mailto:info@freekvanderhorst.com" style="display:inline-block;padding-block:6px;color:var(--fg)">info@freekvanderhorst.com</a>. In de app kan het ook: tik bij een winkel of markt op <b>Klopt er iets niet?</b></p>
+    <p class="credits">Kaartgegevens © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap-bijdragers</a> (ODbL) en Overture Maps Foundation. Kaartstijl OpenFreeMap. Foto's via Wikimedia Commons, auteur en licentie staan bij elke foto.</p>
+  </div>
+</footer>
+<script>
+  import '../scripts/home-demo.js';
+  // Anonieme teller (rpc tel), zoals op de andere pagina's: of de homepage mensen naar de kaart brengt.
+  declare const __SB_URL__: string, __SB_KEY__: string;
+  if (__SB_URL__ && !import.meta.env.DEV) {
+    const post = (metric: string) => fetch(`${__SB_URL__}/rest/v1/rpc/tel`, { method: 'POST', keepalive: true, headers: { apikey: __SB_KEY__, 'Content-Type': 'application/json' }, body: JSON.stringify({ metric, key: 'home' }) }).catch(() => {});
+    post('pagina');
+    document.addEventListener('click', e => { const a = (e.target as Element).closest?.('a[href]') as HTMLAnchorElement | null; if (a && a.host === location.host && a.pathname === '/kaart/') post('naarkaart'); }, true);
+    document.querySelector('form.zoek')?.addEventListener('submit', () => post('naarkaart'));
+  }
+</script>
   </body>
 </html>

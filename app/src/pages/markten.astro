@@ -18,7 +18,7 @@ const ld = { '@context': 'https://schema.org', '@type': 'ItemList', name: title,
   <script type="application/ld+json" slot="head" set:html={JSON.stringify(ld)} />
   <p class="tp-crumbs"><a href="/">Snuffelkaart</a> › Markten</p>
   <h1>{title}</h1>
-  <p class="lede">{description} Of <a href="/">bekijk ze op de kaart</a>, samen met de kringlopen in de buurt.</p>
+  <p class="lede">{description} Of <a href="/kaart/">bekijk ze op de kaart</a>, samen met de kringlopen in de buurt.</p>
   <p>Dit weekend: <a href="/rommelmarkt-dit-weekend/">alle markten per provincie</a>. Per soort: {MARKET_KINDS.map((k, i) => <>{i ? ' · ' : ''}<a href={`/${k.slug}/`}>{k.title.toLowerCase()}</a></>)}.</p>
   <p>Per provincie: {PROVINCES.map((p, i) => <>{i ? ' · ' : ''}<a href={`/provincie/${p.slug}/`}>{p.name}</a></>)}</p>
   <MarktAgenda markets={all} />

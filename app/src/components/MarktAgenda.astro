@@ -15,7 +15,7 @@ const monthName = (ym: string) => `${MON_LONG[+ym.slice(5) - 1][0].toUpperCase()
 ---
 {search && all.length > 12 && <>
   <label class="search tp-filter"><svg class="i" aria-hidden="true"><use href="#i-search" /></svg><span class="sr">Zoek op plaats</span><input class="zoek" type="search" placeholder="Zoek op plaats, bijv. Eindhoven" autocomplete="off" /></label>
-  <p class="geen" hidden>Geen markten gevonden voor deze plaats. Probeer een plaats in de buurt, of <a href="/">kijk op de kaart</a>: die toont ook markten in de omgeving.</p>
+  <p class="geen" hidden>Geen markten gevonden voor deze plaats. Probeer een plaats in de buurt, of <a href="/kaart/">kijk op de kaart</a>: die toont ook markten in de omgeving.</p>
 </>}
 <section class="agenda">
   <h2>Dit weekend ({dShort(sat).toLowerCase()} en {dShort(sun).toLowerCase()})</h2>

@@ -25,7 +25,7 @@ const ld = { '@context': 'https://schema.org', '@type': 'ItemList', name: title,
   <p class="tp-crumbs"><a href="/">Snuffelkaart</a> › <a href="/markten/">Markten</a> › {p.name}</p>
   <h1>{title}</h1>
   <p class="lede">{description}</p>
-  <KaartBlok items={[...ms, ...cities.flatMap(c => c.shops)]} href={`/?plek=${encodeURIComponent(p.name)}&lat=${lat.toFixed(5)}&lon=${lon.toFixed(5)}`} label={`Open de kaart van ${p.name}`} />
+  <KaartBlok items={[...ms, ...cities.flatMap(c => c.shops)]} href={`/kaart/?plek=${encodeURIComponent(p.name)}&lat=${lat.toFixed(5)}&lon=${lon.toFixed(5)}`} label={`Open de kaart van ${p.name}`} />
   <div class="tp-cta"><b>Plan je snuffeldag in {p.name}</b><p>Op de kaart zie je welke kringlopen open zijn en welke markten er zijn, en zet je ze in de slimste volgorde.</p></div>
   <MarktAgenda markets={ms} empty={`Dit weekend staat er in ${p.name} geen markt in onze agenda. Kijk op de kaart: die toont ook markten net over de grens.`} />
   {cities.length > 0 && <section>

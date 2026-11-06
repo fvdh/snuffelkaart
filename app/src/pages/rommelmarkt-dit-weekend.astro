@@ -20,7 +20,7 @@ const ld = { '@context': 'https://schema.org', '@type': 'ItemList', name: title,
   <p class="tp-crumbs"><a href="/">Snuffelkaart</a> › <a href="/markten/">Markten</a> › Dit weekend</p>
   <h1>{title}</h1>
   <p class="lede">{description} {groups.length > 1 && <>Spring naar {groups.map((g, i) => <>{i ? ', ' : ''}<a href={`#${g.p.slug}`}>{g.p.name}</a></>)}.</>}</p>
-  <div class="tp-cta"><b>Combineer met kringlopen</b><p>Op de kaart zie je welke kringlopen er dit weekend open zijn, dicht bij de markt.</p><a class="btn primary" href="/">Open de kaart</a></div>
+  <div class="tp-cta"><b>Combineer met kringlopen</b><p>Op de kaart zie je welke kringlopen er dit weekend open zijn, dicht bij de markt.</p><a class="btn primary" href="/kaart/">Open de kaart</a></div>
   {ms.length ? <>{groups.map(g => <section id={g.p.slug}>
       <h2>{g.p.name} <span style="color:var(--fg-3);font-weight:500">{g.ms.length}</span></h2>
       <ul class="rows">{g.ms.map(m => <ItemRow it={m} />)}</ul>

@@ -246,7 +246,7 @@ function Reports({ s, reps, setReps, rows }: { s: Session; reps: Rep[]; setReps:
       {err && <p className="bh-err">{err}</p>}
       <p className="src"><Ic n="info" /><span>{market ? `Corrigeer de markt onder “Markten deze week” of de wachtrij (status nu: ${STATUS[market.status] ?? market.status}).` : 'Corrigeer de winkel onder “Winkels” (zoek op naam), of verberg hem hier als hij echt dicht is.'}</span></p>
       <div className="adm-btns">
-        <a className="btn" href={`/?open=${encodeURIComponent(r.item_id)}`} target="_blank" rel="noopener">Bekijk op de kaart <Ic n="ext" /></a>
+        <a className="btn" href={`/kaart/?open=${encodeURIComponent(r.item_id)}`} target="_blank" rel="noopener">Bekijk op de kaart <Ic n="ext" /></a>
         {!market && r.what === 'dicht' && <button className="btn" onClick={hide}>Winkel verbergen en afhandelen</button>}
         <button className="btn primary" onClick={() => done()}><Ic n="check" />Afgehandeld</button>
       </div>
@@ -326,7 +326,7 @@ function Contribs({ s, setUndo }: { s: Session; setUndo: (u: Undo) => void }) {
       </form> : <div className="adm-btns">
         <button className="btn primary" onClick={() => decide('goed')}><Ic n="check" />Goedkeuren <span className="kbd">A</span></button>
         <button className="btn" onClick={() => setRejecting(true)}>Afwijzen <span className="kbd">R</span></button>
-        <a className="btn" href={`/?open=${encodeURIComponent(c.item_id)}`} target="_blank" rel="noopener">Bekijk winkel <Ic n="ext" /></a></div>}
+        <a className="btn" href={`/kaart/?open=${encodeURIComponent(c.item_id)}`} target="_blank" rel="noopener">Bekijk winkel <Ic n="ext" /></a></div>}
       <p className="src"><Ic n="info" /><span>Goedgekeurd staat na de volgende publicatie op de kaart (±15 minuten).</span></p>
     </aside> : <aside className="adm-detail" />}
   </>);

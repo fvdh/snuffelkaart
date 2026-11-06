@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
-import type { Item, LatLon, Market, Place } from '../lib/model';
+import type { Cat, Item, LatLon, Market, Place } from '../lib/model';
 import { CATS, km, DEFAULT_CENTER, isoDay, addDays, DAYS_LONG, dayStart, hm, dShort, minutesOf } from '../lib/model';
 import { placeNow, openOn, setWindow } from '../lib/hours';
 import { visible, matches, groupOf, type Filters } from '../lib/filter';
 import { siteIndex, slugify } from '../lib/seo';
-import type { Spot } from '../lib/pdok';
+import { searchSpots, type Spot } from '../lib/pdok';
 import MapView, { type Bounds } from './MapView';
 import { ListView, DetailView, PlanView, MeView, LoginView, DagView, WaarView, OnderwegView, GedeeldView, statusFor, effStart, type Ctx, type Plan, type From } from './Views';
 import { ReviewView, PhotoView, SuggestView, ContribView, type Bij, type BijView } from './Bijdragen';
@@ -227,8 +227,8 @@ export default function App() {
     if (navigator.share) return navigator.share({ title, text, url }).catch(() => {});
     navigator.clipboard?.writeText(`${text} ${url}`).then(() => setToast('Link gekopieerd. Plak hem in een bericht.'), () => setToast(url));
   };
-  const shareItem = (it: Item) => { klik(it.id, 'share'); const st = statusFor(it, now, day, nowMode ? undefined : min); shareLink(it.name, `${it.name}${it.place ? `, ${it.place}` : ''} · ${st.txt}`, location.origin + (shareIdx?.url(it.id) ?? `/?open=${encodeURIComponent(it.id)}`)); };
-  const sharePlan = () => { const q = new URLSearchParams({ dag: plan.day, v: String(effStart(plan, now)), s: plan.stops.join(',') }); shareLink(`Mijn ${DAYS_LONG[dayStart(plan.day).getDay()]}`, `Mijn ${DAYS_LONG[dayStart(plan.day).getDay()]} op Snuffelkaart: ${plan.stops.length} ${plan.stops.length === 1 ? 'stop' : 'stops'}.`, `${location.origin}/?${q}`); };
+  const shareItem = (it: Item) => { klik(it.id, 'share'); const st = statusFor(it, now, day, nowMode ? undefined : min); shareLink(it.name, `${it.name}${it.place ? `, ${it.place}` : ''} · ${st.txt}`, location.origin + (shareIdx?.url(it.id) ?? `/kaart/?open=${encodeURIComponent(it.id)}`)); };
+  const sharePlan = () => { const q = new URLSearchParams({ dag: plan.day, v: String(effStart(plan, now)), s: plan.stops.join(',') }); shareLink(`Mijn ${DAYS_LONG[dayStart(plan.day).getDay()]}`, `Mijn ${DAYS_LONG[dayStart(plan.day).getDay()]} op Snuffelkaart: ${plan.stops.length} ${plan.stops.length === 1 ? 'stop' : 'stops'}.`, `${location.origin}/kaart/?${q}`); };
   const logout = () => { authLogout(sess); setSess(null); setToast('Uitgelogd. Je bewaarde plekken en je dagplan blijven op dit apparaat staan.'); };
   const download = () => {
     const blob = new Blob([JSON.stringify({ email: sess?.email, favorieten: favs.map(id => ({ id, naam: byId.get(id)?.name ?? null })), schermnaam: name, bijdragen: mine.map(({ id, ...c }) => ({ ...c, winkel: byId.get(c.item_id)?.name ?? null })), gedownload: new Date().toISOString() }, null, 2)], { type: 'application/json' });
@@ -264,6 +264,11 @@ export default function App() {
   useEffect(() => {
     const q = deep.current, id = q.get('open'), plek = q.get('plek'), lat = Number(q.get('lat')), lon = Number(q.get('lon'));
     if (plek && Number.isFinite(lat) && Number.isFinite(lon) && lat) { q.delete('plek'); pickSpot({ label: plek, sub: '', lat, lon }); }
+    // Vanaf de homepage: ?plek=<getypte plaats of postcode> (zonder lat/lon) → eerste treffer van PDOK; ?bij=mij → je locatie; ?soort=<winkelsoort> → alleen die soort.
+    else if (plek) { q.delete('plek'); searchSpots(plek, new AbortController().signal).then(r => r[0] && pickSpot(r[0])).catch(() => {}); }
+    if (q.get('bij') === 'mij') { q.delete('bij'); locate(); }
+    const soort = q.get('soort') as Cat | null;
+    if (soort && CATS.includes(soort)) { q.delete('soort'); setFState(o => ({ ...o, type: 'k', hide: CATS.filter(c => c !== soort) })); }
     if (id && byId.has(id)) { const it = byId.get(id)!; if (!spot && !me) pickSpot({ label: it.place ?? it.name, sub: '', lat: it.lat, lon: it.lon }); q.delete('open'); go(id); if (q.get('plan') === '1') { q.delete('plan'); if (!planRef.current.stops.includes(id)) toggleStop(id); } } // rond de winkel, niet rond Amersfoort (UX-test 30 okt)
     const sd = q.get('dag'), ss = q.get('s');
     if (sd && ss && byId.size) { setShared({ day: sd >= today ? sd : today, start: Math.max(0, Math.min(1439, Number(q.get('v')) || 600)), stops: ss.split(',').slice(0, 8) }); ['dag', 'v', 's'].forEach(k => q.delete(k)); setView('gedeeld'); setSnap('full'); }
@@ -273,7 +278,7 @@ export default function App() {
       q.delete('org'); const ms = markets.filter(m => m.org && slugify(m.org) === org);
       if (ms.length) { setFState(o => ({ ...o, only: ms.map(m => m.id), onlyName: ms[0].org, open: false, q: '', type: 'all', hide: [], gratis: false, overdekt: false })); setFit({ pts: ms, key: Date.now() }); }
     }
-    if (!q.has('open') && !q.has('plek') && !q.has('org') && /[?&](open|plek|plan|dag|s|org)=/.test(location.search)) history.replaceState(null, '', location.pathname + (q.toString() ? `?${q}` : ''));
+    if (!q.has('open') && !q.has('plek') && !q.has('org') && /[?&](open|plek|plan|dag|s|org|bij|soort)=/.test(location.search)) history.replaceState(null, '', location.pathname + (q.toString() ? `?${q}` : ''));
   }, [byId, allMarkets.length]);
   // Al eerder toestemming gegeven? Dan zonder vragen opnieuw ophalen.
   // Safari (iPhone) meldt een eerdere toestemming niet via de permissions-API; daarom onthouden we zelf dat het eerder lukte.

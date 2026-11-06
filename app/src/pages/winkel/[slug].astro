@@ -43,10 +43,10 @@ const ld = { '@context': 'https://schema.org', '@type': 'Store', name: p.name, u
   {/* Wie via Google komt, wil vooral weten: is hij nu open? Uitgerekend in de browser uit de tijden van de komende twee weken. */}
   {p.h && <p class="tp-now" id="nu" data-from={from} data-h={JSON.stringify(p.h.slice(0, 14))} hidden></p>}
   {/* Kaart met de winkel en wat er in de buurt is (Freek, 6 nov): van Google komen mensen hier binnen, de kaart is de ingang naar de app. */}
-  <KaartBlok items={[p, ...mk, ...others]} hl={p.id} href={`/?open=${encodeURIComponent(p.id)}`} label="Bekijk op de kaart, met wat er in de buurt is" />
+  <KaartBlok items={[p, ...mk, ...others]} hl={p.id} href={`/kaart/?open=${encodeURIComponent(p.id)}`} label="Bekijk op de kaart, met wat er in de buurt is" />
   {p.kind === 'tweedehands' && <p>Geen standaard kringloop: tweedehands, maar prijzen en aanbod kunnen anders zijn dan bij een kringloop.</p>}
   <div class="tp-cta"><b>Zet hem in je dagplan</b><p>Plan hem samen met andere kringlopen en markten. We rekenen uit wanneer je waar bent en of alles dan open is.</p>
-    <div style="display:flex;gap:8px;flex-wrap:wrap"><a class="btn primary" href={`/?open=${encodeURIComponent(p.id)}&plan=1`}>Plan in Mijn dag</a><a class="btn" href={route} rel="nofollow">Route</a>{p.phone && <a class="btn" href={`tel:${p.phone.split(';')[0].replace(/\s/g, '')}`}>Bel</a>}</div></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap"><a class="btn primary" href={`/kaart/?open=${encodeURIComponent(p.id)}&plan=1`}>Plan in Mijn dag</a><a class="btn" href={route} rel="nofollow">Route</a>{p.phone && <a class="btn" href={`tel:${p.phone.split(';')[0].replace(/\s/g, '')}`}>Bel</a>}</div></div>
 
   <section>
     <h2>Openingstijden</h2>
@@ -69,7 +69,7 @@ const ld = { '@context': 'https://schema.org', '@type': 'Store', name: p.name, u
 
   <section>
     <p style="font-size:.875rem;color:var(--fg-3)">{p.src === 'osm' ? <>Gegevens: © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap-bijdragers</a> (ODbL). Zelf aanpassen kan op <a href={osmUrl!}>OpenStreetMap</a>.</> : <>Gegevens: © Overture Maps Foundation (CDLA Permissive 2.0). Nog niet door ons gecontroleerd.</>}</p>
-    <p><a class="btn" href={`/?open=${encodeURIComponent(p.id)}`}>Review, foto of tijden doorgeven</a></p>
+    <p><a class="btn" href={`/kaart/?open=${encodeURIComponent(p.id)}`}>Review, foto of tijden doorgeven</a></p>
     <p style="font-size:.875rem;color:var(--fg-3)">Klopt er iets niet? Open de winkel in de app en tik onderaan op <b>Klopt er iets niet?</b>.</p>
   </section>
   <script is:inline>
