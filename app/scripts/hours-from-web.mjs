@@ -16,9 +16,9 @@ const dayIdx = w => DAY.findIndex(n => n.includes(w.toLowerCase().replace('.', '
 const T = '(\\d{1,2})(?:[:.](\\d{2}))?\\s*(?:uur|u)?';
 const RANGE = `${T}\\s*(?:-|–|tot|t/m)\\s*${T}`;
 // Eén regel-element: dagen (met t/m of opsomming), dan tijden of "gesloten".
-const ENTRY = new RegExp(`\\b${D}(?:\\s*(?:t/m|tot en met|-|–|tot)\\s*${D}|(?:\\s*(?:,|en|&)\\s*${D})*)\\s*:?\\s*(?:van\\s+|tussen\\s+)?(${RANGE}(?:\\s*(?:en|&|,|/|\\|)\\s*(?:van\\s+)?${RANGE})*|gesloten|dicht|closed)`, 'gi');
+const ENTRY = new RegExp(`\\b${D}(?:\\s*(?:t/m|tot en met|-|–|tot)\\s*${D}|(?:\\s*(?:,|en|én|&)\\s*${D})*)(\\s*koopavond)?\\s*:?\\s*(?:open\\s+)?(?:van\\s+|tussen\\s+)?(${RANGE}(?:\\s*(?:en|&|,|/|\\|)\\s*(?:van\\s+)?${RANGE})*|(?:zijn\\s+(?:wij|we)\\s+)?(?:gesloten|dicht|closed))`, 'gi');
 // Blokken die niet over de winkeltijden gaan.
-const NOT_SHOP = /spreekuur|inname|inbreng|inlever|brengen|afgifte|aanlever|ophaal|kantoor|secretariaat|telefon|bereikbaar|feestdag|kerst|oud ?jaar|nieuwjaar|pasen|pinkster|zomer|vakantie|januari|februari|maart|april|mei|juni|juli|augustus|september|oktober|november|december|\d{1,2}[-/]\d{1,2}[-/]\d{2,4}/i;
+const NOT_SHOP = /spreekuur|inname|inbreng|inlever|brengen|afgifte|aanlever|ophaal|afhaal|doneren|donatie|kantoor|secretariaat|telefon|bereikbaar|feestdag|kerst|oud ?jaar|nieuwjaar|pasen|pinkster|zomer|vakantie|januari|februari|maart|april|mei|juni|juli|augustus|september|oktober|november|december|\d{1,2}[-/]\d{1,2}[-/]\d{2,4}/i;
 
 const DAYS_FULL = 'maandag|dinsdag|woensdag|donderdag|vrijdag|zaterdag|zondag', CELL = `(?:\\d{1,2}[:.]\\d{2}\\s*(?:-|–)\\s*\\d{1,2}[:.]\\d{2}|gesloten|dicht)`;
 const COLS = new RegExp(`(?:^(?:${DAYS_FULL})\\n${CELL}\\n${CELL}\\n){3,}`, 'gim');
@@ -41,11 +41,14 @@ function entry(m) {
     if (!(a >= 360 && b <= 1380 && b > a)) return null; // tussen 6:00 en 23:00, en eerst open dan dicht
     spans.push([a, b]); if (loose) spans.loose = true;
   }
-  return spans.length ? { days, spans, loose: !!spans.loose } : null;
+  return spans.length ? { days, spans, loose: !!spans.loose, extra: /koopavond/.test(daysPart) } : null;
 }
 
 /** Tekst → { oh, days } of null. Kiest het enige winkelblok; twee verschillende blokken = twijfel = null. */
 export function parseHoursNL(text) {
+  // Gewone woorden voor dagen: "werkdagen" = ma t/m vr, "tm" = t/m, "zon- en feestdagen gesloten" = zondag dicht (+ PH off, zie onder).
+  text = text.replace(/^werkdagen\b/gim, 'maandag t/m vrijdag').replace(/\btm\b/gi, 't/m')
+    .replace(/\bzon-?\s*en feestdagen\s*:?\s*(gesloten|dicht)/gi, 'zondag gesloten\nOp feestdagen gesloten');
   // Tabel met twee kolommen (dag, winkel, inleveren onder elkaar, zoals bij Het Goed): alleen de eerste kolom als de kop zegt dat dat de winkel is.
   text = text.replace(COLS, (tbl, at) => {
     const head = text.slice(Math.max(0, at - 80), at), rows = [...tbl.matchAll(/^(\S+)\n(.+)\n(.+)$/gm)];
@@ -84,10 +87,20 @@ export function parseHoursNL(text) {
     const note = text.slice(b.end, b.end + 250), shut = [];
     for (const m of note.matchAll(new RegExp(`${D}[^.!\\n]{0,30}?gesloten|gesloten op ${D}`, 'gi'))) shut.push(dayIdx(m[1] ?? m[2]));
     const week = Array(7).fill(null); let clash = false;
-    for (const e of b.entries) for (const d of e.days) { const v = e.spans === 'off' ? 'off' : e.spans.map(([a, c]) => `${hhmm(a)}-${hhmm(c)}`).join(','); if (week[d] && week[d] !== v) clash = true; week[d] = v; }
+    const wide = new Set(); // dagen uit een reeks ("ma t/m za"): een losse "di gesloten" erna is een uitzondering, geen botsing
+    for (const e of b.entries) for (const d of e.days) {
+      if (e.spans === 'off' && wide.has(d)) { week[d] = 'off'; continue; }
+      if (e.days.length > 1) wide.add(d);
+      let v = e.spans === 'off' ? 'off' : e.spans.map(([a, c]) => `${hhmm(a)}-${hhmm(c)}`).join(',');
+      if (e.extra && week[d] && week[d] !== 'off') v = `${week[d]},${v}`; // "Donderdag koopavond: 19-21" komt bij de dagtijden
+      else if (week[d] && week[d] !== v) clash = true;
+      week[d] = v;
+    }
     for (const d of shut) if (d >= 0) week[d] = 'off';
     const named = week.filter(Boolean).length;
-    if (clash || named < (header ? 2 : 3) || !week.some(v => v && v !== 'off')) continue; // te weinig om op te bouwen
+    // Eén dag mag alleen als hij elke week is: "Openingstijden: elke zaterdag 10-14" (niet "elke eerste zaterdag").
+    const weekly = named === 1 && header && /\b(elke|iedere)\s+$/i.test(text.slice(Math.max(0, b.start - 10), b.start));
+    if (clash || (named < (header ? 2 : 3) && !weekly) || !week.some(v => v && v !== 'off')) continue; // te weinig om op te bouwen
     weeks.push(Object.assign(week, { shop: /winkel|kringloop/i.test(before) }));
   }
   // Twee blokken mogen alleen samen als ze op elke dag die ze allebei noemen hetzelfde zeggen (tabel + "geopend van ma t/m za" in de tekst).
