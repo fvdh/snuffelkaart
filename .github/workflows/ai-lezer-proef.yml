@@ -6,7 +6,7 @@ on:
     inputs:
       aantal:
         description: Hoeveel websites lezen
-        default: '40'
+        default: '150'
 permissions:
   contents: read
   models: read
@@ -29,3 +29,4 @@ jobs:
         run: node scripts/fetch-web-hours.mjs --fresh --alleen-zonder --limit=${{ inputs.aantal }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          AI_DEBUG: '1' # toon ook afgewezen antwoorden

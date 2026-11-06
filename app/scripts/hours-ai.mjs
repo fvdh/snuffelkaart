@@ -60,5 +60,9 @@ export async function askAI(name, addr, text, { token = process.env.GITHUB_TOKEN
   if (r.status === 429 || r.status === 403) throw Object.assign(new Error(`model ${r.status}${wait ? `, opnieuw over ${wait} s` : ''}`), { limit: true });
   if (!r.ok) throw new Error(`model ${r.status}`);
   const j = await r.json();
-  try { return check(JSON.parse(j.choices[0].message.content), text); } catch { return null; }
+  const raw = j.choices?.[0]?.message?.content ?? '';
+  let ans = null; try { ans = JSON.parse(raw); } catch { /* geen JSON */ }
+  const ok = check(ans, text);
+  if (!ok && process.env.AI_DEBUG) console.log(`  AI afgewezen: ${name} → ${raw.replace(/\s+/g, ' ').slice(0, 300)}`);
+  return ok;
 }
