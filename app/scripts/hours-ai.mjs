@@ -48,13 +48,16 @@ Tekst:
 ${text}`;
 
 /** Vraag het model. Gooit bij 429 (dagtegoed op) een fout met .limit, zodat de aanroeper stopt. */
-export async function askAI(name, addr, text, { token = process.env.GITHUB_TOKEN, model = 'openai/gpt-4.1-mini' } = {}) {
+export async function askAI(name, addr, text, { token = process.env.GITHUB_TOKEN, model = 'openai/gpt-4.1-mini' } = {}, tries = 3) {
   const r = await fetch('https://models.github.ai/inference/chat/completions', {
     method: 'POST', signal: AbortSignal.timeout(30000),
     headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({ model, temperature: 0, response_format: { type: 'json_object' }, messages: [{ role: 'user', content: PROMPT(name, addr, text) }] }),
   });
-  if (r.status === 429 || r.status === 403) throw Object.assign(new Error(`model ${r.status}`), { limit: true });
+  // 429 met korte wachttijd = minuutgrens (±15 per minuut): even wachten. Lange wachttijd of 403 = dagtegoed op of geen toegang: stoppen.
+  const wait = +(r.headers.get('retry-after') ?? 0);
+  if (r.status === 429 && wait && wait <= 90 && tries > 1) { await new Promise(ok => setTimeout(ok, wait * 1000)); return askAI(name, addr, text, { token, model }, tries - 1); }
+  if (r.status === 429 || r.status === 403) throw Object.assign(new Error(`model ${r.status}${wait ? `, opnieuw over ${wait} s` : ''}`), { limit: true });
   if (!r.ok) throw new Error(`model ${r.status}`);
   const j = await r.json();
   try { return check(JSON.parse(j.choices[0].message.content), text); } catch { return null; }
