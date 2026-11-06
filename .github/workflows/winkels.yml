@@ -40,6 +40,7 @@ jobs:
         env:
           CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }} # AI-lezer (Cloudflare Workers AI); ontbreekt hij, dan staat de AI-lezer uit
           CF_AI_TOKEN: ${{ secrets.CF_AI_TOKEN }}
+          AI_MAX: '250' # ±32 neurons per vraag (gemeten 6 nov), gratis 10.000 per dag
         timeout-minutes: 45
         continue-on-error: true # deels gelezen is ook goed; het bestand wordt tussendoor bewaard
       - name: Websitetijden bewaren in de repo
