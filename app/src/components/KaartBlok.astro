@@ -3,9 +3,10 @@
 // voor wat op de pagina staat, als ingang naar de app. Niet te bedienen (geen scroll-val op de telefoon); een tik opent de app.
 // MapLibre laadt pas als het blok in beeld komt, zodat de tekst voor Google en bezoekers niet wacht.
 import type { Item } from '../lib/model';
-interface Props { items: Item[]; href: string; label: string }
-const { items, href, label } = Astro.props;
-const pts = items.map(it => [+it.lon.toFixed(5), +it.lat.toFixed(5), it.t === 'm' ? 1 : 0]);
+// hl: id van het item waar de pagina over gaat (winkelpagina); die stip is groter en ligt bovenop.
+interface Props { items: Item[]; href: string; label: string; hl?: string }
+const { items, href, label, hl } = Astro.props;
+const pts = items.map(it => [+it.lon.toFixed(5), +it.lat.toFixed(5), it.t === 'm' ? 1 : 0, it.id === hl ? 1 : 0]);
 ---
 <a class="kaartblok" href={href} data-pts={JSON.stringify(pts)} aria-label={label}>
   <span class="kb-map" aria-hidden="true"></span>
@@ -23,7 +24,7 @@ const pts = items.map(it => [+it.lon.toFixed(5), +it.lat.toFixed(5), it.t === 'm
   import 'maplibre-gl/dist/maplibre-gl.css';
   import { token as rgb, paint } from '../lib/mapstyle';
   async function draw(el: HTMLElement) {
-    const pts: [number, number, number][] = JSON.parse(el.dataset.pts ?? '[]'); if (!pts.length) return;
+    const pts: [number, number, number, number][] = JSON.parse(el.dataset.pts ?? '[]'); if (!pts.length) return;
     const [ml, style, worker] = await Promise.all([import('maplibre-gl'), fetch('https://tiles.openfreemap.org/styles/positron').then(r => r.json()), import('maplibre-gl/dist/maplibre-gl-worker.mjs?url')]);
     ml.setWorkerUrl(worker.default);
     const box = el.querySelector<HTMLElement>('.kb-map')!, b = new ml.LngLatBounds();
@@ -33,8 +34,8 @@ const pts = items.map(it => [+it.lon.toFixed(5), +it.lat.toFixed(5), it.t === 'm
     new ResizeObserver(() => map.resize()).observe(box); // het blok kan na het laden van de stijl nog van maat veranderen
     map.on('load', () => {
       paint(map);
-      map.addSource('p', { type: 'geojson', data: { type: 'FeatureCollection', features: pts.map(([x, y, m]) => ({ type: 'Feature', properties: { m }, geometry: { type: 'Point', coordinates: [x, y] } })) } });
-      map.addLayer({ id: 'p', type: 'circle', source: 'p', paint: { 'circle-radius': ['interpolate', ['linear'], ['zoom'], 6, 4, 12, 7], 'circle-color': ['case', ['==', ['get', 'm'], 1], rgb('--markt'), rgb('--kring')], 'circle-stroke-width': 1.5, 'circle-stroke-color': rgb('--surface') } });
+      map.addSource('p', { type: 'geojson', data: { type: 'FeatureCollection', features: pts.map(([x, y, m, h]) => ({ type: 'Feature', properties: { m, h }, geometry: { type: 'Point', coordinates: [x, y] } })) } });
+      map.addLayer({ id: 'p', type: 'circle', source: 'p', layout: { 'circle-sort-key': ['get', 'h'] }, paint: { 'circle-radius': ['interpolate', ['linear'], ['zoom'], 6, ['case', ['==', ['get', 'h'], 1], 7, 4], 12, ['case', ['==', ['get', 'h'], 1], 11, 7]], 'circle-color': ['case', ['==', ['get', 'm'], 1], rgb('--markt'), rgb('--kring')], 'circle-stroke-width': ['case', ['==', ['get', 'h'], 1], 3, 1.5], 'circle-stroke-color': ['case', ['==', ['get', 'h'], 1], rgb('--fg'), rgb('--surface')] } });
     });
   }
   const io = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { io.unobserve(e.target); draw(e.target as HTMLElement).catch(err => console.warn('kaartblok', err)); } }), { rootMargin: '200px' });
