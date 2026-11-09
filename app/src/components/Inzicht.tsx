@@ -364,8 +364,8 @@ export function Dekking({ d, p }: { d: Data; p: P }) {
     <Card title="Grootste plaatsen" sub="met tijden / totaal" span={7}><Bars rows={plaatsen.map(([k, [t, h]]) => [`${k} · ${h}/${t}`, pct(h, t)] as [string, number])} unit="%" /></Card>
     <Card title="Zonder tijden, meest bekeken" sub={`laatste ${p.days} dagen · pak deze eerst op`} flush>
       <table className="tbl"><thead><tr><th>Winkel</th><th>Waarom geen tijden</th><th className="r">Bekeken</th><th /></tr></thead>
-        <tbody>{zonder.map(({ x, n, why, page }) => <tr key={x.id}><td className="nm"><b>{x.name}</b><small>{x.addr ?? x.place}</small>
-          {x.website && <small><a href={/^https?:/i.test(x.website) ? x.website : `https://${x.website}`} target="_blank" rel="noopener">{siteKey(x.website)}</a>{page && siteKey(page) !== siteKey(x.website) && <> · <a href={page} target="_blank" rel="noopener">gelezen pagina</a></>}</small>}</td><td><span className={`tag ${/geblokkeerd|onbereikbaar/.test(why) ? 'bad' : why === 'geen website' || why === 'nog niet gelezen' ? '' : 'warn'}`}>{why}</span></td><td className="r">{nl(n)}</td>
+        <tbody>{zonder.map(({ x, n, why, page }) => <tr key={x.id}><td className="nm"><b>{x.name}</b><small>{x.addr ?? x.place}
+          {x.website && <><br /><a href={/^https?:/i.test(x.website) ? x.website : `https://${x.website}`} target="_blank" rel="noopener">{siteKey(x.website)}</a>{page && siteKey(page) !== siteKey(x.website) && <> · <a href={page} target="_blank" rel="noopener">gelezen pagina</a></>}</>}</small></td><td><span className={`tag ${/geblokkeerd|onbereikbaar/.test(why) ? 'bad' : why === 'geen website' || why === 'nog niet gelezen' ? '' : 'warn'}`}>{why}</span></td><td className="r">{nl(n)}</td>
           <td className="r"><a className="btn" href={`/kaart/?open=${encodeURIComponent(x.id)}&tijden=1`} target="_blank" rel="noopener">Tijden invullen</a></td></tr>)}</tbody></table></Card>
   </>;
 }
