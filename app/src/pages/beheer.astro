@@ -154,8 +154,7 @@ import Sprite from '../components/Sprite.astro';
       .receipt h4 { margin: 0 0 2px; text-align: center; font-weight: 500; letter-spacing: .2em; text-transform: uppercase; font-size: 11.5px }
       .receipt .meta { text-align: center; color: var(--fg-3); font-size: 11px; margin-bottom: 10px }
       .receipt hr { border: 0; border-top: 1px dashed var(--line-strong); margin: 10px 0 }
-      .feed { list-style: none; margin: 0; padding: 0; max-height: var(--fh, 300px); overflow: hidden; position: relative }
-      .feed::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 36px; background: linear-gradient(transparent, var(--paper)) }
+      .feed { list-style: none; margin: 0; padding: 0; max-height: var(--fh, 300px); overflow-y: auto; scrollbar-width: thin }
       .feed li { display: grid; grid-template-columns: 44px 1fr auto; gap: 10px; padding: 4px 0; align-items: baseline }
       .feed li.new { animation: print .7s ease-out both }
       @keyframes print { from { opacity: 0; transform: translateY(-8px); background: color-mix(in oklch, var(--markt) 25%, transparent) } }

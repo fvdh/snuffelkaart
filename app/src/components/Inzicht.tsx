@@ -70,7 +70,7 @@ const GOAL = new Set(['route', 'website', 'bellen', 'Mijn dag', 'dagplan', 'bijd
 /** Stappen van een bezoek met detail: [soort, pad / winkel / zoekwoord]. */
 type Step = [string, string];
 function trail(v: Visit, info?: Map<string, Info>): Step[] {
-  const det = (st: string, d: string) => (d === st || d === '/' ? '' : d);
+  const det = (st: string, d: string) => (d === st || d === '/' || st === 'kaart' ? '' : d);
   const out: Step[] = [[v.src, ''], [landKind(v.land), det(landKind(v.land), v.land)]];
   for (const x of v.ev) {
     const st = x[2] === 'pv' ? (x[4].startsWith('/kaart') ? 'kaart' : x[4] === v.land ? null : landKind(x[4])) : STEP[x[2]];
