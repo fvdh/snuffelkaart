@@ -14,7 +14,7 @@ type T = { day: string; metric: string; key: string; n: number };
 type C = { day: string; item_id: string; what: string; n: number };
 /** Gebeurtenis: [unix-tijd, bezoek, soort, sleutel, pad, apparaat] (rpc beheer_events). */
 export type E = [number, string, string, string, string, string | null];
-export type Info = { id: string; name: string; place?: string; org?: string; lat: number; lon: number; t?: string; date?: string; h?: unknown; hs?: string; dicht?: string; website?: string; addr?: string; kind?: string };
+export type Info = { id: string; name: string; place?: string; org?: string; lat: number; lon: number; t?: string; date?: string; h?: unknown; hs?: string; dicht?: string; afspraak?: string; website?: string; addr?: string; kind?: string };
 export type Fout = { msg: string; src: string | null; ua: string | null; at: string };
 type Visit = { s: string; first: number; last: number; src: string; land: string; dev: string | null; ev: E[] };
 
@@ -283,7 +283,7 @@ function inhoud(d: Data, p: P): Row[] {
     let r = m.get(type + id); if (r) return r;
     const x = info.get(id);
     r = { id, type, name: type === 'organisator' ? id : x?.name ?? id, sub: type === 'organisator' ? 'organisator' : `${x?.place ?? ''}${x?.date ? ` · ${x.date.split('-').reverse().slice(0, 2).join('-')}` : ''}`,
-      tijden: type === 'winkel' ? (x?.h ? (x.hs === 'web' ? 'website' : x.hs === 'bezoeker' ? 'bezoeker' : 'OSM') : x?.dicht ? 'tijdelijk dicht' : 'geen') : undefined, pagina: 0, view: 0, plan: 0, door: 0 };
+      tijden: type === 'winkel' ? (x?.h ? (x.hs === 'web' ? 'website' : x.hs === 'bezoeker' ? 'bezoeker' : 'OSM') : x?.dicht ? 'tijdelijk dicht' : x?.afspraak ? 'op afspraak' : 'geen') : undefined, pagina: 0, view: 0, plan: 0, door: 0 };
     m.set(type + id, r); return r;
   };
   const add = (id: string, k: 'pagina' | 'view' | 'plan' | 'door', n: number) => {
@@ -342,7 +342,7 @@ export function Regios({ d, p }: { d: Data; p: P }) {
 type Site = [string, string | null, string | null, string | null, string, boolean, boolean, boolean];
 // Zelfde sleutel als scripts/hours-from-web.mjs (siteKey).
 const siteKey = (u: string) => { try { const x = new URL(/^https?:/i.test(u) ? u : 'https://' + u); return x.host.replace(/^www\./, '').toLowerCase() + x.pathname.replace(/\/$/, ''); } catch { return ''; } };
-const reason = (s?: Site) => !s ? 'nog niet gelezen' : s[6] ? 'tijdelijk gesloten' : s[1] ? 'tijden gevonden' : /403/.test(s[2] ?? '') ? 'geblokkeerd (403)' : /^fout/.test(s[2] ?? '') ? 'onbereikbaar' : s[2] === 'robots.txt' ? 'robots.txt' : 'geen tijden op site';
+const reason = (s?: Site) => !s ? 'nog niet gelezen' : s[6] ? 'tijdelijk gesloten' : s[1] ? 'tijden gevonden' : /403/.test(s[2] ?? '') ? 'geblokkeerd (403)' : /^fout/.test(s[2] ?? '') ? 'onbereikbaar' : s[2] === 'robots.txt' ? 'robots.txt' : s[2] === 'op afspraak' ? 'op afspraak' : 'geen tijden op site';
 export function useLezer() {
   const [sites, setSites] = useState<Site[] | null>(null);
   useEffect(() => { fetch('/beheer/lezer.json').then(r => r.json()).then(j => setSites(j.sites)).catch(() => setSites([])); }, []);
@@ -354,7 +354,7 @@ export function Dekking({ d, p }: { d: Data; p: P }) {
   const shops = [...d.info.values()].filter(x => x.t === 'k'), n = shops.length || 1;
   const web = shops.filter(x => x.h && x.hs === 'web').length, bez = shops.filter(x => x.h && x.hs === 'bezoeker').length, osm = shops.filter(x => x.h && !x.hs).length, dicht = shops.filter(x => !x.h && x.dicht).length, met = web + bez + osm;
   const seen = new Map<string, number>(); for (const r of p.c.filter(p.cur)) seen.set(r.item_id, (seen.get(r.item_id) ?? 0) + r.n); for (const r of p.tm('pagina').filter(p.cur)) seen.set(r.key, (seen.get(r.key) ?? 0) + r.n);
-  const zonder = shops.filter(x => !x.h).map(x => ({ x, n: seen.get(x.id) ?? 0, page: x.website ? byKey.get(siteKey(x.website))?.[3] : null, why:x.dicht ? 'tijdelijk gesloten' : !x.website ? 'geen website' : reason(byKey.get(siteKey(x.website))) })).sort((a, b) => b.n - a.n).slice(0, 25);
+  const zonder = shops.filter(x => !x.h).map(x => ({ x, n: seen.get(x.id) ?? 0, page: x.website ? byKey.get(siteKey(x.website))?.[3] : null, why: x.dicht ? 'tijdelijk gesloten' : x.afspraak ? 'op afspraak' : !x.website ? 'geen website' : reason(byKey.get(siteKey(x.website))) })).sort((a, b) => b.n - a.n).slice(0, 25);
   const plaatsen = Object.entries(shops.reduce<Record<string, [number, number]>>((a, x) => { const k = x.place ?? '?'; (a[k] ??= [0, 0])[0]++; if (x.h) a[k][1]++; return a; }, {})).filter(([, [t]]) => t >= 12).sort((a, b) => b[1][0] - a[1][0]).slice(0, 12);
   return <>
     <Card title="Dekking openingstijden" sub={`${nl(shops.length)} winkels`} span={5}>

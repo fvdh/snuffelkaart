@@ -172,6 +172,7 @@ if (fs.existsSync(WEB)) {
   for (const p of places) {
     const k = !p.h && p.website && siteKey(p.website), w = k && web[k];
     if (w?.dicht && uses.get(k) === 1) { Object.assign(p, { dicht: (w.ok ?? w.read).slice(0, 10), hu: w.page }); webStat.dicht = (webStat.dicht ?? 0) + 1; continue; }
+    if (w?.afspraak && uses.get(k) === 1) { Object.assign(p, { afspraak: (w.ok ?? w.read).slice(0, 10), hu: w.page }); webStat.afspraak = (webStat.afspraak ?? 0) + 1; continue; }
     // Gedeelde site met een eigen blok voor deze winkel (fetch-web-hours: per, op volledige postcode): dat gaat voor.
     const own = uses.get(k) > 1 && w?.per?.[/\b([1-9]\d{3})\s?([A-Z]{2})\b/i.exec(p.addr ?? '')?.slice(1).join('').toUpperCase()];
     if (own) { const h = precompute(own.oh, FROM); if (h) { Object.assign(p, { h, oh: own.oh, checked: (w.ok ?? w.read).slice(0, 10), hs: 'web', hu: own.page }); webStat.used++; webStat.own = (webStat.own ?? 0) + 1; } continue; }

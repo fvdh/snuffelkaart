@@ -5,7 +5,7 @@
 //          npm run data:web -- --fresh (alles opnieuw)
 //          npm run data:web -- --limit=50 (proef)
 import fs from 'node:fs';
-import { hoursFromHtml, parseHoursNL, toText, siteKey, keep, tempClosed } from './hours-from-web.mjs';
+import { hoursFromHtml, parseHoursNL, toText, siteKey, keep, tempClosed, byAppointment } from './hours-from-web.mjs';
 import { snippet, hashOf, askAI } from './hours-ai.mjs';
 
 const PLACES = new URL('../public/data/places.json', import.meta.url), OUT = new URL('../data-raw/web-hours.json', import.meta.url);
@@ -14,7 +14,7 @@ const UA = 'Snuffelkaart-PoC/0.1 (openingstijden van kringlopen; freek@draad.nu)
 const SKIP = /facebook|instagram|marktplaats|g\.page|google\.|linktr\.ee|tiktok|twitter|x\.com|youtube|wa\.me|allekringloopwinkels|kringloopwinkels?\.(nl|info|com)|kringlopen\.nl|tweedehandswinkels|openingstijden\.|openingstijdenwinkels|telefoonboek|telefoongids|cylex|opendi|hotfrog|yelp|tripadvisor|goudengids|bedrijvenpagina|drimble|infobel|kompass|oozo|plaatsengids|nederlandsewinkels/i;
 // MAX_AGE 6 dagen: de wekelijkse run (elke 7 dagen, zelfde tijd) leest dan echt alles opnieuw; bij 7 was het net te vers (6 nov).
 // VERSION ophogen als de parser of de AI-lezer beter wordt: dan wordt alles meteen opnieuw gelezen, niet pas na de cache.
-const WORKERS = 8, PAUSE = 800, MAX_AGE = 6 * 864e5, VERSION = 11; // 3: AI-antwoorden met een dag in twee regels samengevoegd; 4: dagen en tijden in twee kolommen; 5: postcodes ook van de tijdenpagina; 6: vestigingsblok op eigen straat; 7: tijdelijk gesloten; 8: Engelse dagen; 9: vestiging op postcode, "openingstijden en inname"; 10: links "Onze winkel", niet de homepage zelf
+const WORKERS = 8, PAUSE = 800, MAX_AGE = 6 * 864e5, VERSION = 12; // 3: AI-antwoorden met een dag in twee regels samengevoegd; 4: dagen en tijden in twee kolommen; 5: postcodes ook van de tijdenpagina; 6: vestigingsblok op eigen straat; 7: tijdelijk gesloten; 8: Engelse dagen; 9: vestiging op postcode, "openingstijden en inname"; 10: links "Onze winkel", niet de homepage zelf; 12: op afspraak
 
 
 const cache = fs.existsSync(OUT) && !process.argv.includes('--fresh') ? JSON.parse(fs.readFileSync(OUT, 'utf8')) : {};
@@ -66,6 +66,7 @@ async function allowed(url) {
   }
   return !robots.get(origin).some(r => pathname.startsWith(r));
 }
+const pageOfSeen = (seen, u) => seen.find(([x]) => x === u)?.[1];
 /** Ketensite met een pagina per vestiging (Aktief: /kringloopwinkels/winterswijk): de link met de plaatsnaam van de winkel. */
 function cityLink(html, base, place) {
   const slug = (place ?? '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f']/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
@@ -74,6 +75,17 @@ function cityLink(html, base, place) {
     try { const u = new URL(m[1], base); if (u.host === new URL(base).host && new RegExp(`(^|[/-])${slug}(/|$|-|\\.)`).test(u.pathname.toLowerCase())) return u.href; } catch { /* ongeldige link */ }
   }
   return null;
+}
+/** Geen link naar de vestiging (Terre des Hommes laadt de lijst met JavaScript): raad <lijstpagina>/<plaats>, voor de lijstpagina
+ *  waar we op staan en de "winkels/vestigingen"-links op de pagina. Wat niet bestaat, geeft gewoon een 404. */
+function cityGuesses(html, base, place) {
+  const slug = (place ?? '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f']/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+  if (slug.length < 3) return [];
+  const b = new URL(base), lists = new Set(b.pathname.length > 1 ? [b.pathname.replace(/\/$/, '')] : []);
+  for (const m of html.matchAll(/href=["']([^"'#?]+)["']/gi)) {
+    try { const u = new URL(m[1], base); if (u.host === b.host && /^\/(?:[a-z]{2}\/)?(?:onze-)?(?:winkels|vestigingen|locaties|filialen)\/?$/i.test(u.pathname)) lists.add(u.pathname.replace(/\/$/, '')); } catch { /* ongeldig */ }
+  }
+  return [...lists].slice(0, 2).map(p => `${b.origin}${p}/${slug}`);
 }
 /** Links op dezelfde site die waarschijnlijk de tijden hebben. */
 function candidates(html, base) {
@@ -92,7 +104,12 @@ async function read(key, url) {
   const res = { url, read: new Date().toISOString(), oh: null, page: null, note: null, v: VERSION };
   try {
     if (!(await allowed(url))) { res.note = 'robots.txt'; return res; }
-    const first = await getAny(url); let html = first.html, at = first.url;
+    const first = await getAny(url);
+    // Oude site met frames (De Vries Antiek): de tekst staat in de frames, de startpagina zelf is leeg. Plak ze achter elkaar.
+    if (/<frameset/i.test(first.html)) for (const m of [...first.html.matchAll(/<i?frame\b[^>]*\bsrc=["']([^"'#]+)["']/gi)].slice(0, 6)) {
+      try { const u = new URL(m[1], first.url); if (u.host !== new URL(first.url).host || !(await allowed(u.href))) continue; await sleep(PAUSE); first.html += `\n<hr>\n${(await get(u.href)).html}`; } catch { /* frame weg */ }
+    }
+    let html = first.html, at = first.url;
     const addr = who.get(key)?.addr ?? '';
     let hit = hoursFromHtml(html, addr);
     const seen = [[at, html]];
@@ -102,13 +119,19 @@ async function read(key, url) {
     }
     // Ketensite met een pagina per plaats (Aktief: /kringloopwinkels/winterswijk): voor elke winkel met deze site de eigen plaatspagina.
     const shops = sharing.get(key)?.length > 1 ? sharing.get(key) : [who.get(key)], city = new Map(), html0 = first.html;
+    // Tijden gevonden, maar alleen bij de postcode van een ander adres (hoofdkantoor in de footer)? Dan toch de eigen vestigingspagina zoeken.
+    const pc4 = PCK0(addr)?.slice(0, 4), other = hit && pc4 && !toText(pageOfSeen(seen, at) ?? '').includes(pc4) && /\b[1-9]\d{3}\s?[A-Z]{2}\b/.test(toText(pageOfSeen(seen, at) ?? ''));
     for (const q of shops) {
-      const c = (q === who.get(key) ? !hit : PCK0(q.addr)) && cityLink(html0, first.url, q?.place); if (!c || !(await allowed(c))) continue;
-      if (!seen.some(([u]) => u === c)) try { await sleep(PAUSE); const r = await get(c); seen.push([c, r.html]); } catch { continue; }
-      city.set(q, c);
+      if (!(q === who.get(key) ? !hit || other : PCK0(q.addr))) continue;
+      const link = cityLink(html0, first.url, q?.place);
+      for (const c of link ? [link] : cityGuesses(html0, first.url, q?.place)) {
+        if (!(await allowed(c))) continue;
+        if (!seen.some(([u]) => u === c)) try { await sleep(PAUSE); const r = await get(c); seen.push([c, r.html]); } catch { continue; }
+        city.set(q, c); break;
+      }
     }
     const pageOf = u => seen.find(([x]) => x === u)?.[1];
-    if (!hit && city.has(who.get(key))) { hit = hoursFromHtml(pageOf(city.get(who.get(key))), addr); if (hit) at = city.get(who.get(key)); }
+    if ((!hit || other) && city.has(who.get(key))) { const own = hoursFromHtml(pageOf(city.get(who.get(key))), addr); if (own) { hit = own; at = city.get(who.get(key)); } }
     // Meerdere winkels met deze site: per winkel de eigen plaatspagina, of anders het blok onder het eigen adres (De Liemers: Zevenaar en 's-Heerenberg).
     if (shops.length > 1) for (const q of shops) {
       const k = PCK0(q.addr); if (!k) continue;
@@ -123,7 +146,10 @@ async function read(key, url) {
     if (!hit) [hit, at] = await viaAI(key, seen, at, res);
     // Postcodes op de pagina (4 cijfers): staat de winkel er niet tussen, dan is het misschien een andere winkel (zie fetch-osm).
     if (hit) { res.oh = hit.oh; res.page = at; res.ok = res.read; res.pc = [...new Set(seen.flatMap(([, h]) => [...toText(h).matchAll(/\b([1-9]\d{3})\s?[A-Z]{2}\b/g)].map(m => m[1])))].slice(0, 12); } // ook van de pagina met de tijden (/contact), niet alleen de homepage
-    else res.note = 'geen tijden gevonden';
+    else { // geen tijden, maar wel "alleen op afspraak": dat tonen we
+      const ap = seen.find(([, h]) => byAppointment(toText(h)));
+      if (ap) Object.assign(res, { afspraak: true, page: ap[0], ok: res.read, note: 'op afspraak' }); else res.note = 'geen tijden gevonden';
+    }
   } catch (e) {
     res.note = `fout: ${e.message ?? e.name}`;
     // Echt weg (domein bestaat niet meer, of 404/410), niet even onbereikbaar: onthoud sinds wanneer. Een vorige fout telt als eerste keer.

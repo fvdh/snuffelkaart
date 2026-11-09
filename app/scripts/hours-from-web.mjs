@@ -175,6 +175,9 @@ export function hoursLD(html) {
 /** Tijden van een pagina: eerst wat de winkel zichtbaar op de pagina zet, dan schema.org (onzichtbaar, vaker verouderd). */
 /** "Openingstijden: -- tijdelijk gesloten --" (J. Brunekreef): niet verbergen, wel zo tonen. Alleen vlak na "openingstijden" of als "wij zijn tijdelijk gesloten". */
 export const tempClosed = text => /\b(?:openingstijd\w*|openingsuren)\b[^a-z0-9]{0,20}(?:(?:wij|we) zijn )?(?:tijdelijk|voorlopig) (?:gesloten|dicht)|\b(?:wij zijn|we zijn|de winkel is) (?:tijdelijk|voorlopig) (?:gesloten|dicht)/i.test(text);
+/** "Geen vaste openingstijden, maak een afspraak" (De Vries Antiek): er staat geen lijst, maar wel iets wat de bezoeker moet weten.
+ *  Alleen gebruikt als er nergens tijden staan; "zaterdag 10-16, verder op afspraak" heeft gewoon tijden. */
+export const byAppointment = text => /\bgeen vaste openingstijden\b|\b(?:alleen|uitsluitend|enkel|bezoek\w*|showroom|winkel)\s+(?:is\s+)?(?:graag\s+)?(?:op|na|volgens)\s+(?:telefonische\s+)?afspraak|\bopeningstijden\W{0,5}(?:op|na|volgens)\s+afspraak/i.test(text);
 /** addr: adres van de winkel. Meerdere vestigingen met eigen tijden op één pagina (Het Boelhuys /winkels): dan het stuk vanaf de eigen straat. */
 export function hoursFromHtml(html, addr = '') {
   // Ankers: de straat ("Spoorstraat 60") of anders de postcode ("6902 PA": De Liemers schrijft "Hengelder 26A", OSM "Hengelderweg 26-A").
@@ -182,7 +185,8 @@ export function hoursFromHtml(html, addr = '') {
   const text = toText(html), low = text.toLowerCase(), street = addr.split(',')[0].trim().toLowerCase(), pc = /\b[1-9]\d{3}\s?[a-z]{2}\b/i.exec(addr)?.[0];
   const find = s => [...low.matchAll(new RegExp(s, 'g'))].map(m => m.index); // elke plek: de eerste is soms de kop of voet van de pagina
   const ats = street.length > 5 && low.includes(street) ? find(street.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')) : pc ? find(`\\b${pc.slice(0, 4)}\\s?${pc.slice(-2).toLowerCase()}\\b`) : [];
-  const block = at => { const nx = text.slice(at + 12).search(/\b[1-9]\d{3}\s?[A-Z]{2}\b/); return parseHoursNL(text.slice(at, at + 12 + (nx >= 0 ? nx : 1500))); };
+  // Volgende postcode = volgende vestiging; de eigen postcode (vlak na de straat: Terre des Hommes Oosterhout) telt niet.
+  const block = at => { const nx = [...text.slice(at + 12).matchAll(/\b([1-9]\d{3})\s?[A-Z]{2}\b/g)].find(m => m[1] !== pc?.slice(0, 4))?.index; return parseHoursNL(text.slice(at, at + 12 + (nx ?? 1500))); };
   return parseHoursNL(text) ?? ats.reduce((r, at) => r ?? block(at), null) ?? hoursLD(html);
 }
 
@@ -194,6 +198,6 @@ export const siteKey = u => { try { const x = new URL(/^https?:/i.test(u) ? u : 
  *  en wordt de controledatum op de kaart, dus oude tijden ogen nooit vers. */
 export function keep(res, prev, now = Date.now()) {
   const ok = prev?.oh && (prev.ok ?? prev.read);
-  if (res.oh || !ok || now - Date.parse(ok) > 60 * 864e5) return res;
+  if (res.oh || res.dicht || res.afspraak || !ok || now - Date.parse(ok) > 60 * 864e5) return res;
   return { ...res, oh: prev.oh, page: prev.page, pc: prev.pc, ok, note: `${res.note} (tijden van ${ok.slice(0, 10)} bewaard)` };
 }

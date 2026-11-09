@@ -12,7 +12,7 @@ const site = process.argv[2], dry = process.argv.includes('--droog'), { SUPABASE
 if (!site || !SB || !KEY) { console.error('Gebruik: node scripts/herlees.mjs <site>, met SUPABASE_URL en SUPABASE_SERVICE_ROLE_KEY'); process.exit(1); }
 const key = siteKey(site), w = JSON.parse(fs.readFileSync(new URL('../data-raw/web-hours.json', import.meta.url), 'utf8'))[key];
 if (!w) { console.log(`${key}: niet in de cache, niets te doen`); process.exit(0); }
-console.log(`${key}: ${w.oh ?? (w.dicht ? 'tijdelijk gesloten' : w.note)}${w.page ? ` (${w.page})` : ''}`);
+console.log(`${key}: ${w.oh ?? w.note}${w.page ? ` (${w.page})` : ''}`);
 
 const req = async (path, init = {}) => {
   const r = await fetch(`${SB}/rest/v1/${path}`, { ...init, headers: { apikey: KEY, Authorization: `Bearer ${KEY}`, 'Content-Type': 'application/json', Prefer: 'return=minimal', ...init.headers } });
@@ -31,10 +31,10 @@ for (const r of rows) {
   const shared = rows.length > 1 && !own && !(w.pc?.includes(pc(r)?.[0]) && rows.filter(x => w.pc?.includes(pc(x)?.[0])).length === 1);
   if (shared) { console.log(`  ${d.name}: overgeslagen, gedeelde site zonder eigen blok`); continue; }
   const oh = own?.oh ?? w.oh, page = own?.page ?? w.page, h = oh && precompute(oh, today);
-  const { dicht: _, ...rest } = d;
-  const data = h ? { ...rest, h, oh, checked, hs: 'web', hu: page } : w.dicht ? { ...d, dicht: checked, hu: page } : null;
+  const { dicht: _, afspraak: __, ...rest } = d;
+  const data = h ? { ...rest, h, oh, checked, hs: 'web', hu: page } : w.dicht ? { ...rest, dicht: checked, hu: page } : w.afspraak ? { ...rest, afspraak: checked, hu: page } : null;
   if (!data) { console.log(`  ${d.name}: geen tijden gevonden, niets veranderd`); continue; }
-  console.log(`  ${d.name} (${d.addr ?? d.place}): ${h ? oh : 'tijdelijk gesloten'}`);
+  console.log(`  ${d.name} (${d.addr ?? d.place}): ${h ? oh : w.note}`);
   if (!dry) await req(`places?id=eq.${encodeURIComponent(r.id)}`, { method: 'PATCH', body: JSON.stringify({ data, updated_at: new Date().toISOString() }) }); // updated_at: de kwartier-run publiceert
   n++;
 }

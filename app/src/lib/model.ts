@@ -13,6 +13,8 @@ export interface Place {
   hs?: 'web' | 'bezoeker'; hu?: string;
   /** Eigen website meldt "tijdelijk gesloten" (datum gelezen, pagina hu). Alleen zonder tijden. */
   dicht?: string;
+  /** Eigen website: geen vaste tijden, alleen op afspraak (datum gelezen, pagina hu). Alleen zonder tijden. */
+  afspraak?: string;
   /** Tijden doorgegeven door een bezoeker (hs = 'bezoeker'): diens schermnaam. */
   hb?: string;
 }

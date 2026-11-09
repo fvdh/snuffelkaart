@@ -165,6 +165,13 @@ describe('tijdelijk gesloten (J. Brunekreef)', () => {
     expect(tempClosed('Veluweweg 52\nOpeningstijden\n-- tijdelijk gesloten --\n')).toBe(true);
     expect(tempClosed('Wij zijn tijdelijk gesloten wegens ziekte.')).toBe(true);
     expect(tempClosed('Openingstijden\nDi t/m za 10-17\nNieuws: de parkeerplaats is tijdelijk gesloten.')).toBe(false);
+    const { byAppointment, hoursFromHtml } = await import('./hours-from-web.mjs');
+    expect(byAppointment('Bezoek winkel:\nWij hebben geen vaste openingstijden en adviseren een afspraak te maken')).toBe(true);
+    expect(byAppointment('Showroom alleen op afspraak')).toBe(true);
+    expect(byAppointment('Wilt u iets brengen? Maak een afspraak.')).toBe(false);
+    // Eigen postcode vlak na de straat beëindigt het blok niet; die van het hoofdkantoor in de voet telt niet mee.
+    const tdh = '<p>Adres<br>Tempelierstraat 26<br>4902 XJ Oosterhout</p><p>Openingstijden<br>Maandag<br>Gesloten<br>Dinsdag<br>10.00 – 17.00<br>Zaterdag<br>10.00 – 13.00</p><footer>2511 BH Den Haag Openingstijden Maandag t/m vrijdag 9.00 - 17.00 uur</footer>';
+    expect(hoursFromHtml(tdh, 'Tempelierstraat 26, 4902XJ Oosterhout')?.oh).toBe('Tu 10:00-17:00; Sa 10:00-13:00');
   });
 });
 
