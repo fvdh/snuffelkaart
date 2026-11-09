@@ -10,7 +10,7 @@ export interface Place {
   /** Overture: nadere soort van een tweedehandswinkel, en hun betrouwbaarheidsscore. */
   sub?: 'antiek' | 'kleding' | 'schroot' | 'pandjeshuis' | 'vlooienmarkt'; conf?: number;
   /** Openingstijden van de eigen website van de winkel (hs), gelezen van pagina hu. */
-  hs?: 'web' | 'bezoeker'; hu?: string;
+  hs?: 'web' | 'bezoeker' | 'fb'; hu?: string;
   /** Eigen website meldt "tijdelijk gesloten" (datum gelezen, pagina hu). Alleen zonder tijden. */
   dicht?: string;
   /** Eigen website: geen vaste tijden, alleen op afspraak (datum gelezen, pagina hu). Alleen zonder tijden. */

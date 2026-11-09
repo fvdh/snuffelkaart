@@ -57,7 +57,9 @@ export function parseHoursNL(text) {
   const EN = { mon: 'maandag', tue: 'dinsdag', wed: 'woensdag', thu: 'donderdag', fri: 'vrijdag', sat: 'zaterdag', sun: 'zondag' };
   text = text.replace(/\b(mon|tue|wed|thu|fri|sat|sun)(?:day|sday|nesday|rsday|urday)?\b(?=\s*(?::|-|–|to\b|through\b|\d))/gi, (_, d) => EN[d.toLowerCase()])
     .replace(/\b(maandag|dinsdag|woensdag|donderdag|vrijdag|zaterdag|zondag)\s+(?:to|through)\s+(?=maandag|dinsdag|woensdag|donderdag|vrijdag|zaterdag|zondag|mon|tue|wed|thu|fri|sat|sun)/gi, '$1 t/m ')
-    .replace(/\bopening hours\b/gi, 'Openingstijden').replace(/:\s*closed\b/gi, ': gesloten');
+    .replace(/\bopening hours\b/gi, 'Openingstijden').replace(/:\s*closed\b/gi, ': gesloten').replace(/(\n\s*)closed\b/gi, '$1gesloten')
+    // "10:00 AM - 5:00 PM" (Engelse Facebook, Engelse sites) → 24 uur
+    .replace(/\b(\d{1,2})(?:[:.](\d{2}))?\s*([ap])\.?m\.?\b/gi, (_, h, m, ap) => `${(+h % 12) + (/p/i.test(ap) ? 12 : 0)}:${m ?? '00'}`);
   // Tabel met twee kolommen (dag, winkel, inleveren onder elkaar, zoals bij Het Goed): alleen de eerste kolom als de kop zegt dat dat de winkel is.
   text = text.replace(COLS, (tbl, at) => {
     const head = text.slice(Math.max(0, at - 80), at), rows = [...tbl.matchAll(/^(\S+)\n(.+)\n(.+)$/gm)];

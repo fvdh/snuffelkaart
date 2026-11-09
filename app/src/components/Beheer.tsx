@@ -9,6 +9,8 @@ import { CAT, Ic } from './ui';
 import { SB, KEY, readSession, sendLink, logout, fresh, api as authApi, type Session } from '../lib/auth';
 import { useData, usePeriod, Overzicht, Live, Verkeer, Gedrag, Inhoud, Regios, Dekking, Lezer, Fouten, type Info } from './Inzicht';
 import { watchErrors } from '../lib/errors';
+import { parseHoursNL } from '../../scripts/hours-from-web.mjs';
+import { ohText } from '../lib/bijdragen';
 
 type Row = { id: string; status: string; locked: string[]; data: Record<string, any>; date?: string; updated_at?: string };
 const api = (s: Session, path: string, init: RequestInit = {}) => authApi(s, `rest/v1/${path}`, init);
@@ -418,12 +420,28 @@ const MELD: Record<string, [string, string]> = {
 };
 const catOfData = (d: Record<string, any>): Cat => (d.kind === 'tweedehands' ? d.sub ?? 'tweedehands' : 'kringloop');
 
+/** Tijden van Facebook overnemen: plak wat er op hun pagina staat ("Maandag Gesloten / Dinsdag 10:00 - 17:00" of "di t/m za 10-17"),
+ *  de websitelezer zet het om en je ziet wat er op de kaart komt. ponytail: geen eigen invoer per dag; de lezer kent de notaties al. */
+function FbHours({ r, onSave }: { r: Row; onSave: (oh: string, today: string) => Promise<unknown> }) {
+  const [txt, setTxt] = useState(''), today = new Date().toISOString().slice(0, 10);
+  useEffect(() => setTxt(''), [r.id]);
+  const oh: string | undefined = txt.trim() ? parseHoursNL(`Openingstijden\n${txt}`)?.oh : undefined;
+  return (<div className="adm-edit">
+    <p className="src"><Ic n="globe" /><span>Open <a href={`https://www.facebook.com/${r.data.fb}`} target="_blank" rel="noopener">hun Facebookpagina <Ic n="ext" /></a>, kijk bij Info of in een recent bericht, en plak de tijden hieronder. Staan er geen tijden, sla hem dan over.</span></p>
+    <label>Tijden zoals ze op Facebook staan<textarea className="input" rows={4} value={txt} onChange={e => setTxt(e.target.value)} placeholder={'Maandag Gesloten\nDinsdag 10:00 - 17:00\n… of: di t/m za 10-17'} /></label>
+    {txt.trim() && (oh ? <p className="src"><Ic n="check" /><span>Op de kaart: <b>{ohText(oh)}</b>. Gecontroleerd op vandaag, bron: hun Facebookpagina.</span></p> : <p className="bh-err">Nog niet te lezen. Schrijf het als "di t/m za 10:00-17:00" of zet elke dag op een eigen regel.</p>)}
+    {oh && <button className="btn sm primary" type="button" onClick={() => { onSave(oh, today); setTxt(''); }}>Opslaan</button>}
+  </div>);
+}
+
 function Shops({ s }: { s: Session }) {
-  const [q, setQ] = useState(''), [rows, setRows] = useState<Row[]>([]), [err, setErr] = useState(''), [sel, setSel] = useState(0), [dead, setDead] = useState<Row[] | null>(null), [onlyDead, setOnlyDead] = useState(false);
+  const [q, setQ] = useState(''), [rows, setRows] = useState<Row[]>([]), [err, setErr] = useState(''), [sel, setSel] = useState(0), [dead, setDead] = useState<Row[] | null>(null), [fbs, setFbs] = useState<Row[] | null>(null), [which, setWhich] = useState<'' | 'dead' | 'fb'>(''), onlyDead = which !== '', setOnlyDead = (on: boolean) => setWhich(on ? 'dead' : '');
   // Winkels waarvan de website al een week echt weg is (domein bestaat niet meer, 404): misschien gestopt.
   // En winkels waarvan de eigen site iets meldt dat een mens moet nakijken (fetch-web-hours + AI-lezer): gestopt, verhuisd, alleen online, ander adres.
   const loadDead = () => api(s, 'places?select=id,status,locked,data&status=eq.actief&or=(data->>siteDead.not.is.null,data->meld->>k.in.(gestopt,verhuisd,online,adres),and(data->siteGuess->>url.not.is.null,data->siteGuess->>nee.is.null))&order=id&limit=1000').then(r => setDead(r)).catch(e => setErr(e.message));
-  useEffect(() => { loadDead(); }, []);
+  // Alleen een Facebookpagina en geen tijden (±270, 9 nov): jij kijkt op Facebook en plakt de tijden; Facebook zelf lezen we niet uit.
+  const loadFb = () => api(s, 'places?select=id,status,locked,data&status=eq.actief&data->>fb=not.is.null&data->>website=is.null&data->>oh=is.null&order=data->>kind,id&limit=1000').then(r => setFbs(r)).catch(e => setErr(e.message));
+  useEffect(() => { loadDead(); loadFb(); }, []);
   useEffect(() => {
     if (q.trim().length < 2) return setRows([]);
     const t = setTimeout(() => { const w = `*${q.trim().replace(/[,()*]/g, ' ')}*`; api(s, `places?select=id,status,locked,data&or=(data->>name.ilike.${encodeURIComponent(w)},data->>place.ilike.${encodeURIComponent(w)})&order=id&limit=50`).then(r => { setRows(r); setSel(0); }).catch(e => setErr(e.message)); }, 250);
@@ -435,11 +453,12 @@ function Shops({ s }: { s: Session }) {
   };
   const setCat = (r: Row, c: Cat) => { const { sub, ...d } = r.data; save(r, { data: c === 'kringloop' ? { ...d, kind: 'kringloop' } : { ...d, kind: 'tweedehands', ...(c === 'tweedehands' ? {} : { sub: c }) }, locked: lock(r, 'kind', 'sub') }); };
   const [pin, setPin] = useState(''), spot = parseLatLon(pin);
-  const list = onlyDead ? dead ?? [] : rows, r = list[sel], site = r?.data.website && (/^https?:/.test(r.data.website) ? r.data.website : `https://${r.data.website}`);
+  const list = which === 'fb' ? fbs ?? [] : which ? dead ?? [] : rows, r = list[sel], site = r?.data.website && (/^https?:/.test(r.data.website) ? r.data.website : `https://${r.data.website}`);
   return (<>
     <section className="adm-q" aria-label="Winkels">
       <header><h2>Winkels</h2><label className="search"><Ic n="search" /><input type="search" placeholder="Zoek op naam of plaats" value={q} onChange={e => { setQ(e.target.value); setOnlyDead(false); }} autoFocus /></label>
-        {!!dead?.length && <button className={`btn sm${onlyDead ? ' primary' : ''}`} onClick={() => { setQ(''); setOnlyDead(true); setSel(0); }}>Nakijken ({dead.length})</button>}</header>
+        {!!dead?.length && <button className={`btn sm${which === 'dead' ? ' primary' : ''}`} onClick={() => { setQ(''); setWhich('dead'); setSel(0); }}>Nakijken ({dead.length})</button>}
+        {!!fbs?.length && <button className={`btn sm${which === 'fb' ? ' primary' : ''}`} onClick={() => { setQ(''); setWhich('fb'); setSel(0); }} title="Winkels met alleen Facebook en zonder tijden">Facebook ({fbs.length})</button>}</header>
       {err && <p className="bh-err">{err}</p>}
       {list.length ? <ul className="adm-list">{list.map((x, i) => <li key={x.id}><button className={`adm-item${i === sel ? ' on' : ''}${x.status === 'verborgen' ? ' off' : ''}`} onClick={() => { setSel(i); setPin(''); }}>
         <span className={`tile c-${catOfData(x.data)}`}><Ic n={CAT[catOfData(x.data)][2]} /></span>
@@ -455,6 +474,7 @@ function Shops({ s }: { s: Session }) {
         <dt>Bron</dt><dd><code>{r.id}</code></dd>
         {r.locked.length > 0 && <><dt>Met de hand</dt><dd>{r.locked.join(', ')}</dd></>}
       </dl>
+      {which === 'fb' && !r.data.oh && <FbHours r={r} onSave={(oh, today) => save(r, { data: { ...r.data, oh, checked: today, hs: 'fb' }, locked: lock(r, 'oh', 'checked', 'hs') }).then(loadFb)} />}
       <form className="adm-edit" onSubmit={e => { e.preventDefault(); if (spot) save(r, { data: { ...r.data, ...spot }, locked: lock(r, 'lat', 'lon') }).then(() => setPin('')); }}>
         <label>Pin verplaatsen<input className="input" value={pin} onChange={e => setPin(e.target.value)} placeholder={PIN_HINT} /></label>
         {pin.trim() && !spot && <p className="bh-err">Geen plek in Nederland herkend.</p>}

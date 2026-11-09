@@ -212,3 +212,10 @@ describe("tijden zonder streepje of met spaties (proef 9 nov)", () => {
     expect(hoursFromHtml(`<div>${h}</div>`)?.oh).toBe("Mo-Sa 10:00-17:00");
   });
 });
+
+describe("tijden overnemen van Facebook (beheer, 9 nov)", () => {
+  const fb = x => parseHoursNL("Openingstijden\n" + x)?.oh;
+  it("Nederlandse weergave, dag en tijd onder elkaar", () => expect(fb("Maandag\nGesloten\nDinsdag\n10:00 - 17:00\nWoensdag\n10:00 - 17:00\nZaterdag\n10:00 - 16:00\nZondag\nGesloten")).toBe("Tu-We 10:00-17:00; Sa 10:00-16:00"));
+  it("Engelse weergave met AM/PM", () => expect(fb("Tuesday 10:00 AM - 5:00 PM\nWednesday 10:00 AM - 5:00 PM\nSaturday 10:00 AM - 4:00 PM")).toBe("Tu-We 10:00-17:00; Sa 10:00-16:00"));
+  it("kort getypt", () => expect(fb("di t/m za 10-17")).toBe("Tu-Sa 10:00-17:00"));
+});
