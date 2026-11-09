@@ -16,7 +16,7 @@ begin
   insert into auth.users (id, email) values (gen_random_uuid(), 'rls-b@example.com') returning id into b;
   insert into favorites (user_id, item_id) values (a, 'rls-test-a'), (b, 'rls-test-b');
 
-  select id into pid from places limit 1;
+  select id into pid from places where status = 'actief' limit 1; -- verborgen winkels weigert contributions_check terecht
 
   -- 1. Gast: leest niets, schrijft niets.
   perform set_config('request.jwt.claims', '{"role":"anon"}', true);
