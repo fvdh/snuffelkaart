@@ -1,14 +1,27 @@
 ---
-// Alle plaatsen met een stadspagina, op alfabet: de ingang voor zoekmachines naar elke stadspagina.
+// Alle plaatsen met een stadspagina (9 nov, in de stijl van de andere pagina's): per provincie, dan op alfabet.
+// De ingang voor zoekmachines naar elke stadspagina; het getal is het aantal winkels.
 import Tekst from '../layouts/Tekst.astro';
-import { ix, places } from '../lib/sitedata';
-const groups = Object.entries(Object.groupBy(ix.cities, c => c.name[0].toUpperCase()));
+import '../styles/plek.css';
+import { PROVINCES } from '../lib/seo';
+import { ix, places, prov, SITE } from '../lib/sitedata';
+
+const byProv = PROVINCES.map(p => ({ p, cs: ix.cities.filter(c => prov[c.name] === p.pdok) })).filter(g => g.cs.length);
+const rest = ix.cities.filter(c => !PROVINCES.some(p => p.pdok === prov[c.name]));
+const crumbs: [string, string][] = [['Snuffelkaart', '/'], ['Plaatsen', '/plaatsen/']];
+const crumbLd = { '@context': 'https://schema.org', '@type': 'BreadcrumbList', itemListElement: crumbs.map(([n, u], i) => ({ '@type': 'ListItem', position: i + 1, name: n, item: SITE + u })) };
 ---
-<Tekst title="Kringlopen en rommelmarkten per plaats" description={`Kringlopen, tweedehandswinkels en rommelmarkten in ${ix.cities.length} plaatsen in Nederland, met openingstijden en de markten van de komende weken.`} wide>
-  <h1>Kringlopen en rommelmarkten per plaats</h1>
-  <p class="lede">{places.length} tweedehandswinkels en de markten van de komende weken, in {ix.cities.length} plaatsen. Of <a href="/kaart/">zoek op de kaart</a>.</p>
-  <section>{groups.map(([letter, cs]) => <>
-    <p class="tp-letter">{letter}</p>
-    <ul class="tp-links">{cs!.map(c => <li><a href={`/${c.slug}/`}>{c.name}</a> <span style="color:var(--fg-3)">{c.shops.length + c.markets.length}</span></li>)}</ul>
-  </>)}</section>
+<Tekst title="Kringlopen en rommelmarkten per plaats" description={`Kringlopen, tweedehandswinkels en rommelmarkten in ${ix.cities.length} plaatsen in Nederland, per provincie, met openingstijden en de markten van de komende weken.`} wide>
+  <script type="application/ld+json" slot="head" set:html={JSON.stringify(crumbLd)} />
+  <nav aria-label="Kruimelpad"><ol class="pl-crumbs"><li><a href="/">Snuffelkaart</a></li><li aria-current="page">Plaatsen</li></ol></nav>
+  <div class="pl-sign">
+    <h1>Kringlopen en rommelmarkten per plaats</h1>
+    <p class="pl-what"><span class="pl-shape" aria-hidden="true"></span>{places.length} tweedehandswinkels in {ix.cities.length} plaatsen</p>
+    <p class="pl-places" style="margin-top:14px">{byProv.map(({ p }) => <><a href={`#${p.slug}`}>{p.name}</a> </>)}</p>
+    <p class="pl-src">Zoek je een kringloop die vandaag of op zondag open is? <a href="/kringloop-open-op-zondag/">Open op zondag</a>, of <a href="/kaart/">zoek op de kaart</a>.</p>
+  </div>
+  {[...byProv, ...(rest.length ? [{ p: { slug: 'overig', name: 'Overig' }, cs: rest }] : [])].map(({ p, cs }) => <section aria-labelledby={p.slug}>
+    <h2 class="pl-h" id={p.slug}>{p.slug === 'overig' ? 'Overige plaatsen' : <a href={`/provincie/${p.slug}/`}>{p.name}</a>}</h2>
+    <p class="pl-places">{[...cs].sort((a, b) => a.name.localeCompare(b.name, 'nl')).map(c => <><a href={`/${c.slug}/`}>{c.name}</a><small>{c.shops.length + c.markets.length}</small> </>)}</p>
+  </section>)}
 </Tekst>

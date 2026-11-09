@@ -8,7 +8,7 @@ import PlekDock from '../components/PlekDock.astro';
 import '../styles/plek.css';
 import type { City } from '../lib/seo';
 import type { Place } from '../lib/model';
-import { near, thin, niceVenue, splitAddr, PROVINCES } from '../lib/seo';
+import { near, cityThin, niceVenue, splitAddr, PROVINCES } from '../lib/seo';
 import { km, dLong, catOf, weekendOf, dayStart, hm } from '../lib/model';
 import { ix, markets, from, generated, prov, SITE } from '../lib/sitedata';
 
@@ -47,7 +47,7 @@ const others = ix.cities.filter(c => c !== city).map(c => ({ c, d: km(city, c) }
 const kmTxt = (k: number) => `${Math.round(k)} km`;
 const dateOf = (iso: string) => `${dLong(iso)}${iso.slice(0, 4) !== from.slice(0, 4) ? ` ${iso.slice(0, 4)}` : ''}`;
 // Dun: minder dan twee winkels of markten die meer zeggen dan "bestaat misschien niet meer" (zie thin()). Wel op de kaart, niet in Google.
-const isThin = city.shops.filter(p => !thin(p)).length + around.length < 2;
+const isThin = cityThin(city, markets, from);
 const crumbs: [string, string][] = [['Snuffelkaart', '/'], ['Plaatsen', '/plaatsen/'], ...(province ? [[province.name, `/provincie/${province.slug}/`] as [string, string]] : []), [name, url]];
 const ld = { '@context': 'https://schema.org', '@type': 'ItemList', name: title, itemListElement: [...kring, ...tweede, ...around].slice(0, 50).map((it, i) => ({ '@type': 'ListItem', position: i + 1, url: SITE + ix.url(it.id), name: it.name })) };
 const crumbLd = { '@context': 'https://schema.org', '@type': 'BreadcrumbList', itemListElement: crumbs.map(([c, u], i) => ({ '@type': 'ListItem', position: i + 1, name: c, item: SITE + u })) };
@@ -66,7 +66,7 @@ const dayHead = dLong(from);
       {known > 0 && <p class="pl-now" id="pl-stad-nu" data-kring={kring.length ? '1' : ''} hidden></p>}
       {(oSat.length > 0 || oSun.length > 0) ? <>
         <p class="pl-week pl-wk"><b>{dLong(sat)} open:</b> {satTxt(kSat, oSat)}</p>
-        <p class="pl-week pl-wk"><b>{dLong(sun)} open:</b> {satTxt(kSun, oSun)}</p>
+        <p class="pl-week pl-wk"><b>{dLong(sun)} open:</b> {satTxt(kSun, oSun)}{!kSun.length && <> · <a href="/kringloop-open-op-zondag/">kringlopen die op zondag open zijn</a></>}</p>
       </> : <p class="pl-week unk">Van de winkels in {name} kennen we de tijden <em>nog niet</em>. Bel even voordat je gaat.</p>}
     </div>
     <div class="pl-acts"><a class="btn primary" href={kaart}><svg class="i" aria-hidden="true"><use href="#i-map" /></svg>Bekijk op de kaart</a></div>

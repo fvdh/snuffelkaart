@@ -1,40 +1,64 @@
 ---
-// Provinciepagina: "rommelmarkt Noord-Brabant", "vlooienmarkt Gelderland", "kringloop Limburg". Markten van de komende weken en
-// de plaatsen met de meeste kringlopen. Provincie per plaats: scripts/provincies.mjs.
+// Provinciepagina ("deurbordje", 9 nov): "kringloop Gelderland", "rommelmarkt Noord-Brabant". Bovenaan de aantallen en wat er zondag
+// open is, dan de kaart, de markten van de komende weken en ALLE plaatsen als links (de ingang naar de stadspagina's). Provincie per plaats: scripts/provincies.mjs.
 import Tekst from '../../layouts/Tekst.astro';
 import MarktAgenda from '../../components/MarktAgenda.astro';
 import KaartBlok from '../../components/KaartBlok.astro';
-import { PROVINCES } from '../../lib/seo';
-import { catOf } from '../../lib/model';
-import { ix, markets, prov, SITE } from '../../lib/sitedata';
+import PlekDock from '../../components/PlekDock.astro';
+import '../../styles/plek.css';
+import { PROVINCES, weekIntervals } from '../../lib/seo';
+import { catOf, dLong } from '../../lib/model';
+import { DAY_CATS } from '../../lib/plan';
+import { ix, markets, prov, from, holidays, generated, SITE } from '../../lib/sitedata';
 
 export function getStaticPaths() {
   return PROVINCES.map(p => ({ params: { slug: p.slug }, props: { p } }));
 }
 const { p } = Astro.props as { p: (typeof PROVINCES)[number] };
 const ms = markets.filter(m => prov[m.place] === p.pdok);
-const cities = ix.cities.filter(c => prov[c.name] === p.pdok && c.shops.length).sort((a, b) => b.shops.length - a.shops.length);
-const kring = cities.reduce((a, c) => a + c.shops.filter(s => catOf(s) === 'kringloop').length, 0), shops = cities.reduce((a, c) => a + c.shops.length, 0);
-const all = [...cities.flatMap(c => c.shops), ...ms], lat = all.reduce((a, x) => a + x.lat, 0) / (all.length || 1), lon = all.reduce((a, x) => a + x.lon, 0) / (all.length || 1);
-const title = `Rommelmarkten en kringlopen in ${p.name}`;
-const description = `${ms.length} rommel- en vlooienmarkten in ${p.name} de komende maanden en ${shops} tweedehandswinkels${kring ? `, waarvan ${kring} kringlopen` : ''}, met openingstijden. Elke nacht bijgewerkt.`;
-const ld = { '@context': 'https://schema.org', '@type': 'ItemList', name: title, itemListElement: ms.slice(0, 50).map((m, i) => ({ '@type': 'ListItem', position: i + 1, url: SITE + ix.url(m.id), name: `${m.name}, ${m.date}` })) };
+const cities = ix.cities.filter(c => prov[c.name] === p.pdok);
+const shops = cities.flatMap(c => c.shops), kring = shops.filter(s => catOf(s) === 'kringloop');
+const nK = (c: (typeof cities)[number]) => c.shops.filter(s => catOf(s) === 'kringloop').length;
+const top = [...cities].sort((a, b) => nK(b) - nK(a) || b.shops.length - a.shops.length).slice(0, 8).filter(c => nK(c) > 0);
+const sunOpen = shops.filter(s => DAY_CATS.includes(catOf(s)) && !s.dicht && weekIntervals(s.h, from, holidays)?.find(d => d.wd === 0)?.iv.length);
+const all = [...shops, ...ms], lat = all.reduce((a, x) => a + x.lat, 0) / (all.length || 1), lon = all.reduce((a, x) => a + x.lon, 0) / (all.length || 1);
+const kaart = `/kaart/?plek=${encodeURIComponent(p.name)}&lat=${lat.toFixed(5)}&lon=${lon.toFixed(5)}`;
+const url = `/provincie/${p.slug}/`, updated = dLong(generated.slice(0, 10)).toLowerCase();
+const title = `Kringlopen en rommelmarkten in ${p.name}`;
+const description = `${kring.length} kringlopen en ${shops.length - kring.length} andere tweedehandswinkels in ${cities.length} plaatsen in ${p.name}, met openingstijden, en ${ms.length} rommel- en vlooienmarkten de komende maanden. Bijgewerkt op ${updated}.`;
+const crumbs: [string, string][] = [['Snuffelkaart', '/'], ['Plaatsen', '/plaatsen/'], [p.name, url]];
+const ld = { '@context': 'https://schema.org', '@type': 'ItemList', name: title, itemListElement: cities.slice(0, 100).map((c, i) => ({ '@type': 'ListItem', position: i + 1, url: `${SITE}/${c.slug}/`, name: `Kringlopen in ${c.name}` })) };
+const crumbLd = { '@context': 'https://schema.org', '@type': 'BreadcrumbList', itemListElement: crumbs.map(([n, u], i) => ({ '@type': 'ListItem', position: i + 1, name: n, item: SITE + u })) };
+const list = (xs: string[]) => xs.join(', ').replace(/, ([^,]*)$/, ' en $1');
 ---
 <Tekst title={title} description={description} wide tel={`prov:${p.slug}`} mail>
   <script type="application/ld+json" slot="head" set:html={JSON.stringify(ld)} />
-  <p class="tp-crumbs"><a href="/">Snuffelkaart</a> › <a href="/markten/">Markten</a> › {p.name}</p>
-  <h1>{title}</h1>
-  <p class="lede">{description}</p>
-  <KaartBlok items={[...ms, ...cities.flatMap(c => c.shops)]} href={`/kaart/?plek=${encodeURIComponent(p.name)}&lat=${lat.toFixed(5)}&lon=${lon.toFixed(5)}`} label={`Open de kaart van ${p.name}`} />
-  <div class="tp-cta"><b>Plan je snuffeldag in {p.name}</b><p>Op de kaart zie je welke kringlopen open zijn en welke markten er zijn, en zet je ze in de slimste volgorde.</p></div>
-  <MarktAgenda markets={ms} empty={`Dit weekend staat er in ${p.name} geen markt in onze agenda. Kijk op de kaart: die toont ook markten net over de grens.`} />
-  {cities.length > 0 && <section>
-    <h2>Kringlopen in {p.name}, per plaats</h2>
-    <ul class="tp-links">{cities.slice(0, 40).map(c => <li><a href={`/${c.slug}/`}>{c.name}</a> <span style="color:var(--fg-3)">{c.shops.length}</span></li>)}</ul>
-    {cities.length > 40 && <p><a href="/plaatsen/">Alle plaatsen</a></p>}
-  </section>}
-  <section>
-    <h2>Andere provincies</h2>
-    <ul class="tp-links">{PROVINCES.filter(x => x !== p).map(x => <li><a href={`/provincie/${x.slug}/`}>{x.name}</a></li>)}</ul>
+  <script type="application/ld+json" slot="head" set:html={JSON.stringify(crumbLd)} />
+  <nav aria-label="Kruimelpad"><ol class="pl-crumbs">{crumbs.map(([n, u], i) => i < crumbs.length - 1 ? <li><a href={u}>{n}</a></li> : <li aria-current="page">{n}</li>)}</ol></nav>
+
+  <div class="pl-sign">
+    <h1>{title}</h1>
+    <p class="pl-what"><span class="pl-shape" aria-hidden="true"></span>{kring.length} kringlopen en {shops.length - kring.length} andere tweedehandswinkels in {cities.length} plaatsen</p>
+    <div class="pl-door">
+      {top.length > 0 && <p class="pl-week pl-wk"><b>De meeste kringlopen:</b> {list(top.slice(0, 5).map(c => `${c.name} (${nK(c)})`))}</p>}
+      <p class="pl-week pl-wk"><b>Op zondag open:</b> {sunOpen.length ? <>{`${sunOpen.length} ${sunOpen.length === 1 ? 'winkel' : 'winkels'}. `}<a href={`/kringloop-open-op-zondag/#${p.slug}`}>Welke?</a></> : 'geen winkel waarvan we de tijden kennen.'}</p>
+      <p class="pl-week pl-wk"><b>Markten:</b> {ms.length ? `${ms.length} de komende maanden, de eerstvolgende hieronder.` : 'geen in onze agenda de komende weken.'}</p>
+    </div>
+    <div class="pl-acts"><a class="btn primary" href={kaart}><svg class="i" aria-hidden="true"><use href="#i-map" /></svg>Bekijk op de kaart</a></div>
+  </div>
+
+  <KaartBlok items={all} href={kaart} label={`Alles in ${p.name} op de kaart`} />
+
+  <section aria-labelledby="h-plaatsen">
+    <h2 class="pl-h" id="h-plaatsen">Kringlopen in {p.name}, per plaats</h2>
+    <p class="pl-places">{[...cities].sort((a, b) => a.name.localeCompare(b.name, 'nl')).map(c => <><a href={`/${c.slug}/`}>{c.name}</a><small>{c.shops.length}</small> </>)}</p>
   </section>
+
+  <MarktAgenda markets={ms} empty={`Dit weekend staat er in ${p.name} geen markt in onze agenda. Kijk op de kaart: die toont ook markten net over de grens.`} />
+
+  <section aria-labelledby="h-prov">
+    <h2 class="pl-h" id="h-prov">Andere provincies</h2>
+    <p class="pl-places">{PROVINCES.filter(x => x !== p).map(x => <><a href={`/provincie/${x.slug}/`}>{x.name}</a> </>)}</p>
+  </section>
+  <PlekDock href={kaart} label="Bekijk op de kaart" />
 </Tekst>

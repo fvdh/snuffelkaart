@@ -1,0 +1,66 @@
+---
+// "Kringloop open op zondag" (9 nov): veel gezocht, en wij hebben het antwoord. Per provincie een tabel met de winkels die in een
+// gewone week op zondag open zijn (feestdagen tellen niet mee, zie weekIntervals), met de tijden als tekst. Kringlopen eerst.
+import Tekst from '../layouts/Tekst.astro';
+import KaartBlok from '../components/KaartBlok.astro';
+import PlekDock from '../components/PlekDock.astro';
+import '../styles/plek.css';
+import type { Place } from '../lib/model';
+import { catOf, hm, dLong, weekendOf, dayStart } from '../lib/model';
+import { weekIntervals, PROVINCES, splitAddr } from '../lib/seo';
+import { CAT } from '../components/ui';
+import { DAY_CATS } from '../lib/plan';
+import { ix, places, from, holidays, prov, generated, SITE } from '../lib/sitedata';
+
+const sun = (p: Place) => (p.dicht ? [] : weekIntervals(p.h, from, holidays)?.find(d => d.wd === 0)?.iv ?? []);
+const open = places.filter(p => DAY_CATS.includes(catOf(p)) && p.place && sun(p).length);
+const kring = open.filter(p => catOf(p) === 'kringloop');
+const ivTxt = (iv: [number, number][]) => iv.map(([a, b]) => `${hm(a)}–${hm(b % 1440)}`).join(' en ');
+const byProv = PROVINCES.map(pr => ({ pr, xs: open.filter(p => prov[p.place!] === pr.pdok).sort((a, b) => (catOf(a) === 'kringloop' ? 0 : 1) - (catOf(b) === 'kringloop' ? 0 : 1) || a.place!.localeCompare(b.place!, 'nl') || a.name.localeCompare(b.name, 'nl')) }))
+  .filter(g => g.xs.length);
+const cities = new Set(open.map(p => p.place)).size;
+const [, nextSun] = weekendOf(dayStart(from)), feest = holidays.includes(nextSun);
+const updated = dLong(generated.slice(0, 10)).toLowerCase(), url = '/kringloop-open-op-zondag/';
+const title = `Kringloop open op zondag: ${kring.length} kringlopen in Nederland`;
+const description = `${kring.length} kringlopen en ${open.length - kring.length} andere tweedehandswinkels zijn op zondag open, in ${cities} plaatsen. Per provincie, met de tijden. Bijgewerkt op ${updated}.`;
+const crumbs: [string, string][] = [['Snuffelkaart', '/'], ['Plaatsen', '/plaatsen/'], ['Open op zondag', url]];
+const ld = { '@context': 'https://schema.org', '@type': 'ItemList', name: title, itemListElement: kring.slice(0, 100).map((p, i) => ({ '@type': 'ListItem', position: i + 1, url: SITE + ix.url(p.id), name: p.name })) };
+const crumbLd = { '@context': 'https://schema.org', '@type': 'BreadcrumbList', itemListElement: crumbs.map(([n, u], i) => ({ '@type': 'ListItem', position: i + 1, name: n, item: SITE + u })) };
+---
+<Tekst title={title} description={description} wide tel="zondag">
+  <script type="application/ld+json" slot="head" set:html={JSON.stringify(ld)} />
+  <script type="application/ld+json" slot="head" set:html={JSON.stringify(crumbLd)} />
+  <nav aria-label="Kruimelpad"><ol class="pl-crumbs">{crumbs.map(([n, u], i) => i < crumbs.length - 1 ? <li><a href={u}>{n}</a></li> : <li aria-current="page">{n}</li>)}</ol></nav>
+
+  <div class="pl-sign">
+    <h1>Kringlopen die op zondag open zijn</h1>
+    <p class="pl-what"><span class="pl-shape" aria-hidden="true"></span>{kring.length} kringlopen en {open.length - kring.length} andere tweedehandswinkels, in {cities} plaatsen</p>
+    <div class="pl-door">
+      <p class="pl-week pl-wk">De meeste kringlopen zijn op zondag dicht. Deze niet. {feest ? <><b>Let op:</b> {dLong(nextSun).toLowerCase()} is een feestdag, dan kan het anders zijn.</> : <>{`Komende zondag is ${dLong(nextSun).replace(/^Zondag /, '')}.`}</>}</p>
+    </div>
+    <p class="pl-src">Kies je provincie:</p>
+    <p class="pl-places">{byProv.map(({ pr, xs }) => <><a href={`#${pr.slug}`}>{pr.name}</a><small>{xs.length}</small> </>)}</p>
+    <div class="pl-acts"><a class="btn primary" href="/kaart/"><svg class="i" aria-hidden="true"><use href="#i-map" /></svg>Bekijk op de kaart</a></div>
+    <p class="pl-src">Tijden van de websites van de winkels, OpenStreetMap en bezoekers, elke nacht bijgewerkt (laatst op {updated}). Alleen winkels waarvan we de tijden kennen; bel bij twijfel even.</p>
+  </div>
+
+  <KaartBlok items={open} href="/kaart/" label="Alle zondag-open winkels op de kaart" />
+
+  {byProv.map(({ pr, xs }) => <section aria-labelledby={pr.slug}>
+    <h2 class="pl-h" id={pr.slug}>Zondag open in {pr.name}</h2>
+    <table class="pl-dates pl-stad">
+      <thead><tr><th scope="col"><span class="sr">Winkel</span></th><th scope="col" class="r">Zondag</th></tr></thead>
+      <tbody>{xs.map(p => <tr>
+        <th scope="row"><a href={ix.url(p.id)}>{p.name}</a><small>{catOf(p) === 'kringloop' ? '' : `${CAT[catOf(p)][0]} · `}{ix.cityUrl(p.place) ? <a href={ix.cityUrl(p.place)!}>{p.place}</a> : p.place}{splitAddr(p.addr, p.place).street ? `, ${splitAddr(p.addr, p.place).street}` : ''}</small></th>
+        <td class="r">{ivTxt(sun(p))}</td>
+      </tr>)}</tbody>
+    </table>
+    <a class="pl-more" href={`/provincie/${pr.slug}/`}>Alle kringlopen en markten in {pr.name}</a>
+  </section>)}
+
+  <section aria-labelledby="h-meer">
+    <h2 class="pl-h" id="h-meer">Op zondag snuffelen</h2>
+    <p>Is er bij jou geen kringloop open? Op zondag zijn er vaak rommelmarkten en vlooienmarkten: <a href="/rommelmarkt-dit-weekend/">rommelmarkten dit weekend</a>.</p>
+  </section>
+  <PlekDock href="/kaart/" label="Bekijk op de kaart" />
+</Tekst>
