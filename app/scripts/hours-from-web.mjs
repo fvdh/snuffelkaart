@@ -104,7 +104,8 @@ export function parseHoursNL(text, place = '') {
     if (!header && b.entries.some(e => e.loose)) continue;
     // "Let op: op woensdag zijn wij gesloten" net onder de lijst gaat voor.
     const note = text.slice(b.end, b.end + 250), shut = [];
-    for (const m of note.matchAll(new RegExp(`${D}[^.!\\n]{0,30}?gesloten|gesloten op ${D}`, 'gi'))) shut.push(dayIdx(m[1] ?? m[2]));
+    // Woordgrens ("Sommelsdijk" is geen "di"), en een regel over inname of brengen zegt niets over de winkel (GOED voor GOED).
+    for (const line of note.split('\n').filter(l => !NOT_SHOP.test(l))) for (const m of line.matchAll(new RegExp(`\\b${D}[^.!\\n]{0,30}?gesloten|gesloten op ${D}`, 'gi'))) shut.push(dayIdx(m[1] ?? m[2]));
     const week = Array(7).fill(null); let clash = false;
     const wide = new Set(); // dagen uit een reeks ("ma t/m za"): een losse "di gesloten" erna is een uitzondering, geen botsing
     for (const e of b.entries) for (const d of e.days) {

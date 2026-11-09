@@ -221,7 +221,7 @@ describe("tijden overnemen van Facebook (beheer, 9 nov)", () => {
 });
 
 describe("ketenpagina met blokken per plaats (GOED voor GOED, 9 nov)", () => {
-  const txt = "Openingstijden\nSommelsdijk, Oude-Tonge en Stellendam:\nMaandag t/m vrijdag van 9:00 tot 17:00\nZaterdag van 10:00 to 17:00\nHalsteren:\nMaandag t/m zaterdag van 10:00 tot 17:00\nInnamepunten:\nOp elke locatie standaard van 10:00 tot 15:00 en op zaterdag van 10:00 tot 12:00\n";
+  const txt = "Openingstijden\nSommelsdijk, Oude-Tonge en Stellendam:\nMaandag t/m vrijdag van 9:00 tot 17:00\nZaterdag van 10:00 to 17:00\nHalsteren:\nMaandag t/m zaterdag van 10:00 tot 17:00\nIn Sommelsdijk is de inname op maandag gesloten.\nInnamepunten:\nOp elke locatie standaard van 10:00 tot 15:00 en op zaterdag van 10:00 tot 12:00\n";
   it("kiest het blok met de eigen plaats", () => {
     expect(parseHoursNL(txt, "Stellendam")?.oh).toBe("Mo-Fr 09:00-17:00; Sa 10:00-17:00");
     expect(parseHoursNL(txt, "Halsteren")?.oh).toBe("Mo-Sa 10:00-17:00");
