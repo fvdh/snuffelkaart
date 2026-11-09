@@ -67,14 +67,25 @@ const landKind = (p: string) => p === '/' ? 'home' : p.startsWith('/kaart') ? 'k
   : p.startsWith('/organisator/') ? 'organisator' : p.startsWith('/provincie/') ? 'provinciepagina' : /^\/(rommel|vlooien|kofferbak|overdekte|markten)/.test(p) ? 'marktlijst' : p === '/aanmelden' ? 'aanmelden' : /^\/[a-z-]+\/?$/.test(p) ? 'stadspagina' : p;
 const STEP: Record<string, string> = { view: 'geopend', plan: 'Mijn dag', dagplan: 'dagplan', route: 'route', site: 'website', tel: 'bellen', share: 'gedeeld', filter: 'filter', zoek0: 'zoeken zonder resultaat', bijdrage: 'bijdrage', plaats: 'plaats gekozen' };
 const GOAL = new Set(['route', 'website', 'bellen', 'Mijn dag', 'dagplan', 'bijdrage']);
-function steps(v: Visit): string[] {
-  const out = [v.src, landKind(v.land)];
+/** Stappen van een bezoek met detail: [soort, pad / winkel / zoekwoord]. */
+type Step = [string, string];
+function trail(v: Visit, info?: Map<string, Info>): Step[] {
+  const det = (st: string, d: string) => (d === st || d === '/' ? '' : d);
+  const out: Step[] = [[v.src, ''], [landKind(v.land), det(landKind(v.land), v.land)]];
   for (const x of v.ev) {
     const st = x[2] === 'pv' ? (x[4].startsWith('/kaart') ? 'kaart' : x[4] === v.land ? null : landKind(x[4])) : STEP[x[2]];
-    if (st && out.at(-1) !== st) out.push(st);
+    if (!st) continue;
+    const d = x[2] === 'pv' ? (st === 'kaart' ? '' : det(st, x[4])) : info?.get(x[3])?.name ?? (['zoek0', 'filter', 'plaats'].includes(x[2]) ? x[3] : '');
+    const l = out.at(-1)!; if (l[0] !== st || l[1] !== d) out.push([st, d]);
   }
+  return out;
+}
+function steps(v: Visit): string[] {
+  const out: string[] = []; for (const [s] of trail(v)) if (out.at(-1) !== s) out.push(s);
   return out.slice(0, 7);
 }
+/** Detail bij een stap: een pagina als link (om zelf te bekijken), anders de naam of het zoekwoord. */
+const Det = ({ d }: { d: string }) => !d ? null : d.startsWith('/') ? <> <a className="ghost" href={d} target="_blank" rel="noopener">{d}</a></> : <span className="ghost"> {d}</span>;
 const isGoal = (v: Visit) => v.ev.some(x => ['route', 'site', 'tel'].includes(x[2]));
 
 /** Periode: tellers en gebeurtenissen van de laatste `days` dagen, en van de periode ervoor. */
@@ -142,7 +153,7 @@ function PerDaySources({ p }: { p: P }) {
 
 function describe(v: Visit, info: Map<string, Info>) {
   const last = [...v.ev].reverse().find(x => x[2] !== 'pv' && x[2] !== 'binnen'), name = last && info.get(last[3])?.name;
-  return { path: steps(v), what: last ? `${STEP[last[2]] ?? last[2]}${name ? ` ${name}` : last[2] === 'zoek0' || last[2] === 'filter' ? ` “${last[3]}”` : ''}` : '' };
+  return { path: trail(v, info).slice(0, 10), what: last ? `${STEP[last[2]] ?? last[2]}${name ? ` ${name}` : last[2] === 'zoek0' || last[2] === 'filter' ? ` “${last[3]}”` : ''}` : '' };
 }
 export function Receipt({ d, rows = 14, height = 300 }: { d: Data; rows?: number; height?: number }) {
   useEffect(() => { d.refreshLive(); const i = setInterval(d.refreshLive, 20000); return () => clearInterval(i); }, []);
@@ -151,7 +162,7 @@ export function Receipt({ d, rows = 14, height = 300 }: { d: Data; rows?: number
   return <div className="receipt" style={{ ['--fh' as string]: `${height}px` }}>
     <h4>Snuffelkaart · live</h4><div className="meta">{new Date().toLocaleDateString('nl-NL', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })} · {act} {act === 1 ? 'bezoek' : 'bezoeken'} nu actief</div><hr />
     {vs.length ? <ul className="feed">{vs.slice(0, rows).map(v => { const x = describe(v, d.info); return <li key={v.s + v.last} className={Date.now() / 1000 - v.last < 30 ? 'new' : ''}>
-      <span className="t">{hhmm(v.last)}</span><span className="w">{x.path.map((s, i) => <span key={i}>{i ? <span className="ar"> → </span> : null}{i === 1 ? <em>{s}</em> : s}</span>)}</span><span className={`s${isGoal(v) ? ' g' : ''}`}>{v.dev === 'm' ? 'mobiel' : 'desktop'}</span></li>; })}</ul>
+      <span className="t">{hhmm(v.last)}</span><span className="w">{x.path.map(([s, dd], i) => <span key={i}>{i ? <span className="ar"> → </span> : null}{i === 1 ? <em>{s}</em> : s}<Det d={dd} /></span>)}</span><span className={`s${isGoal(v) ? ' g' : ''}`}>{v.dev === 'm' ? 'mobiel' : 'desktop'}</span></li>; })}</ul>
       : <p className="feed-empty">Nog niets vandaag. Zodra iemand de site opent, rolt hier de bon.</p>}
     <hr /><div className="tot"><span>BEZOEKEN VANDAAG</span><span>{vt.length}</span></div><div className="tot ghost"><span>WAARVAN ROUTE/BEL/SITE</span><span>{vt.filter(isGoal).length}</span></div></div>;
 }
@@ -179,7 +190,7 @@ export function Live({ d }: { d: Data }) {
     <section className="s5"><Receipt d={d} rows={40} height={640} /></section>
     <Card title="Nu actief" sub={`${vs.length} ${vs.length === 1 ? 'bezoek' : 'bezoeken'} in het laatste halfuur`} span={7} flush>
       <div className="bc-b now">{vs.length ? vs.slice(0, 12).map(v => <div key={v.s}><div className="now-h"><b>{v.src} · {v.dev === 'm' ? 'mobiel' : 'desktop'}</b><span className="mono ghost">{Math.max(1, Math.round((Date.now() / 1000 - v.last) / 60))} min</span></div>
-        <div className="path">{steps(v).map((s, i) => <span key={i}>{i ? <span className="ar">→</span> : null}<span className={`step${i === 0 ? ' k' : GOAL.has(s) ? ' g' : ''}`}>{s}</span></span>)}</div></div>)
+        <div className="path">{trail(v, d.info).slice(0, 12).map(([s, dd], i) => <span key={i}>{i ? <span className="ar">→</span> : null}<span className={`step${i === 0 ? ' k' : GOAL.has(s) ? ' g' : ''}`}>{s}<Det d={dd} /></span></span>)}</div></div>)
         : <Empty>Op dit moment niemand. De lijst ververst elke 20 seconden.</Empty>}</div>
       <label className="toggle"><button type="button" role="switch" aria-checked={skip} className={`sw${skip ? ' on' : ''}`} onClick={toggle} /><span>Dit apparaat niet meetellen <span className="ghost">(je eigen bezoeken; geldt voor deze browser)</span></span></label>
     </Card>
