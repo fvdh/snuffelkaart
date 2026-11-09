@@ -158,7 +158,7 @@ import Sprite from '../components/Sprite.astro';
       .feed li { display: grid; grid-template-columns: 44px 1fr auto; gap: 10px; padding: 4px 0; align-items: baseline }
       .feed li.new { animation: print .7s ease-out both }
       @keyframes print { from { opacity: 0; transform: translateY(-8px); background: color-mix(in oklch, var(--markt) 25%, transparent) } }
-      .feed .t { color: var(--fg-3) } .feed .w { overflow: hidden; text-overflow: ellipsis; white-space: nowrap } .feed .w em { font-style: normal; color: var(--kring) } .feed .ar { color: var(--fg-3) }
+      .feed .t { color: var(--fg-3) } .feed .w { min-width: 0; overflow-wrap: anywhere } .feed .w em { font-style: normal; color: var(--kring) } .feed .ar { color: var(--fg-3) }
       .feed .s { font-size: 11px; color: var(--fg-3) } .feed .s.g { color: var(--open-ink) }
       .feed-empty { color: var(--fg-3); margin: 12px 0; text-align: center }
       .tot { display: flex; justify-content: space-between } .tot.ghost { color: var(--fg-3) }
