@@ -1,11 +1,14 @@
 ---
-// Winkelpagina: statisch, met de openingstijden van een gewone week en de bron. "Nu open" en het dagplan zitten in de app.
+// Winkelpagina (ontwerp "deurbordje", 9 nov): bovenaan als tekst wat een zoeker wil weten (open nu, de hele week, adres, telefoon),
+// dan de kaart als ingang naar de app, dan tijden per dag, reviews, wat er in de buurt zaterdag open is en markten.
 import Tekst from '../../layouts/Tekst.astro';
 import ItemRow from '../../components/ItemRow.astro';
 import KaartBlok from '../../components/KaartBlok.astro';
+import PlekDock from '../../components/PlekDock.astro';
+import '../../styles/plek.css';
 import type { Place } from '../../lib/model';
-import { catOf, km, dLong } from '../../lib/model';
-import { near, thin, weekHours, weekIntervals, hoursSpec, hoursSummary } from '../../lib/seo';
+import { catOf, km, dLong, DAYS_LONG, hm, cap } from '../../lib/model';
+import { near, thin, weekIntervals, hoursSpec, hoursSummary, fmtTel, splitAddr, niceVenue } from '../../lib/seo';
 import { CAT } from '../../components/ui';
 import { ix, places, markets, from, holidays, extra, SITE } from '../../lib/sitedata';
 import { avg } from '../../lib/bijdragen';
@@ -15,84 +18,110 @@ export function getStaticPaths() {
   return [...ix.shops].map(([slug, p]) => ({ params: { slug }, props: { p } }));
 }
 const { p } = Astro.props as { p: Place };
-const cat = CAT[catOf(p)][0], week = weekHours(p.h, from, holidays), wk = weekIntervals(p.h, from, holidays), cityUrl = ix.cityUrl(p.place);
+const c = catOf(p), sort = c === 'kringloop' ? 'Kringloopwinkel' : CAT[c][0], wk = weekIntervals(p.h, from, holidays), cityUrl = ix.cityUrl(p.place);
+const ivTxt = (iv: [number, number][]) => (iv.length ? iv.map(([a, b]) => `${hm(a)}–${hm(b % 1440)}`).join(' en ') : 'dicht');
 const web = p.website ? (p.website.startsWith('http') ? p.website : `https://${p.website}`) : null;
+const webTxt = p.website?.replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '');
+const tel = p.phone?.split(';')[0].trim(), telTxt = tel && fmtTel(tel), telHref = tel?.replace(/[^\d+]/g, '');
+const { street, pc, town } = splitAddr(p.addr, p.place);
 const osm = /^osm-([nwr])(\d+)$/.exec(p.id), osmUrl = osm ? `https://www.openstreetmap.org/${{ n: 'node', w: 'way', r: 'relation' }[osm[1] as 'n' | 'w' | 'r']}/${osm[2]}` : null;
 const mk = near(p, markets, from, 10, 4);
 const route = `https://www.google.com/maps/dir/?api=1&destination=${p.lat.toFixed(5)},${p.lon.toFixed(5)}`; // iPhone opent dit ook netjes
+const kaart = `/kaart/?open=${encodeURIComponent(p.id)}`;
 const checked = p.checked ? dLong(p.checked).toLowerCase() : null;
-// Geen sloop, opkoop of pandjeshuis bij "meer tweedehands"; dichtstbij eerst.
-const others = places.filter(o => o !== p && km(p, o) < 5 && DAY_CATS.includes(catOf(o))).sort((a, b) => km(p, a) - km(p, b)).slice(0, 6);
+// Buren: zelfde naam maar één keer (twee vestigingen), geen sloop of pandjeshuis; dichtstbij eerst.
+const seenName = new Set([p.name.toLowerCase()]);
+const others = places.filter(o => o !== p && km(p, o) < 5 && DAY_CATS.includes(catOf(o))).sort((a, b) => km(p, a) - km(p, b))
+  .filter(o => !seenName.has(o.name.toLowerCase()) && seenName.add(o.name.toLowerCase())).slice(0, 12);
+const satOf = (o: Place) => weekIntervals(o.h, from, holidays)?.find(d => d.wd === 6)?.iv ?? [];
+const sat = others.filter(o => km(p, o) < 2.5 && satOf(o).length).slice(0, 5);
+const kmTxt = (k: number) => (k < 1 ? `${Math.max(50, Math.round(k * 20) * 50)} m` : `${k.toFixed(1).replace('.', ',')} km`);
 const reviews = extra.reviews[p.id] ?? [], photos = extra.photos[p.id] ?? [], rating = avg(reviews);
 const MONTHS = ['januari', 'februari', 'maart', 'april', 'mei', 'juni', 'juli', 'augustus', 'september', 'oktober', 'november', 'december'];
-const title = `${p.name}${p.place ? `, ${p.place}` : ''}`;
-// Met tijden: die staan zo in het zoekresultaat ("kringloop open zondag"); zonder: adres en markten in de buurt.
-const description = wk ? `${cat}${p.place ? ` in ${p.place}` : ''}, open ${hoursSummary(wk)}.${p.addr ? ` ${p.addr}.` : ''}` : p.dicht ? `${cat}${p.place ? ` in ${p.place}` : ''}, volgens de eigen website tijdelijk gesloten.${p.addr ? ` ${p.addr}.` : ''}` : p.afspraak ? `${cat}${p.place ? ` in ${p.place}` : ''}, alleen op afspraak.${p.addr ? ` ${p.addr}.` : ''}` : p.meld?.k === 'onregelmatig' ? `${cat}${p.place ? ` in ${p.place}` : ''}, niet elke week open: ${p.meld.q.slice(0, 90)}${p.addr ? ` ${p.addr}.` : ''}` : `${cat}${p.place ? ` in ${p.place}` : ''}: adres${p.addr ? `, ${p.addr}` : ''}, en markten in de buurt.`;
-const ld = { '@context': 'https://schema.org', '@type': 'Store', name: p.name, url: SITE + ix.url(p.id), geo: { '@type': 'GeoCoordinates', latitude: p.lat, longitude: p.lon },
-  ...(p.addr ? { address: { '@type': 'PostalAddress', streetAddress: p.addr, addressLocality: p.place ?? undefined, addressCountry: 'NL' } } : {}), ...(p.phone ? { telephone: p.phone } : {}), ...(web ? { sameAs: web } : {}), ...(wk ? { openingHoursSpecification: hoursSpec(wk) } : {}),
+const url = ix.url(p.id), title = `${p.name}${p.place ? `, ${p.place}` : ''}: openingstijden en adres`;
+const summary = wk && hoursSummary(wk);
+const description = `${sort}${p.place ? ` in ${p.place}` : ''}${p.addr ? `, ${street}` : ''}. ` + (summary ? `Open ${summary}.` : p.dicht ? 'Volgens de eigen website tijdelijk gesloten.' : p.afspraak ? 'Alleen op afspraak.' : p.meld?.k === 'onregelmatig' ? `Niet elke week open: ${p.meld.q.slice(0, 80)}` : 'Openingstijden nog onbekend; bel even voordat je gaat.') + (telTxt ? ` Telefoon ${telTxt}.` : '');
+const crumbs: [string, string][] = [['Snuffelkaart', '/'], ...(cityUrl ? [[p.place!, cityUrl] as [string, string]] : []), [p.name, url]];
+const ld = { '@context': 'https://schema.org', '@type': 'Store', name: p.name, url: SITE + url, geo: { '@type': 'GeoCoordinates', latitude: p.lat, longitude: p.lon },
+  ...(p.addr ? { address: { '@type': 'PostalAddress', streetAddress: street, ...(pc ? { postalCode: pc } : {}), addressLocality: town ?? undefined, addressCountry: 'NL' } } : {}), ...(tel ? { telephone: telTxt } : {}), ...(web ? { sameAs: web } : {}), ...(wk ? { openingHoursSpecification: hoursSpec(wk) } : {}),
   ...(reviews.length ? { aggregateRating: { '@type': 'AggregateRating', ratingValue: rating, reviewCount: reviews.length, bestRating: 5, worstRating: 1 } } : {}),
   ...(photos.length ? { image: photos.slice(0, 3).map(f => f.url) } : {}) };
+const crumbLd = { '@context': 'https://schema.org', '@type': 'BreadcrumbList', itemListElement: crumbs.map(([n, u], i) => ({ '@type': 'ListItem', position: i + 1, name: n, item: SITE + u })) };
+const fmtDate = (iso: string) => `${dLong(iso)}${iso.slice(0, 4) !== from.slice(0, 4) ? ` ${iso.slice(0, 4)}` : ''}`;
 ---
-<Tekst title={title} description={description} tel={p.id} mail={p.place ?? true}>
+<Tekst title={title} description={description} tel={p.id} mail={p.place ?? true} wide>
   <script type="application/ld+json" slot="head" set:html={JSON.stringify(ld)} />
+  <script type="application/ld+json" slot="head" set:html={JSON.stringify(crumbLd)} />
   {thin(p) && <meta name="robots" content="noindex, follow" slot="head" />}
-  <p class="tp-crumbs"><a href="/">Snuffelkaart</a> › {cityUrl ? <a href={cityUrl}>{p.place}</a> : (p.place ?? 'Winkel')}</p>
-  <p class="eyebrow" style="margin-top:12px"><span class={`tile k c-${catOf(p)}`} style="width:24px;height:24px"><svg class="i" aria-hidden="true" style="width:14px;height:14px"><use href={`#i-${CAT[catOf(p)][2]}`} /></svg></span>{cat}</p>
-  <h1>{p.name}</h1>
-  <p class="lede"><a href={route} rel="nofollow" style="font-weight:inherit;color:inherit">{p.addr ?? p.place ?? ''}</a></p>
-  {/* Wie via Google komt, wil vooral weten: is hij nu open? Uitgerekend in de browser uit de tijden van de komende twee weken. */}
-  {p.h && <p class="tp-now" id="nu" data-from={from} data-h={JSON.stringify(p.h.slice(0, 14))} hidden></p>}
-  {/* Kaart met de winkel en wat er in de buurt is (Freek, 6 nov): van Google komen mensen hier binnen, de kaart is de ingang naar de app. */}
-  <KaartBlok items={[p, ...mk, ...others]} hl={p.id} href={`/kaart/?open=${encodeURIComponent(p.id)}`} label="Bekijk op de kaart, met wat er in de buurt is" />
-  {p.kind === 'tweedehands' && <p>Geen standaard kringloop: tweedehands, maar prijzen en aanbod kunnen anders zijn dan bij een kringloop.</p>}
-  <div class="tp-cta"><b>Zet hem in je dagplan</b><p>Plan hem samen met andere kringlopen en markten. We rekenen uit wanneer je waar bent en of alles dan open is.</p>
-    <div style="display:flex;gap:8px;flex-wrap:wrap"><a class="btn primary" href={`/kaart/?open=${encodeURIComponent(p.id)}&plan=1`}>Plan in Mijn dag</a><a class="btn" href={route} rel="nofollow">Route</a>{p.phone && <a class="btn" href={`tel:${p.phone.split(';')[0].replace(/\s/g, '')}`}>Bel</a>}</div></div>
+  <nav aria-label="Kruimelpad"><ol class="pl-crumbs">{crumbs.map(([n, u], i) => i < crumbs.length - 1 ? <li><a href={u}>{n}</a></li> : <li aria-current="page">{n}</li>)}</ol></nav>
 
-  <section>
-    <h2>Openingstijden</h2>
-    {week ? <><dl class="tp-hours">{week.map(d => <><dt data-dag={d.day}>{d.day}</dt><dd data-dag={d.day}>{d.txt}</dd></>)}</dl>
-      <p style="font-size:.875rem;color:var(--fg-3)">{p.hs === 'bezoeker' ? `Doorgegeven door ${p.hb} en door ons gecontroleerd` : p.hs === 'web' ? <>Van <a href={p.hu}>de website van de winkel</a></> : `Bron: ${p.src === 'osm' ? 'OpenStreetMap' : 'Overture Maps'}`}{checked ? `, gecontroleerd op ${checked}` : ''}. Rond feestdagen kunnen de tijden afwijken.</p></>
-      : p.dicht ? <p><b>{p.dichtTot ? `Gesloten tot en met ${new Date(p.dichtTot).toLocaleDateString('nl-NL', { day: 'numeric', month: 'long' })}.` : 'Tijdelijk gesloten.'}</b> {p.hq && <q>{p.hq}</q>} Dat staat op <a href={p.hu}>de website van de winkel</a> (gelezen op {p.dicht}). Bel even of kijk daar of hij weer open is.</p>
-      : p.meld?.k === 'onregelmatig' ? <p><b>Niet elke week open.</b> Op <a href={p.meld.u ?? p.hu}>de website van de winkel</a> staat: <q>{p.meld.q}</q> (gelezen op {p.meld.d}). Kijk daar of bel even voordat je gaat.</p>
-      : p.afspraak ? <p><b>Geen vaste openingstijden, alleen op afspraak.</b> {p.hq && <q>{p.hq}</q>} Dat staat op <a href={p.hu}>de website van de winkel</a> (gelezen op {p.afspraak}). Bel of mail even voordat je gaat.</p>
-      : <p>We weten de openingstijden nog niet. {p.src === 'osm' ? 'Deze winkel staat op OpenStreetMap, maar zonder tijden.' : 'Deze winkel komt uit Overture Maps en is nog niet door ons gecontroleerd; misschien bestaat hij niet meer.'} Bel even of kijk op de website voordat je gaat.</p>}
-    {/* Winkeliers zoeken hun eigen naam op en komen hier: laat ze hun tijden zelf neerzetten (zelfde formulier, wij controleren). */}
-    {!week && <div class="banner" style="flex-direction:column;margin-top:12px"><p style="margin:0"><b>Is dit jouw winkel?</b> Zet je openingstijden erop. Gratis, en snuffelaars in de buurt zien meteen wanneer je open bent.</p>
-      <p style="margin:0"><a class="btn primary" href={`/kaart/?open=${encodeURIComponent(p.id)}&tijden=1`} rel="nofollow">Openingstijden doorgeven</a></p></div>}
-  </section>
+  <div class="pl-sign">
+    <h1>{p.name}</h1>
+    <p class="pl-what"><span class={`pl-shape c-${c}`} aria-hidden="true"></span>{sort}{p.place && ` in ${p.place}`}</p>
+    <div class="pl-door">
+      {p.h && <p class="pl-now" id="pl-nu" data-from={from} data-h={JSON.stringify(p.h.slice(0, 14))} hidden></p>}
+      {summary ? <p class="pl-week">{summary}</p>
+        : p.dicht ? <p class="pl-week bad">{p.dichtTot ? `Gesloten tot en met ${dLong(p.dichtTot).toLowerCase()}` : 'Tijdelijk gesloten'}, volgens de eigen website.</p>
+        : p.afspraak ? <p class="pl-week unk">Geen vaste openingstijden: <em>alleen op afspraak</em>.</p>
+        : p.meld?.k === 'onregelmatig' ? <p class="pl-week unk"><em>Niet elke week open.</em> Kijk op hun website of bel even.</p>
+        : <p class="pl-week unk">Openingstijden <em>onbekend</em>. Bel even voordat je gaat.</p>}
+    </div>
+    <dl class="pl-facts">
+      <div><dt>Adres</dt><dd>{street ?? p.place}{(pc || town) && street && <small>{[pc, town].filter(Boolean).join(' ')}</small>}</dd></div>
+      {tel && <div><dt>Telefoon</dt><dd><a class="pl-big" href={`tel:${telHref}`}>{telTxt}</a></dd></div>}
+      {web ? <div><dt>Website</dt><dd><a href={web} rel="nofollow">{webTxt}</a></dd></div>
+        : p.fb && <div><dt>Facebook</dt><dd><a href={`https://www.facebook.com/${p.fb}`} rel="nofollow">Op Facebook</a></dd></div>}
+    </dl>
+    <div class="pl-acts">
+      <a class="btn primary" href={kaart}><svg class="i" aria-hidden="true"><use href="#i-map" /></svg>Bekijk op de kaart</a>
+      {tel && <a class="btn" href={`tel:${telHref}`}><svg class="i" aria-hidden="true"><use href="#i-phone" /></svg>Bel</a>}
+      <a class="btn" href={route} rel="nofollow"><svg class="i" aria-hidden="true"><use href="#i-route" /></svg>Route</a>
+    </div>
+    <p class="pl-src">{p.hs === 'bezoeker' ? `Tijden doorgegeven door ${p.hb} en door ons nagekeken` : p.hs === 'web' ? <>Tijden van <a href={p.hu} rel="nofollow">de website van de winkel</a></> : p.h ? `Tijden uit ${p.src === 'osm' ? 'OpenStreetMap' : 'Overture Maps'}` : `Deze winkel komt uit ${p.src === 'osm' ? 'OpenStreetMap' : 'een open kaartbron (Overture Maps)'} en is nog niet door ons bekeken`}{checked ? `, gecontroleerd op ${checked}` : ''}.{p.h && ' Rond feestdagen kan het afwijken.'}{p.kind === 'tweedehands' && ' Geen standaard kringloop: eigen aanbod en eigen prijzen.'}</p>
+  </div>
 
-  {(p.phone || web) && <section>
-    <h2>Contact</h2>
-    <ul class="tp-links" style="flex-direction:column">{p.phone && <li>Telefoon: <a href={`tel:${p.phone.replace(/\s/g, '')}`}>{p.phone}</a></li>}{web && <li>Website: <a href={web} rel="nofollow">{p.website!.replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '')}</a></li>}{p.fb && !/facebook\.com/i.test(p.website ?? '') && <li>Facebook: <a href={`https://www.facebook.com/${p.fb}`} rel="nofollow">facebook.com/{p.fb}</a></li>}</ul>
+  <KaartBlok items={[p, ...mk, ...others]} hl={p.id} href={kaart} label={`${others.length + mk.length} plekken in de buurt op de kaart`} />
+
+  <div class="pl-two">
+    <section aria-labelledby="h-tijden">
+      <h2 class="pl-h" id="h-tijden">Openingstijden {p.name}</h2>
+      {wk ? <table class="pl-hours"><caption class="sr">Openingstijden in een gewone week</caption><tbody>{wk.map(({ wd, iv }) => <tr data-wd={wd}><th scope="row">{cap(DAYS_LONG[wd])}</th><td>{ivTxt(iv)}</td></tr>)}</tbody></table>
+        : <>
+          {(p.dicht || p.afspraak) && p.hq && <p class="pl-quote">“{p.hq}”</p>}
+          {p.meld?.k === 'onregelmatig' && <p class="pl-quote">“{p.meld.q}”</p>}
+          {(p.dicht || p.afspraak || p.meld?.k === 'onregelmatig') && <p class="pl-src">Letterlijk van <a href={p.meld?.u ?? p.hu} rel="nofollow">de website van de winkel</a>, gelezen op {dLong(p.dicht ?? p.afspraak ?? p.meld!.d).toLowerCase()}.</p>}
+          {!p.dicht && !p.afspraak && <p>Ben je er geweest en weet je wanneer hij open is? <a href={`${kaart}&tijden=1`} rel="nofollow">Geef de tijden door</a>; wij kijken ze na.</p>}
+        </>}
+    </section>
+    <section aria-labelledby="h-rev">
+      <h2 class="pl-h" id="h-rev">{reviews.length ? `Reviews · ${String(rating).replace('.', ',')} van 5 (${reviews.length})` : 'Reviews'}</h2>
+      {reviews.length ? <>
+        {reviews.map(r => <div class="rev"><span class="stars" role="img" aria-label={`${r.stars} van 5 sterren`}>{[1, 2, 3, 4, 5].map(i => <svg class="i" aria-hidden="true" style={`opacity:${i <= r.stars ? 1 : 0.25}`}><use href="#i-star" /></svg>)}</span>{r.text && <p>{r.text}</p>}<small>{r.name} · bezocht in {MONTHS[+r.month.slice(5) - 1]} {r.month.slice(0, 4)}</small></div>)}
+        <p class="pl-src">Reviews komen online na controle. <a href="/hoe-we-controleren#reviews">Hoe we reviews controleren</a></p></>
+        : <p>Nog geen reviews. Ben je er geweest? <a href={kaart} rel="nofollow">Schrijf de eerste</a>; we zetten hem erop na controle.</p>}
+    </section>
+  </div>
+
+  {photos.length > 0 && <section><h2 class="pl-h">Foto's van {p.name}</h2><div class="photos" style="grid-template-rows:120px 120px">{photos.slice(0, 3).map(f => <div><img src={f.url} alt={f.caption ?? `Foto van ${f.name}`} loading="lazy" style="width:100%;height:100%;object-fit:cover;display:block" /></div>)}</div></section>}
+
+  {sat.length >= 2 ? <section aria-labelledby="h-buurt">
+      <h2 class="pl-h" id="h-buurt">Op loopafstand en zaterdag open</h2>
+      <ul class="rows">{sat.map(o => <ItemRow it={o} note={`za ${ivTxt(satOf(o))} · ${kmTxt(km(p, o))}`} />)}</ul>
+      <a class="pl-more" href={kaart}>Alle winkels rond {p.name} op de kaart</a></section>
+    : others.length > 0 && <section aria-labelledby="h-buurt">
+      <h2 class="pl-h" id="h-buurt">Tweedehands rond {p.name}</h2>
+      <ul class="rows">{others.slice(0, 6).map(o => <ItemRow it={o} note={`${o.place ?? ''} · ${kmTxt(km(p, o))}`} />)}</ul>
+      <a class="pl-more" href={kaart}>Alles in de buurt op de kaart</a></section>}
+
+  {mk.length > 0 && <section aria-labelledby="h-markt">
+    <h2 class="pl-h" id="h-markt">Markten in de buurt{p.place ? ` van ${p.place}` : ''}</h2>
+    <table class="pl-dates"><tbody>{mk.map(m => <tr><th scope="row">{fmtDate(m.date)}</th><td><a href={ix.url(m.id)}>{m.name}</a><span class="hide-m">{m.venue ? `, ${niceVenue(m.venue)}` : ''}</span></td><td class="r">{kmTxt(km(p, m))}</td></tr>)}</tbody></table>
   </section>}
 
-  {photos.length > 0 && <section><h2>Foto's</h2><div class="photos" style="grid-template-rows:120px 120px">{photos.slice(0, 3).map(f => <div><img src={f.url} alt={f.caption ?? `Foto van ${f.name}`} loading="lazy" style="width:100%;height:100%;object-fit:cover;display:block" /></div>)}</div></section>}
-  {reviews.length > 0 && <section><h2>Reviews · {String(rating).replace('.', ',')} van 5 ({reviews.length})</h2>
-    {reviews.map(r => <div class="rev"><span class="stars" role="img" aria-label={`${r.stars} van 5 sterren`}>{[1, 2, 3, 4, 5].map(i => <svg class="i" aria-hidden="true" style={`opacity:${i <= r.stars ? 1 : 0.25}`}><use href="#i-star" /></svg>)}</span>{r.text && <p>{r.text}</p>}<small>{r.name} · bezocht in {MONTHS[+r.month.slice(5) - 1]} {r.month.slice(0, 4)}</small></div>)}
-    <p style="font-size:.875rem;color:var(--fg-3)">Reviews komen online na controle. <a href="/hoe-we-controleren#reviews">Hoe we reviews controleren</a></p></section>}
-  {mk.length > 0 && <section><h2>Markten in de buurt</h2><ul class="rows">{mk.map(m => <ItemRow it={m} note={`${m.place} · ${Math.round(km(p, m))} km`} />)}</ul></section>}
-  {others.length > 0 && <section><h2>Meer tweedehands in de buurt</h2><ul class="rows">{others.map(o => <ItemRow it={o} note={`${o.place ?? ''} · ${km(p, o).toFixed(1).replace('.', ',')} km`} />)}</ul></section>}
-
-  <section>
-    <p style="font-size:.875rem;color:var(--fg-3)">{p.src === 'osm' ? <>Gegevens: © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap-bijdragers</a> (ODbL). Zelf aanpassen kan op <a href={osmUrl!}>OpenStreetMap</a>.</> : <>Gegevens: © Overture Maps Foundation (CDLA Permissive 2.0). Nog niet door ons gecontroleerd.</>}</p>
-    <p><a class="btn" href={`/kaart/?open=${encodeURIComponent(p.id)}`}>Review, foto of tijden doorgeven</a></p>
-    <p style="font-size:.875rem;color:var(--fg-3)">Klopt er iets niet? Open de winkel in de app en tik onderaan op <b>Klopt er iets niet?</b>.</p>
+  <section class="pl-owner">
+    <p>Is dit jouw winkel? {p.h ? 'Kloppen de tijden niet, pas ze dan zelf aan.' : 'Zet je openingstijden erop, dan zien snuffelaars wanneer je open bent.'} We zetten het erop na een korte controle.</p>
+    <a href={`${kaart}&tijden=1`} rel="nofollow">Gegevens doorgeven</a>
   </section>
-  <script is:inline>
-    (() => {
-      const el = document.getElementById('nu'); if (!el) return;
-      const h = JSON.parse(el.dataset.h), [y, m, d] = el.dataset.from.split('-').map(Number), now = new Date();
-      const i0 = Math.round((new Date(now.getFullYear(), now.getMonth(), now.getDate()) - new Date(y, m - 1, d)) / 864e5), min = now.getHours() * 60 + now.getMinutes();
-      const hm = x => `${Math.floor(x / 60) % 24}:${String(x % 60).padStart(2, '0')}`, DAG = ['zondag', 'maandag', 'dinsdag', 'woensdag', 'donderdag', 'vrijdag', 'zaterdag'];
-      const iv = h[i0]; if (!iv) return;
-      const cur = iv.find(([a, b]) => min >= a && min < b), later = iv.find(([a]) => a > min);
-      let txt, cls = 'closed';
-      if (cur) { txt = `Nu open · sluit ${hm(cur[1])}`; cls = 'open'; }
-      else if (later) txt = `Nu dicht · opent vandaag om ${hm(later[0])}`;
-      else { for (let k = 1; k < 8 && h[i0 + k]; k++) if (h[i0 + k].length) { const w = new Date(now); w.setDate(w.getDate() + k); txt = `Nu dicht · opent ${k === 1 ? 'morgen' : DAG[w.getDay()]} om ${hm(h[i0 + k][0][0])}`; break; } }
-      document.querySelectorAll(`[data-dag="${DAG[now.getDay()][0].toUpperCase() + DAG[now.getDay()].slice(1)}"]`).forEach(e => e.classList.add('vandaag'));
-      if (!txt) return;
-      el.textContent = txt; el.className = `tp-now ${cls}`; el.hidden = false;
-    })();
-  </script>
+  <p class="pl-src">{p.src === 'osm' ? <>Gegevens: © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap-bijdragers</a> (ODbL). Zelf aanpassen kan op <a href={osmUrl!}>OpenStreetMap</a>.</> : <>Gegevens: © Overture Maps Foundation (CDLA Permissive 2.0).</>} Klopt er iets niet? Open de winkel in de app en tik op <b>Klopt er iets niet?</b></p>
+  <PlekDock href={kaart} label="Bekijk op de kaart" />
 </Tekst>

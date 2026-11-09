@@ -6,7 +6,6 @@ const { plek } = Astro.props;
 const id = 'wm';
 ---
 <form class="wm" method="post" action="/api/aanmelden" aria-labelledby={`${id}-kop`}>
-  <span class="wm-zegel" aria-hidden="true"><svg class="i"><use href="#i-mail" /></svg></span>
   <h2 id={`${id}-kop`}>{plek ? `Elke donderdag de markten rond ${plek}` : 'Elke donderdag de markten bij jou in de buurt'}</h2>
   <p class="wm-tekst">Een korte mail met de rommelmarkten van het weekend, binnen de afstand die je kiest. Geen markten in de buurt, dan geen mail.</p>
   <input type="hidden" name="lijst" value="weekend" />
@@ -24,23 +23,19 @@ const id = 'wm';
   <div class="wm-hp" aria-hidden="true"><label>Laat dit leeg <input name="website" tabindex="-1" autocomplete="off" /></label></div>
 </form>
 <style>
-  /* Zelfde taal als de band op de homepage (home.css .post): donker, gele knop, postzegel. */
-  .wm { position: relative; margin: 32px 0 8px; padding: 22px 20px 18px; border-radius: 16px; background: var(--ink); color: var(--on-ink) }
-  .wm h2 { margin: 0; padding-right: 64px; font-size: 1.25rem; line-height: 1.2; font-weight: 740; letter-spacing: -.015em; text-wrap: balance }
-  .wm-tekst { margin: 8px 0 0; padding-right: 64px; font-size: .9375rem; color: color-mix(in oklch, var(--on-ink) 82%, var(--ink)) }
-  .wm-zegel { position: absolute; top: 18px; right: 18px; width: 44px; height: 52px; display: grid; place-items: center; background: var(--markt); color: var(--on-markt); border-radius: 3px; outline: 2px dashed var(--ink); outline-offset: -5px; transform: rotate(5deg) }
-  .wm-zegel .i { width: 22px; height: 22px }
-  .wm-velden { margin-top: 16px; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-areas: "l1 l2" "i1 i2" "l3 ." "i3 b"; gap: 6px 10px; align-items: end }
+  /* Rustig, in de huisstijl (impeccable-kritiek 9 nov: het donkere vlak met gele knop las als sjabloon; acties zijn inkt). */
+  .wm { position: relative; margin: 36px 0 8px; padding: 22px 20px 18px; border-radius: 16px; background: var(--surface-2); color: var(--fg) }
+  .wm h2 { margin: 0; font-size: 1.1875rem; line-height: 1.2; font-weight: 740; letter-spacing: -.015em; text-wrap: balance }
+  .wm-tekst { margin: 6px 0 0; font-size: .9375rem; color: var(--fg-2); max-width: 60ch }
+  .wm-velden { margin-top: 14px; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-areas: "l1 l2" "i1 i2" "l3 ." "i3 b"; gap: 6px 10px; align-items: end }
   @media (max-width: 520px) { .wm-velden { grid-template-areas: "l1 l1" "i1 i1" "l2 l2" "i2 i2" "l3 ." "i3 b" } }
-  .wm label { font-weight: 600; font-size: .875rem }
+  .wm label { font-weight: 600; font-size: .875rem; color: var(--fg-2) }
   .wm-velden label[for$="-km"] { margin-top: 6px }
-  .wm input, .wm select { box-sizing: border-box; height: 48px; width: 100%; margin: 0; padding: 0 12px; border: 0; border-radius: 11px; background: var(--on-ink); color: var(--ink); font: 500 1rem var(--font) }
-  .wm input::placeholder { color: color-mix(in oklch, var(--ink) 55%, var(--on-ink)) }
-  .wm button { height: 48px; border: 0; border-radius: 11px; background: var(--markt); color: var(--on-markt); font: 700 1rem var(--font); cursor: pointer }
-  .wm :focus-visible { outline: 2px solid var(--on-ink); outline-offset: 3px }
-  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .wm button { background: var(--on-ink); color: var(--markt) } }
-  :root[data-theme="dark"] .wm button { background: var(--on-ink); color: var(--markt) }
-  .wm-hint { margin: 12px 0 0; font-size: .8125rem; color: color-mix(in oklch, var(--on-ink) 78%, var(--ink)) }
-  .wm-hint a { color: var(--on-ink) }
+  .wm input, .wm select { box-sizing: border-box; height: 46px; width: 100%; margin: 0; padding: 0 12px; border: 1px solid var(--line-strong); border-radius: 12px; background: var(--surface); color: var(--fg); font: 500 1rem var(--font) }
+  .wm input::placeholder { color: var(--fg-3) }
+  .wm button { height: 46px; border: 0; border-radius: 12px; background: var(--ink); color: var(--on-ink); font: 650 1rem var(--font); cursor: pointer }
+  .wm :focus-visible { outline: 2px solid var(--focus); outline-offset: 2px }
+  .wm-hint { margin: 12px 0 0; font-size: .8125rem; color: var(--fg-3) }
+  .wm-hint a { color: var(--fg-2) }
   .wm-hp { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden }
 </style>

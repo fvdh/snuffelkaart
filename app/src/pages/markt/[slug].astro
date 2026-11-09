@@ -1,81 +1,133 @@
 ---
-// Marktpagina: statisch, maar de status komt live uit het statusbestand (§6.1), zodat een afgelasting ook op een oude build klopt.
+// Marktpagina per reeks (9 nov): één pagina voor alle data van dezelfde markt (naam, plaats, zaal), eerstvolgende bovenaan.
+// Oude adressen per datum verwijzen hierheen (markt-redirects.txt.ts). De status van de eerstvolgende komt live uit het statusbestand
+// (§6.1), zodat een afgelasting ook op een oude build klopt.
 import Tekst from '../../layouts/Tekst.astro';
 import ItemRow from '../../components/ItemRow.astro';
-import type { Market } from '../../lib/model';
-import { dLong, hm, km } from '../../lib/model';
-import { near } from '../../lib/seo';
-import { ix, markets, places, from, SITE } from '../../lib/sitedata';
+import KaartBlok from '../../components/KaartBlok.astro';
+import PlekDock from '../../components/PlekDock.astro';
+import '../../styles/plek.css';
+import type { Market, Place } from '../../lib/model';
+import { dLong, hm, km, dayStart, DAYS_LONG, cap, catOf } from '../../lib/model';
+import { near, niceVenue, slugify, weekIntervals } from '../../lib/seo';
+import { ix, markets, places, from, holidays, SITE } from '../../lib/sitedata';
+import { DAY_CATS } from '../../lib/plan';
 
 export function getStaticPaths() {
-  return [...ix.markets].map(([slug, m]) => ({ params: { slug }, props: { m } }));
+  return [...ix.series].map(([slug, ms]) => ({ params: { slug }, props: { ms } }));
 }
-const { m } = Astro.props as { m: Market };
-const time = m.timeKnown === false ? 'tijden bij de organisator' : m.end ? `${hm(m.start)}–${hm(m.end)}` : `vanaf ${hm(m.start)}`;
-const where = m.venue ? `${m.venue}, ${m.place}` : m.place, cityUrl = ix.cityUrl(m.place);
-const STATUS = {
-  org: ['org', 'Bevestigd door de organisator', `${m.org} heeft deze datum zelf opgegeven.`],
-  chk: ['chk', `Gecontroleerd${m.checked ? ` op ${dLong(m.checked).toLowerCase()}` : ''}`, `Deze datum stond bij de laatste controle bij ${m.org}.`],
-  unconf: ['unconf', 'Nog niet bevestigd', 'Check deze datum bij de organisator voordat je gaat.'],
-  cancel: ['cancel', 'Afgelast', m.cancelWhy ?? ''],
-} as const;
-const [cls, head, body] = STATUS[m.status];
-const more = near(m, markets, from, 15, 5).filter(o => o.id !== m.id).slice(0, 4);
-const shops = places.filter(p => p.h && km(m, p) < 5).sort((a, b) => km(m, a) - km(m, b)).slice(0, 5);
-const title = `${m.name}, ${dLong(m.date).toLowerCase()}`;
-const description = `${m.kind} in ${m.place} op ${dLong(m.date).toLowerCase()}, ${time}. ${m.entree && m.entree !== 'onbekend' ? `Entree: ${m.entree}. ` : ''}Met de bron en of hij doorgaat.`;
+const { ms } = Astro.props as { ms: Market[] };
+const nx = ms.find(m => m.status !== 'cancel') ?? ms[0], venue = niceVenue(nx.venue), url = ix.url(nx.id), kaart = `/kaart/?open=${encodeURIComponent(nx.id)}`;
+const h1 = `${nx.name}${venue && !slugify(nx.name).includes(slugify(venue)) ? `, ${venue}` : ''}`;
+const timeOf = (m: Market) => (m.timeKnown === false ? 'tijden bij de organisator' : m.end ? `${hm(m.start)}–${hm(m.end)}` : `vanaf ${hm(m.start)}`);
+const dateOf = (iso: string) => `${dLong(iso)}${iso.slice(0, 4) !== from.slice(0, 4) ? ` ${iso.slice(0, 4)}` : ''}`;
+const fee = (m: Market) => (m.entree && m.entree !== 'onbekend' ? m.entree : null);
+const where = nx.addr ?? (venue ? `${venue}, ${nx.place}` : nx.place), cityUrl = ix.cityUrl(nx.place), orgUrl = ix.orgUrl(nx.org);
+const STATUS: Record<string, string> = { org: 'bevestigd door de organisator', chk: 'gecontroleerd', unconf: 'nog niet bevestigd', cancel: 'afgelast' };
+const statusLine = nx.status === 'org' ? `${nx.org} heeft deze datum zelf opgegeven.` : nx.status === 'chk' ? `Datum en tijden nagekeken${nx.checked ? ` op ${dLong(nx.checked).toLowerCase()}` : ''} bij ${nx.org}. We lezen hun agenda elke nacht; afgelast staat er de volgende ochtend op.`
+  : nx.status === 'unconf' ? 'Nog niet bevestigd: check de datum bij de organisator voordat je gaat.' : `Afgelast${nx.cancelWhy ? `: ${nx.cancelWhy}` : ''}.`;
+// Winkels die op de marktdag open zijn (zondag zijn de meeste kringlopen dicht: dan zeggen we dat ook).
+const wd = dayStart(nx.date).getDay(), openOn = (p: Place) => weekIntervals(p.h, from, holidays)?.find(d => d.wd === wd)?.iv ?? [];
+const nearShops = places.filter(p => DAY_CATS.includes(catOf(p)) && km(nx, p) < 6).sort((a, b) => km(nx, a) - km(nx, b));
+const openThatDay = nearShops.filter(p => openOn(p).length).slice(0, 5);
+const ivTxt = (iv: [number, number][]) => iv.map(([a, b]) => `${hm(a)}–${hm(b % 1440)}`).join(' en ');
+const kmTxt = (k: number) => (k < 1 ? `${Math.max(50, Math.round(k * 20) * 50)} m` : `${k.toFixed(1).replace('.', ',')} km`);
+const ids = new Set(ms.map(m => m.id));
+const orgNext = [...ix.series.values()].filter(s => s[0].org === nx.org && !s.some(m => ids.has(m.id))).map(s => s.find(m => m.status !== 'cancel') ?? s[0]).sort((a, b) => a.date.localeCompare(b.date)).slice(0, 6);
+const others = near(nx, markets, from, 15, 10).filter(m => !ids.has(m.id) && m.org !== nx.org).slice(0, 5);
+const years = [...new Set(ms.map(m => m.date.slice(0, 4)))].join('–');
+const title = `${h1} ${years}: data, tijden en entree`;
+const description = `${nx.kind} in ${nx.place}${venue ? `, ${venue}` : ''}. Volgende: ${dLong(nx.date).toLowerCase()}, ${timeOf(nx)}${fee(nx) ? `, entree ${fee(nx)}` : ''}${nx.indoor ? ', binnen' : ''}. ${ms.length > 1 ? `Alle ${ms.length} data, ` : ''}met de bron en of hij doorgaat.`;
 const off = (d: string, min: number) => { const o = new Date(`${d}T12:00:00`).getTimezoneOffset(); const h = -o / 60; return `${d}T${hm(min).padStart(5, '0')}:00${h >= 0 ? '+' : '-'}${String(Math.abs(h)).padStart(2, '0')}:00`; };
-const ld = { '@context': 'https://schema.org', '@type': 'Event', name: m.name, url: SITE + ix.url(m.id), startDate: off(m.date, m.start), ...(m.end ? { endDate: off(m.date, m.end) } : {}),
+const price = (m: Market) => (m.entree === 'gratis' ? '0' : /(\d+(?:[,.]\d{1,2})?)/.exec(m.entree ?? '')?.[1]?.replace(',', '.'));
+const crumbs: [string, string][] = [['Snuffelkaart', '/'], ['Markten', '/markten/'], ...(cityUrl ? [[nx.place, cityUrl] as [string, string]] : []), [h1, url]];
+const ld = ms.slice(0, 20).map(m => ({ '@context': 'https://schema.org', '@type': 'Event', name: `${m.name} ${dLong(m.date).toLowerCase()}`, url: `${SITE}${url}#${m.date}`, startDate: off(m.date, m.start), ...(m.end ? { endDate: off(m.date, m.end) } : {}),
   eventStatus: `https://schema.org/${m.status === 'cancel' ? 'EventCancelled' : 'EventScheduled'}`, eventAttendanceMode: 'https://schema.org/OfflineEventAttendanceMode',
-  location: { '@type': 'Place', name: m.venue ?? m.place, address: { '@type': 'PostalAddress', streetAddress: m.addr ?? undefined, addressLocality: m.place, addressCountry: 'NL' }, geo: { '@type': 'GeoCoordinates', latitude: m.lat, longitude: m.lon } },
-  organizer: { '@type': 'Organization', name: m.org, ...(m.url ? { url: m.url } : {}) }, ...(m.entree === 'gratis' ? { isAccessibleForFree: true } : {}) };
+  description: `${m.kind}${m.indoor ? ', binnen' : m.indoor === false ? ', buiten' : ''}${venue ? ` in ${venue}` : ''}, ${m.place}.${fee(m) ? ` Entree: ${fee(m)}.` : ''}`,
+  location: { '@type': 'Place', name: venue || m.place, address: { '@type': 'PostalAddress', streetAddress: m.addr ?? undefined, addressLocality: m.place, addressCountry: 'NL' }, geo: { '@type': 'GeoCoordinates', latitude: m.lat, longitude: m.lon } },
+  organizer: { '@type': 'Organization', name: m.org, ...(m.url ? { url: m.url } : {}) },
+  ...(price(m) ? { offers: { '@type': 'Offer', price: price(m), priceCurrency: 'EUR', ...(m.url ? { url: m.url } : {}), availability: 'https://schema.org/InStock' } } : {}),
+  ...(m.entree === 'gratis' ? { isAccessibleForFree: true } : {}) }));
+const crumbLd = { '@context': 'https://schema.org', '@type': 'BreadcrumbList', itemListElement: crumbs.map(([n, u], i) => ({ '@type': 'ListItem', position: i + 1, name: n, item: SITE + u })) };
+const practical = [['Kramen', nx.kramen ? `±${nx.kramen}` : null], ['Kraam huren', nx.kraamhuur], ['Schema', nx.schema]].filter(([, v]) => v) as [string, string][];
 ---
-<Tekst title={title} description={description} tel={m.id} mail={m.place ?? true}>
-  <script type="application/ld+json" slot="head" set:html={JSON.stringify(ld)} />
-  <p class="tp-crumbs"><a href="/">Snuffelkaart</a> › <a href="/markten/">Markten</a> › {cityUrl ? <a href={cityUrl}>{m.place}</a> : m.place}</p>
-  <p class="eyebrow" style="margin-top:12px"><span class="tile m" style="width:24px;height:24px"><svg class="i" aria-hidden="true" style="width:14px;height:14px"><use href="#i-kraam" /></svg></span>{m.kind}{m.indoor !== undefined && ` · ${m.indoor ? 'binnen' : 'buiten'}`}</p>
-  <h1 id="naam" class={m.status === 'cancel' ? 'strike' : ''}>{m.name}</h1>
-  <p class="lede"><b>{dLong(m.date)}</b> · {time}<br />{where}</p>
-  <div id="status" data-id={m.id} class={`statusbox ${cls}`} style="margin-top:14px"><svg class="i" aria-hidden="true"><use href={`#i-${m.status === 'cancel' ? 'x' : m.status === 'unconf' ? 'alert' : 'check'}`} /></svg><div><b>{head}</b><p>{body}</p></div></div>
-  <div class="tp-cta"><b>Combineer met kringlopen</b><p>Zet deze markt in je dagplan; de kaart kijkt welke winkels dan open zijn op je route.</p>
-    <div style="display:flex;gap:8px;flex-wrap:wrap"><a class="btn primary" href={`/kaart/?open=${encodeURIComponent(m.id)}&plan=1`}>Plan in Mijn dag</a><a class="btn" href={`https://www.google.com/maps/dir/?api=1&destination=${m.lat.toFixed(5)},${m.lon.toFixed(5)}`} rel="nofollow">Route</a><button class="btn" id="deel" type="button">Deel</button></div></div>
+<Tekst title={title} description={description} tel={nx.id} mail={nx.place ?? true} wide>
+  <script type="application/ld+json" slot="head" set:html={JSON.stringify(ld.length === 1 ? ld[0] : ld)} />
+  <script type="application/ld+json" slot="head" set:html={JSON.stringify(crumbLd)} />
+  <nav aria-label="Kruimelpad"><ol class="pl-crumbs">{crumbs.map(([n, u], i) => i < crumbs.length - 1 ? <li><a href={u}>{n}</a></li> : <li aria-current="page">{n}</li>)}</ol></nav>
+
+  <div class="pl-sign">
+    <h1 id="naam" class={nx.status === 'cancel' ? 'strike' : ''}>{h1}</h1>
+    <p class="pl-what"><span class="pl-shape rond" aria-hidden="true"></span>{nx.kind}{nx.indoor !== undefined && `, ${nx.indoor ? 'binnen' : 'buiten'}`}{nx.org && <> · door {orgUrl ? <a href={orgUrl}>{nx.org}</a> : nx.org}</>}</p>
+    <div class="pl-door">
+      <p class="pl-now" id="pl-aftel" data-date={nx.date} hidden></p>
+      <p class="pl-week">{nx.status === 'cancel' ? 'Afgelast: ' : ms.length > 1 ? 'Volgende: ' : ''}{dateOf(nx.date).toLowerCase()}, {timeOf(nx)}</p>
+    </div>
+    <dl class="pl-facts">
+      <div><dt>Entree</dt><dd class={fee(nx) ? 'pl-big' : ''}>{fee(nx) ? cap(fee(nx)!) : 'Staat niet in de agenda'}</dd></div>
+      <div><dt>Binnen of buiten</dt><dd>{nx.indoor === undefined ? 'Onbekend' : nx.indoor ? 'Binnen' : 'Buiten'}{nx.indoor && <small>dus ook bij regen</small>}{nx.binnenBron && !nx.indoor && <small>{nx.binnenBron}</small>}</dd></div>
+      <div><dt>Adres</dt><dd>{venue || where}{venue && <small>{nx.addr ?? nx.place}</small>}</dd></div>
+    </dl>
+    <div class="pl-acts">
+      <a class="btn primary" href={kaart}><svg class="i" aria-hidden="true"><use href="#i-map" /></svg>Bekijk op de kaart</a>
+      <a class="btn" href={`https://www.google.com/maps/dir/?api=1&destination=${nx.lat.toFixed(5)},${nx.lon.toFixed(5)}`} rel="nofollow"><svg class="i" aria-hidden="true"><use href="#i-route" /></svg>Route</a>
+      <button class="btn" id="deel" type="button"><svg class="i" aria-hidden="true"><use href="#i-share" /></svg>Deel</button>
+    </div>
+    <p class="pl-src" id="status" data-id={nx.id} data-st={nx.status}>{statusLine}</p>
+  </div>
+
+  <KaartBlok items={[nx, ...nearShops.slice(0, 20)]} hl={nx.id} href={kaart} label={`Markt en ${Math.min(20, nearShops.length)} winkels in de buurt`} />
+
+  <section aria-labelledby="h-data">
+    <h2 class="pl-h" id="h-data">{ms.length > 1 ? `Alle data van ${nx.name}` : `Datum en tijden`}</h2>
+    <table class="pl-dates"><tbody>{ms.map(m => <tr id={m.date} class={`${m === nx ? 'next' : ''}${m.status === 'cancel' ? ' cancel' : ''}`}>
+      <th scope="row">{dateOf(m.date)}</th><td class="hide-m">{timeOf(m)}</td><td>{fee(m) ?? ''}</td><td class={`r st-${m.status}`}>{STATUS[m.status]}</td></tr>)}</tbody></table>
+    {(practical.length > 0 || nx.url) && <table class="pl-hours" style="margin-top:14px"><tbody>
+      {practical.map(([k, v]) => <tr><th scope="row">{k}</th><td>{v}</td></tr>)}
+      {nx.url && <tr><th scope="row">Organisator</th><td>{orgUrl ? <a href={orgUrl}>{nx.org}</a> : nx.org} · <a href={nx.url} rel="nofollow">naar hun site</a></td></tr>}
+    </tbody></table>}
+  </section>
+
+  <section aria-labelledby="h-open">
+    <h2 class="pl-h" id="h-open">{wd === 0 ? 'Op zondag ook open' : `${cap(DAYS_LONG[wd])} open in de buurt`}</h2>
+    {openThatDay.length ? <>
+      {wd === 0 && <p>Op zondag zijn de meeste kringlopen dicht. Deze zijn op een gewone zondag open{holidays.includes(nx.date) ? '; op een feestdag kan het anders zijn' : ''}.</p>}
+      <ul class="rows">{openThatDay.map(p => <ItemRow it={p} note={`${DAYS_LONG[wd].slice(0, 2)} ${ivTxt(openOn(p))} · ${kmTxt(km(nx, p))}`} />)}</ul></>
+      : <p>Op {DAYS_LONG[wd]} is hier in de buurt geen kringloop open, voor zover we weten.</p>}
+    <a class="pl-more" href={kaart}>Alles rond de markt op de kaart</a>
+  </section>
+
+  {orgNext.length > 0 && <section aria-labelledby="h-org">
+    <h2 class="pl-h" id="h-org">Meer markten van {nx.org}</h2>
+    <table class="pl-dates"><tbody>{orgNext.map(m => <tr><th scope="row">{dateOf(m.date)}</th><td><a href={ix.url(m.id)}>{m.name}</a><span class="hide-m">{m.venue ? `, ${niceVenue(m.venue)}` : ''}</span></td><td class="r">{fee(m) ?? ''}</td></tr>)}</tbody></table>
+    {orgUrl && <a class="pl-more" href={orgUrl}>Alle markten van {nx.org}</a>}
+  </section>}
+
+  {others.length > 0 && <section aria-labelledby="h-meer">
+    <h2 class="pl-h" id="h-meer">Andere markten in de buurt</h2>
+    <table class="pl-dates"><tbody>{others.map(m => <tr><th scope="row">{dateOf(m.date)}</th><td><a href={ix.url(m.id)}>{m.name}</a></td><td class="r">{m.place} · {Math.round(km(nx, m))} km</td></tr>)}</tbody></table>
+  </section>}
+  <PlekDock href={kaart} label="Bekijk op de kaart" />
   <script is:inline>
     // Delen: het deelmenu van de telefoon, anders de link kopiëren (UX-test 30 okt: "naar mijn partner sturen").
     document.getElementById('deel')?.addEventListener('click', e => {
-      const d = { title: document.title, text: document.querySelector('.lede')?.innerText.replace(/\n/g, ' · '), url: location.href };
-      if (navigator.share) navigator.share(d).catch(() => {}); else navigator.clipboard?.writeText(`${d.text} ${d.url}`).then(() => { e.target.textContent = 'Link gekopieerd'; });
+      const d = { title: document.title, text: document.querySelector('.pl-week')?.innerText, url: location.href };
+      if (navigator.share) navigator.share(d).catch(() => {}); else navigator.clipboard?.writeText(`${d.text} ${d.url}`).then(() => { e.currentTarget.lastChild.textContent = 'Link gekopieerd'; });
     });
   </script>
-
-  <section>
-    <h2>Praktisch</h2>
-    <dl class="tp-hours">
-      <dt>Entree</dt><dd>{m.entree === 'gratis' ? 'Gratis' : m.entree === 'onbekend' || !m.entree ? 'Staat niet in de agenda' : m.entree}</dd>
-      <dt>Overdekt</dt><dd>{m.indoor === undefined ? 'Onbekend' : m.indoor ? 'Ja, binnen' : 'Nee, buiten'}{m.binnenBron && <small style="display:block;color:var(--fg-3)">Afgeleid: {m.binnenBron}</small>}</dd>
-      {m.addr && <><dt>Adres</dt><dd>{m.addr}</dd></>}
-      {m.kramen && <><dt>Kramen</dt><dd>±{m.kramen}</dd></>}
-      {m.kraamhuur && <><dt>Kraam huren</dt><dd>{m.kraamhuur}</dd></>}
-      {m.schema && <><dt>Schema</dt><dd>{m.schema}</dd></>}
-      <dt>Organisator</dt><dd>{ix.orgUrl(m.org) ? <a href={ix.orgUrl(m.org)!}>{m.org}</a> : m.org}{m.url && <> · <a href={m.url} rel="nofollow">naar hun site</a></>}</dd>
-    </dl>
-  </section>
-
-  {more.length > 0 && <section><h2>Meer markten in de buurt</h2><ul class="rows">{more.map(o => <ItemRow it={o} note={`${o.place} · ${Math.round(km(m, o))} km`} />)}</ul></section>}
-  {shops.length > 0 && <section><h2>Kringlopen in de buurt</h2><ul class="rows">{shops.map(p => <ItemRow it={p} note={`${p.place ?? ''} · ${km(m, p).toFixed(1).replace('.', ',')} km`} />)}</ul></section>}
 </Tekst>
 
 <script>
-  // Statusbestand: is deze markt intussen afgelast (of juist bevestigd)? Dan klopt de pagina meteen, zonder nieuwe build.
+  // Statusbestand: is de eerstvolgende datum intussen afgelast (of juist bevestigd)? Dan klopt de pagina meteen, zonder nieuwe build.
   declare const __SB_URL__: string, __SB_KEY__: string;
   const box = document.getElementById('status')!, id = box.dataset.id!;
-  const TXT: Record<string, [string, string]> = { org: ['Bevestigd door de organisator', ''], chk: ['Gecontroleerd', ''], unconf: ['Nog niet bevestigd', 'Check deze datum bij de organisator voordat je gaat.'], cancel: ['Afgelast', ''] };
+  const TXT: Record<string, string> = { org: 'Bevestigd door de organisator.', chk: 'Datum en tijden nagekeken bij de organisator.', unconf: 'Nog niet bevestigd: check de datum bij de organisator voordat je gaat.', cancel: 'Afgelast.' };
   if (__SB_URL__) fetch(`${__SB_URL__}/rest/v1/rpc/market_status`, { headers: { apikey: __SB_KEY__ } }).then(r => (r.ok ? r.json() : null)).then(j => {
     const l = j?.markets?.find((x: { id: string }) => x.id === id);
-    if (!l || box.classList.contains(l.status)) return;
-    box.className = `statusbox ${l.status}`;
-    box.querySelector('b')!.textContent = TXT[l.status]?.[0] ?? l.status;
-    box.querySelector('p')!.textContent = l.cancelWhy ?? TXT[l.status]?.[1] ?? '';
-    box.querySelector('use')!.setAttribute('href', `#i-${l.status === 'cancel' ? 'x' : l.status === 'unconf' ? 'alert' : 'check'}`);
+    if (!l || box.dataset.st === l.status) return;
+    box.dataset.st = l.status;
+    box.textContent = l.status === 'cancel' && l.cancelWhy ? `Afgelast: ${l.cancelWhy}` : TXT[l.status] ?? '';
     document.getElementById('naam')!.classList.toggle('strike', l.status === 'cancel');
+    document.querySelector(`tr[id="${document.getElementById('pl-aftel')?.dataset.date}"] td.r`)?.replaceChildren(({ org: 'bevestigd door de organisator', chk: 'gecontroleerd', unconf: 'nog niet bevestigd', cancel: 'afgelast' } as Record<string, string>)[l.status] ?? '');
   }).catch(() => {});
 </script>

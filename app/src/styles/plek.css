@@ -1,0 +1,74 @@
+/* Winkel-, markt- en organisatorpagina's: het "deurbordje" (ontwerp ontwerp/paginas, impeccable-kritiek 9 nov).
+   Bovenaan als tekst wat een zoeker wil weten (naam, open/dicht, de hele week of de volgende datum, adres, telefoon, entree),
+   dan de kaart als ingang naar de app, dan de rest. Volgt DESIGN.md: vierkant = winkel, rond = markt, gestippeld = onzeker,
+   groen = open, inkt = actie, geen DM Mono (de bon hoort in Mijn dag), kleinste tekst 12px. */
+.pl-sign { padding: 8px 0 22px; display: grid; gap: 0 }
+.tp .pl-sign h1 { font-size: 2.25rem; line-height: 1.08; letter-spacing: -.025em; font-weight: 780; text-wrap: balance; margin: 10px 0 0 }
+.tp .pl-sign h1.strike { text-decoration: line-through; text-decoration-color: var(--bad); text-decoration-thickness: 3px }
+.pl-what { display: flex; align-items: center; gap: 9px; margin: 8px 0 0 !important; font-size: 1.0625rem; color: var(--fg-2) }
+.pl-shape { width: 14px; height: 14px; border-radius: 4px; background: var(--cat-kringloop); flex: none; display: inline-block }
+.pl-shape.c-tweedehands, .pl-shape.c-kleding { background: var(--cat-tweedehands) } .pl-shape.c-antiek { background: var(--cat-antiek) }
+.pl-shape.c-schroot { background: var(--cat-schroot) } .pl-shape.c-pandjeshuis { background: var(--cat-pandjeshuis) }
+.pl-shape.rond { border-radius: 50%; background: var(--markt) }
+.pl-door { margin-top: 20px; display: grid; gap: 4px; max-width: 46rem }
+.tp .pl-now { display: inline-flex; align-items: center; gap: 8px; margin: 0; font-weight: 700; font-size: 1rem; color: var(--fg-2) }
+.pl-now::before { content: ""; width: 10px; height: 10px; border-radius: 50%; background: var(--closed) }
+.tp .pl-now.open { color: var(--open-ink) } .pl-now.open::before { background: var(--open) }
+.tp .pl-week { margin: 0; color: var(--fg); font-size: 1.3125rem; line-height: 1.35; font-weight: 650; letter-spacing: -.01em; font-variant-numeric: tabular-nums; overflow-wrap: anywhere }
+.tp .pl-week.unk { color: var(--fg-2) } .pl-week.unk em { font-style: normal; border-bottom: 2px dashed var(--warn-ink) }
+.tp .pl-week.bad { color: var(--bad-ink) }
+.pl-facts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0 24px; margin: 20px 0 0; max-width: 52rem }
+.pl-facts > div { padding: 11px 0; border-top: 1px solid var(--line) }
+.pl-facts dt { font-size: .8125rem; color: var(--fg-3) } .pl-facts dd { margin: 2px 0 0; font-weight: 600; color: var(--fg); font-variant-numeric: tabular-nums }
+.pl-facts dd small { display: block; font-weight: 400; font-size: .8125rem; color: var(--fg-3) }
+.pl-facts .pl-big { font-size: 1.1875rem; font-weight: 700 }
+.pl-acts { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 20px }
+.pl-acts .btn { text-decoration: none }
+.tp .pl-src { margin: 14px 0 0; font-size: .875rem; color: var(--fg-3); max-width: 46rem } .tp .pl-src a { color: var(--fg-2); font-weight: 500 }
+.pl-two { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0 40px }
+.tp .pl-two > section + section { margin-top: 22px }
+.pl-two-wide { grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) }
+.tp h2.pl-h { font-size: 1.25rem; font-weight: 740; letter-spacing: -.015em; line-height: 1.2 }
+
+/* tijden: echte tabel (Google en schermlezers), vandaag vet */
+.pl-hours { width: 100%; max-width: 30rem; border-collapse: collapse; font-variant-numeric: tabular-nums }
+.pl-hours th, .pl-hours td { padding: 9px 0; border-top: 1px solid var(--line); text-align: left; font-size: .9375rem }
+.pl-hours th { font-weight: 600; width: 11rem; color: var(--fg) } .pl-hours td { color: var(--fg-2) }
+.pl-hours tr.vandaag th, .pl-hours tr.vandaag td { color: var(--fg); font-weight: 700 } .pl-hours tr.vandaag th::after { content: " (vandaag)"; font-weight: 500; color: var(--fg-3) }
+.pl-hours.unk td { color: var(--fg-3) }
+.tp .pl-quote { font-size: 1.125rem; line-height: 1.5; color: var(--fg); max-width: 58ch }
+
+/* data van markten: tabel, op een telefoon gestapeld */
+.pl-dates { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums }
+.pl-dates caption { text-align: left; font-weight: 700; padding: 12px 0 4px; color: var(--fg) }
+.pl-dates th, .pl-dates td { padding: 10px 12px 10px 0; border-top: 1px solid var(--line); text-align: left; vertical-align: baseline; font-size: .9375rem }
+.pl-dates th { font-weight: 650; white-space: nowrap; color: var(--fg) } .pl-dates td { color: var(--fg-2) } .pl-dates td.r { text-align: right; white-space: nowrap; padding-right: 0 }
+.pl-dates a { font-weight: 600 }
+.pl-dates tr.next th, .pl-dates tr.next td { color: var(--fg) }
+.pl-dates tr.next th::after { content: "eerstvolgende"; margin-left: 8px; font-size: .75rem; font-weight: 700; color: var(--markt-ink) }
+.pl-dates tr.cancel th, .pl-dates tr.cancel td:not(.r) { text-decoration: line-through; color: var(--fg-3) }
+.pl-dates .st-unconf { color: var(--warn-ink) } .pl-dates .st-cancel { color: var(--bad-ink); text-decoration: none }
+.tp .pl-places { line-height: 2.1; margin: 0 } .tp .pl-places a { margin-right: 6px; white-space: nowrap } .pl-places small { color: var(--fg-3); font-size: .8125rem; margin-right: 12px }
+.pl-more { font-weight: 650 }
+.tp .pl-owner { display: flex; flex-wrap: wrap; gap: 6px 16px; align-items: baseline; justify-content: space-between }
+
+@media (max-width: 720px) {
+  .tp .pl-sign h1 { font-size: 1.875rem }
+  .tp .pl-week { font-size: 1.1875rem }
+  .pl-facts { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) }
+  .pl-two, .pl-two-wide { grid-template-columns: minmax(0, 1fr) }
+  .pl-hours th { width: 10rem }
+  .pl-dates tr { display: grid; grid-template-columns: minmax(0, 1fr) auto; border-top: 1px solid var(--line); padding: 10px 0 }
+  .pl-dates th, .pl-dates td { border: 0; padding: 0 } .pl-dates th { grid-column: 1 / -1; white-space: normal } .pl-dates .hide-m { display: none }
+}
+
+/* telefoon: één vaste knop naar de kaart zodra het bordje uit beeld is */
+.pl-dock { position: fixed; left: 12px; right: 12px; bottom: 12px; z-index: 20; transform: translateY(150%); transition: transform .3s var(--ease) }
+.pl-dock.show { transform: none } .pl-dock .btn { width: 100%; height: 50px; text-decoration: none; box-shadow: 0 10px 30px -8px oklch(0.15 0.02 260 / .45) }
+@media (min-width: 721px) { .pl-dock { display: none } }
+@media (prefers-reduced-motion: reduce) { .pl-dock { transition: none } }
+
+/* kruimelpad: ook op de telefoon zichtbaar (Google indexeert de mobiele pagina) */
+.tp .pl-crumbs { display: flex; flex-wrap: wrap; gap: 2px 6px; list-style: none; margin: 0; padding: 0 !important; font-size: .8125rem; color: var(--fg-3) }
+.tp .pl-crumbs li { color: var(--fg-3); line-height: 1.4 } .tp .pl-crumbs li + li::before { content: "›"; margin-right: 6px }
+.tp .pl-crumbs a { color: var(--fg-2); font-weight: 500; text-decoration: none } .tp .pl-crumbs a:hover { text-decoration: underline }

@@ -1,11 +1,14 @@
 ---
-// Organisatorpagina: alle markten van één organisator, met een badge die hij op zijn eigen site kan zetten (links terug = vindbaarheid).
+// Organisatorpagina (ontwerp "deurbordje", 9 nov): volgende markt bovenaan, de agenda als tabel per maand (alles in de HTML,
+// na twee maanden achter "nog N markten"), plaatsen als links, en de badge die hij op zijn eigen site kan zetten (links terug = vindbaarheid).
 import Tekst from '../../layouts/Tekst.astro';
-import MarktAgenda from '../../components/MarktAgenda.astro';
 import KaartBlok from '../../components/KaartBlok.astro';
+import PlekDock from '../../components/PlekDock.astro';
+import '../../styles/plek.css';
 import type { Market } from '../../lib/model';
-import { dShort, hm } from '../../lib/model';
-import { ix, SITE } from '../../lib/sitedata';
+import { dLong, hm, MON_LONG, cap } from '../../lib/model';
+import { niceVenue } from '../../lib/seo';
+import { ix, from, SITE } from '../../lib/sitedata';
 
 export function getStaticPaths() {
   return [...ix.orgs].map(([slug, o]) => ({ params: { slug }, props: { slug, name: o.name, markets: o.markets } }));
@@ -13,35 +16,66 @@ export function getStaticPaths() {
 const { slug, name, markets } = Astro.props as { slug: string; name: string; markets: Market[] };
 const ms = [...markets].sort((a, b) => a.date.localeCompare(b.date) || a.start - b.start);
 const site = (() => { try { return new URL(ms.find(m => m.url)?.url ?? '').origin; } catch { return null; } })();
-const places = [...new Set(ms.map(m => m.place))];
-// Zoekers typen "vlooienmarkt van aerle", "vac rommelmarkt": de eerstvolgende markt in het zoekresultaat is de reden om te klikken.
+const places = [...new Set(ms.map(m => m.place))].sort((a, b) => a.localeCompare(b, 'nl'));
+const next = ms.find(m => m.status !== 'cancel') ?? ms[0], url = `/organisator/${slug}/`, kaart = `/kaart/?org=${slug}`;
+const indoor = ms.filter(m => m.indoor).length, mostlyIn = indoor >= ms.length * 0.8;
+const dateOf = (iso: string) => `${dLong(iso)}${iso.slice(0, 4) !== from.slice(0, 4) ? ` ${iso.slice(0, 4)}` : ''}`;
+const timeOf = (m: Market) => (m.timeKnown === false ? '' : `${hm(m.start)}${m.end ? `–${hm(m.end)}` : ''}`);
+const fee = (m: Market) => (m.entree && m.entree !== 'onbekend' ? m.entree : '');
+const months = Object.entries(Object.groupBy(ms, m => m.date.slice(0, 7))) as [string, Market[]][];
+const monthName = (ym: string) => `${cap(MON_LONG[+ym.slice(5) - 1])} ${ym.slice(0, 4)}`;
+const restN = months.slice(2).reduce((n, [, x]) => n + x.length, 0), last = months.at(-1)?.[0];
 const years = [...new Set([ms[0]?.date.slice(0, 4), ms.at(-1)?.date.slice(0, 4)])].filter(Boolean).join('–');
-const next = ms[0], when = (m: Market) => `${dShort(m.date).toLowerCase()}${m.timeKnown !== false ? `, ${hm(m.start)}${m.end ? `–${hm(m.end)}` : ''}` : ''}`;
 const title = `Markten van ${name} ${years}: data, tijden en entree`;
-const h1 = `Markten van ${name}`;
-const description = `${next ? `Volgende: ${next.name}, ${when(next)}. ` : ''}${ms.length} ${ms.length === 1 ? 'markt' : 'markten'} in ${places.slice(0, 4).join(', ')}${places.length > 4 ? ` en nog ${places.length - 4} plaatsen` : ''}, met tijden en entree. Elke nacht gecontroleerd.`;
-const url = `${SITE}/organisator/${slug}/`;
-const snippet = `<a href="${url}?via=badge"><img src="${SITE}/badge.svg" alt="Onze markten staan op Snuffelkaart" width="200" height="48"></a>`;
-const ld = { '@context': 'https://schema.org', '@type': 'Organization', name, ...(site ? { url: site } : {}),
-  event: ms.slice(0, 50).map(m => ({ '@type': 'Event', name: m.name, url: SITE + ix.url(m.id), startDate: m.date, location: { '@type': 'Place', name: m.venue ?? m.place, address: m.addr ?? m.place } })) };
+const description = `${next ? `Volgende: ${next.name}, ${dLong(next.date).toLowerCase()}${timeOf(next) ? `, ${timeOf(next)}` : ''}. ` : ''}${ms.length} ${ms.length === 1 ? 'markt' : 'markten'} in ${places.slice(0, 4).join(', ')}${places.length > 4 ? ` en nog ${places.length - 4} plaatsen` : ''}, met tijden en entree. Elke nacht gecontroleerd.`;
+const snippet = `<a href="${SITE}${url}?via=badge"><img src="${SITE}/badge.svg" alt="Onze markten staan op Snuffelkaart" width="200" height="48"></a>`;
+const crumbs: [string, string][] = [['Snuffelkaart', '/'], ['Markten', '/markten/'], [name, url]];
+const ld = { '@context': 'https://schema.org', '@type': 'Organization', name, url: SITE + url, ...(site ? { sameAs: [site] } : {}),
+  event: ms.slice(0, 50).map(m => ({ '@type': 'Event', name: m.name, url: SITE + ix.url(m.id), startDate: m.date, eventStatus: `https://schema.org/${m.status === 'cancel' ? 'EventCancelled' : 'EventScheduled'}`, location: { '@type': 'Place', name: niceVenue(m.venue) || m.place, address: m.addr ?? m.place } })) };
+const crumbLd = { '@context': 'https://schema.org', '@type': 'BreadcrumbList', itemListElement: crumbs.map(([n, u], i) => ({ '@type': 'ListItem', position: i + 1, name: n, item: SITE + u })) };
 ---
-<Tekst title={title} description={description} tel={`org:${slug}`} mail>
+<Tekst title={title} description={description} tel={`org:${slug}`} mail wide>
   <script type="application/ld+json" slot="head" set:html={JSON.stringify(ld)} />
-  <p class="tp-crumbs"><a href="/">Snuffelkaart</a> › <a href="/markten/">Markten</a> › {name}</p>
-  <h1>{h1}</h1>
-  <p class="lede">{description}</p>
-  <KaartBlok items={ms} href={`/kaart/?org=${slug}`} label={`Bekijk ${ms.length === 1 ? 'de markt' : `alle ${ms.length} markten`} op de kaart`} />
-  <MarktAgenda markets={ms} empty={`Dit weekend geen markt van ${name}.`} />
-  {site && <section>
-    <h2>Over {name}</h2>
-    <p>Meer informatie en kramen huren: <a href={site} rel="nofollow">{site.replace(/^https?:\/\/(www\.)?/, '')}</a>.</p>
+  <script type="application/ld+json" slot="head" set:html={JSON.stringify(crumbLd)} />
+  <nav aria-label="Kruimelpad"><ol class="pl-crumbs">{crumbs.map(([n, u], i) => i < crumbs.length - 1 ? <li><a href={u}>{n}</a></li> : <li aria-current="page">{n}</li>)}</ol></nav>
+
+  <div class="pl-sign">
+    <h1>{name}</h1>
+    <p class="pl-what"><span class="pl-shape rond" aria-hidden="true"></span>Organisator van markten{mostlyIn ? ', bijna allemaal binnen' : ''}</p>
+    {next && <div class="pl-door"><p class="pl-week">Volgende markt: {dateOf(next.date).toLowerCase()} in {next.place}{timeOf(next) && `, ${timeOf(next)}`}</p></div>}
+    <dl class="pl-facts">
+      <div><dt>Markten</dt><dd class="pl-big">{ms.length}</dd></div>
+      <div><dt>Plaatsen</dt><dd class="pl-big">{places.length}</dd></div>
+      {site && <div><dt>Website</dt><dd><a href={site} rel="nofollow">{site.replace(/^https?:\/\/(www\.)?/, '')}</a><small>ook voor een kraam huren</small></dd></div>}
+    </dl>
+    <div class="pl-acts"><a class="btn primary" href={kaart}><svg class="i" aria-hidden="true"><use href="#i-map" /></svg>{ms.length === 1 ? 'Bekijk op de kaart' : `Alle ${ms.length} op de kaart`}</a></div>
+    <p class="pl-src">We lezen de agenda van {name} elke nacht. Afgelast of verplaatst staat er de volgende ochtend op.</p>
+  </div>
+
+  <KaartBlok items={ms} href={kaart} label={ms.length === 1 ? 'De markt op de kaart' : `Alle ${ms.length} markten op de kaart`} />
+
+  <section aria-labelledby="h-agenda">
+    <h2 class="pl-h" id="h-agenda">Agenda van {name}</h2>
+    {months.slice(0, 2).map(([ym, xs]) => <table class="pl-dates"><caption>{monthName(ym)}</caption><tbody>{xs.map(m => <tr class={m.status === 'cancel' ? 'cancel' : ''}>
+      <th scope="row">{dLong(m.date)}</th><td><a href={ix.url(m.id)}>{m.place}</a>{m.venue && <span class="hide-m">, {niceVenue(m.venue)}</span>}</td><td class="hide-m">{timeOf(m)}</td><td class="r">{m.status === 'cancel' ? 'afgelast' : fee(m)}</td></tr>)}</tbody></table>)}
+    {restN > 0 && <details><summary class="pl-more" style="cursor:pointer;margin-top:10px">Nog {restN} {restN === 1 ? 'markt' : 'markten'}, tot {MON_LONG[+last!.slice(5) - 1]} {last!.slice(0, 4)}</summary>
+      {months.slice(2).map(([ym, xs]) => <table class="pl-dates"><caption>{monthName(ym)}</caption><tbody>{xs.map(m => <tr class={m.status === 'cancel' ? 'cancel' : ''}>
+        <th scope="row">{dLong(m.date)}</th><td><a href={ix.url(m.id)}>{m.place}</a>{m.venue && <span class="hide-m">, {niceVenue(m.venue)}</span>}</td><td class="hide-m">{timeOf(m)}</td><td class="r">{m.status === 'cancel' ? 'afgelast' : fee(m)}</td></tr>)}</tbody></table>)}
+    </details>}
+  </section>
+
+  {places.length > 1 && <section aria-labelledby="h-plaatsen">
+    <h2 class="pl-h" id="h-plaatsen">Plaatsen met een markt van {name}</h2>
+    <p class="pl-places">{places.map(p => <>{ix.cityUrl(p) ? <a href={ix.cityUrl(p)!}>{p}</a> : <b>{p}</b>}<small>{ms.filter(m => m.place === p).length}×</small> </>)}</p>
   </section>}
-  <section>
-    <h2>Organiseer je deze markten?</h2>
+
+  <section aria-labelledby="h-badge">
+    <h2 class="pl-h" id="h-badge">Organiseer je deze markten?</h2>
     <p>We lezen je agenda elke nacht, dus nieuwe data en afgelastingen staan er vanzelf op. Zet deze badge op je site, dan vinden bezoekers je markten ook op de kaart, samen met de kringlopen in de buurt.</p>
     <p><img src="/badge.svg" alt="Onze markten staan op Snuffelkaart" width="200" height="48" /></p>
     <label for="badge-code" style="font-weight:600">Code om te plakken</label>
     <textarea id="badge-code" class="textarea" readonly rows="3" style="width:100%;font-family:ui-monospace,monospace;font-size:.8125rem" onclick="this.select()">{snippet}</textarea>
-    <p style="font-size:.875rem;color:var(--fg-3)">Klopt er iets niet, of wil je liever niet op Snuffelkaart? Mail <a href="mailto:info@freekvanderhorst.com">info@freekvanderhorst.com</a>.</p>
+    <p class="pl-src">Klopt er iets niet, of wil je liever niet op Snuffelkaart? Mail <a href="mailto:info@freekvanderhorst.com">info@freekvanderhorst.com</a>.</p>
   </section>
+  <PlekDock href={kaart} label={ms.length === 1 ? 'Bekijk op de kaart' : `Alle ${ms.length} op de kaart`} />
 </Tekst>

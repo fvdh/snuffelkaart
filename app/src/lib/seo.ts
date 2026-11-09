@@ -22,10 +22,29 @@ function unique<T>(items: T[], base: (x: T) => string, id: (x: T) => string): Ma
 export interface City { slug: string; name: string; lat: number; lon: number; shops: Place[]; markets: Market[] }
 
 /** Wie een pagina krijgt. Plaatsen: minstens 2 winkels of markten (één winkel heeft al zijn eigen pagina). */
+/** Zaalnamen uit agenda's staan soms in hoofdletters ("HANGAR 11 VLIEGVELD TWENTE"): netjes maken voor op de pagina. */
+export const niceVenue = (v?: string | null) => (v && v === v.toUpperCase() && /[A-Z]{4}/.test(v) ? v.toLowerCase().replace(/(^|[\s-])(\p{L})/gu, (_, a, b) => a + b.toUpperCase()) : v ?? '');
+/** Markten die bij elkaar horen (zelfde naam, plaats en zaal): één pagina per reeks, met alle data (SEO-kritiek 9 nov: losse
+ *  datumpagina's met dezelfde titel lijken op dubbele pagina's). Naam + plaats als adres; zaal erbij als dat nodig is om te onderscheiden. */
+export function marketSeries(markets: Market[]) {
+  const groups = new Map<string, Market[]>();
+  for (const m of [...markets].sort((a, b) => a.date.localeCompare(b.date) || a.start - b.start)) {
+    const k = `${slugify(m.name)}|${slugify(m.place)}|${slugify(m.venue ?? '')}`;
+    if (!groups.has(k)) groups.set(k, []); groups.get(k)!.push(m);
+  }
+  const named = (ms: Market[]) => slugify(slugify(ms[0].name).includes(slugify(ms[0].place)) ? ms[0].name : `${ms[0].name} ${ms[0].place}`);
+  const clash = new Map<string, number>(); for (const ms of groups.values()) clash.set(named(ms), (clash.get(named(ms)) ?? 0) + 1);
+  const withVenue = (ms: Market[]) => (clash.get(named(ms))! > 1 && ms[0].venue ? `${named(ms)}-${slugify(niceVenue(ms[0].venue)).split('-').slice(0, 3).join('-')}` : named(ms));
+  return unique([...groups.values()], withVenue, ms => ms[0].id);
+}
+
 export function siteIndex(places: Place[], markets: Market[]) {
   const shops = unique(places, p => slugify(`${p.name} ${p.place ?? ''}`), p => p.id);
-  const mkts = unique(markets, m => slugify(`${m.name} ${m.date}`), m => m.id);
-  const slugOf = new Map<string, string>([...[...shops].map(([s, p]) => [p.id, `/winkel/${s}/`] as const), ...[...mkts].map(([s, m]) => [m.id, `/markt/${s}/`] as const)]);
+  const series = marketSeries(markets);
+  // Oude adressen per datum (tot 9 nov 2026): blijven bestaan als doorverwijzing naar de reeks (zie markt-redirects.txt.ts).
+  const dated = unique(markets, m => slugify(`${m.name} ${m.date}`), m => m.id);
+  const slugOf = new Map<string, string>([...[...shops].map(([s, p]) => [p.id, `/winkel/${s}/`] as const), ...[...series].flatMap(([s, ms]) => ms.map(m => [m.id, `/markt/${s}/`] as const))]);
+  const oldMarkets = [...dated].map(([s, m]) => [`/markt/${s}/`, slugOf.get(m.id)!] as const).filter(([a, b]) => a !== b);
   const byName = new Map<string, { shops: Place[]; markets: Market[] }>();
   const add = (name: string | null | undefined) => { if (!name) return null; if (!byName.has(name)) byName.set(name, { shops: [], markets: [] }); return byName.get(name)!; };
   for (const p of places) add(p.place)?.shops.push(p);
@@ -44,7 +63,7 @@ export function siteIndex(places: Place[], markets: Market[]) {
   const orgs = new Map<string, { name: string; markets: Market[] }>();
   for (const m of markets) if (m.org && !/^Gemeenteblad/.test(m.org)) { const k = slugify(m.org); if (!orgs.has(k)) orgs.set(k, { name: m.org, markets: [] }); orgs.get(k)!.markets.push(m); }
   const orgSlug = new Map([...orgs].map(([k, o]) => [o.name, k]));
-  return { shops, markets: mkts, cities, orgs, url: (id: string) => slugOf.get(id)!, cityUrl: (name: string | null | undefined) => (name && citySlug.has(name) ? `/${citySlug.get(name)}/` : null),
+  return { shops, series, oldMarkets, cities, orgs, url: (id: string) => slugOf.get(id)!, cityUrl: (name: string | null | undefined) => (name && citySlug.has(name) ? `/${citySlug.get(name)}/` : null),
     orgUrl: (name: string | null | undefined) => (name && orgSlug.has(name) ? `/organisator/${orgSlug.get(name)}/` : null) };
 }
 
@@ -81,6 +100,20 @@ export function hoursSummary(w: { wd: number; iv: [number, number][] }[]): strin
   const runs: { a: number; b: number; t: string }[] = [];
   for (const { wd, iv } of w) { const t = txt(iv), last = runs[runs.length - 1]; if (last && last.t === t) last.b = wd; else runs.push({ a: wd, b: wd, t }); }
   return runs.map(r => `${SHORT[r.a]}${r.a !== r.b ? `–${SHORT[r.b]}` : ''} ${r.t}`).join(', ');
+}
+
+/** Telefoonnummer in Nederlandse notatie: "+31 38 337 5670" → "038 337 5670", "0644443820" → "06 44 44 38 20". Anders zoals het was. */
+export function fmtTel(t: string): string {
+  let d = t.replace(/\D/g, ''); if (d.startsWith('31')) d = `0${d.slice(2)}`;
+  if (d.length !== 10 || !d.startsWith('0')) return t.trim();
+  if (d.startsWith('06')) return `06 ${d.slice(2, 4)} ${d.slice(4, 6)} ${d.slice(6, 8)} ${d.slice(8)}`;
+  // netnummer van 3 cijfers (010, 020, 030 …, 038) of 4 (0570, 0413 …): de grote steden beginnen met 01–07 + 0 of hebben 3 cijfers
+  return /^0(10|13|15|20|23|24|26|30|33|35|36|38|40|43|45|46|50|53|55|58|70|71|72|73|74|75|76|77|78|79)/.test(d) ? `${d.slice(0, 3)} ${d.slice(3, 6)} ${d.slice(6)}` : `${d.slice(0, 4)} ${d.slice(4, 6)} ${d.slice(6, 8)} ${d.slice(8)}`;
+}
+/** Adres "Rieteweg 13, 8041AJ Zwolle" in delen voor de pagina en schema.org. */
+export function splitAddr(addr?: string | null, place?: string | null) {
+  const [street, rest = ''] = (addr ?? '').split(/,\s*/, 2), pc = /\b([1-9]\d{3})\s?([A-Z]{2})\b/i.exec(rest);
+  return { street: street || null, pc: pc ? `${pc[1]} ${pc[2].toUpperCase()}` : null, town: (pc ? rest.slice(pc.index + pc[0].length).trim() : rest.trim()) || place || null };
 }
 
 /** Dunne winkelpagina's houden we uit Google (wel op de kaart): ongecontroleerd uit Overture zonder tijden, website of telefoon,

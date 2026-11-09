@@ -1,0 +1,34 @@
+---
+// Voor winkel-, markt- en organisatorpagina's: één vaste knop naar de kaart op de telefoon (zodra het bordje uit beeld is), en wat
+// van het moment afhangt. Alles staat al als tekst in de HTML; dit voegt alleen "nu open", "vandaag" en "over 3 weken" toe en blijft
+// verborgen tot het berekend is, zodat Google en wie zonder JS kijkt nooit een lege of verouderde status ziet.
+interface Props { href: string; label: string }
+const { href, label } = Astro.props;
+---
+<div class="pl-dock" id="pl-dock"><a class="btn primary" href={href}><svg class="i" aria-hidden="true"><use href="#i-map" /></svg>{label}</a></div>
+<script is:inline>
+  (() => {
+    const DAG = ['zondag', 'maandag', 'dinsdag', 'woensdag', 'donderdag', 'vrijdag', 'zaterdag'], hm = m => `${Math.floor(m / 60) % 24}:${String(m % 60).padStart(2, '0')}`;
+    const now = new Date(), min = now.getHours() * 60 + now.getMinutes(), today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    // Nu open: uit de vooruitgerekende dagen (data-h, vanaf data-from), dus ook feestdagen kloppen.
+    const nu = document.getElementById('pl-nu');
+    if (nu) {
+      const h = JSON.parse(nu.dataset.h), [y, m, d] = nu.dataset.from.split('-').map(Number), i0 = Math.round((today - new Date(y, m - 1, d)) / 864e5), iv = h[i0];
+      if (iv) {
+        const cur = iv.find(([a, b]) => min >= a && min < b), later = iv.find(([a]) => a > min);
+        let txt = cur ? `Nu open, tot ${hm(cur[1])}` : later ? `Nu dicht, opent vandaag om ${hm(later[0])}` : '';
+        if (!txt) for (let k = 1; k < 8 && h[i0 + k]; k++) if (h[i0 + k].length) { const w = new Date(today); w.setDate(w.getDate() + k); txt = `Nu dicht, opent ${k === 1 ? 'morgen' : DAG[w.getDay()]} om ${hm(h[i0 + k][0][0])}`; break; }
+        if (txt) { nu.textContent = txt; nu.classList.toggle('open', !!cur); nu.hidden = false; }
+      }
+    }
+    document.querySelectorAll(`.pl-hours tr[data-wd="${now.getDay()}"]`).forEach(tr => tr.classList.add('vandaag'));
+    // Markt: over hoeveel dagen
+    const af = document.getElementById('pl-aftel');
+    if (af) {
+      const [y, m, d] = af.dataset.date.split('-').map(Number), n = Math.round((new Date(y, m - 1, d) - today) / 864e5);
+      if (n >= 0) { af.textContent = n === 0 ? 'Vandaag' : n === 1 ? 'Morgen' : n < 14 ? `Over ${n} dagen` : `Over ${Math.round(n / 7)} weken`; af.hidden = false; }
+    }
+    const dock = document.getElementById('pl-dock'), sign = document.querySelector('.pl-sign');
+    if (dock && sign) new IntersectionObserver(([x]) => dock.classList.toggle('show', !x.isIntersecting)).observe(sign);
+  })();
+</script>
