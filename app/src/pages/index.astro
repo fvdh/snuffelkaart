@@ -36,6 +36,8 @@ const ld = [
   { '@context': 'https://schema.org', '@type': 'Organization', name: 'Snuffelkaart', url: SITE + '/', logo: SITE + '/icons/icon-512.png', email: 'info@freekvanderhorst.com' },
 ];
 const ic = (id: string) => `<svg class="i" aria-hidden="true" focusable="false"><use href="#i-${id}"/></svg>`;
+// Kaartmaker op de homepage: uit tot de eigenaar hem zelf getest heeft (9 nov). /kaartmaker/ bestaat wel, met noindex en niet in de sitemap.
+const KAARTMAKER = false;
 ---
 <html lang="nl">
   <head>
@@ -306,12 +308,12 @@ const ic = (id: string) => `<svg class="i" aria-hidden="true" focusable="false">
       <figcaption class="cap">Vrijmarkt op Koningsdag, Schouwburgplein Rotterdam (uitsnede, dozen zonder mensen). Foto: <a href="https://commons.wikimedia.org/wiki/File:Schouwburgplein_vrijmarkt_(Koningsdag),_Rotterdam-Centrum,_Rotterdam_(2023)_01.jpg">Donald Trung Quoc Don</a>, <a href="https://creativecommons.org/licenses/by-sa/4.0/deed.nl">CC BY-SA 4.0</a></figcaption>
     </figure>
     <div>
-      <h2 class="h2" id="org-kop">Zet je garagesale of buurtmarkt op de kaart</h2>
-      <p class="tekst">Organiseer je een garagesale of de vrijmarkt op Koningsdag? Maak er in een paar minuten een kaart van, gratis. Bij een garagesale zetten buren zelf hun adres erop, zonder account. Bezoekers zien alle adressen en de kringlopen in de buurt. Na de markt verdwijnen de adressen weer.</p>
-      <div class="org-cta">
+      <h2 class="h2" id="org-kop">{KAARTMAKER ? 'Zet je garagesale of buurtmarkt op de kaart' : 'Zet straks je garagesale of buurtmarkt op de kaart'}</h2>
+      <p class="tekst">Organiseer je een garagesale of de vrijmarkt op Koningsdag? {KAARTMAKER ? 'Maak er' : 'Binnenkort maak je er'} in een paar minuten een kaart van, gratis. Bij een garagesale zetten buren zelf hun adres erop, zonder account. Bezoekers zien alle adressen en de kringlopen in de buurt. Na de markt verdwijnen de adressen weer.</p>
+      {KAARTMAKER && <div class="org-cta">
         <a class="btn primary" href="/kaartmaker/"><Fragment set:html={ic('map')} />Maak je kaart</a>
         <p class="hint">Inloggen gaat met een code in je mail. Buren hebben geen account nodig. <a href="/privacy/#kaartmaker">Privacy</a></p>
-      </div>
+      </div>}
       <div class="badge">
         <svg width="200" height="48" viewBox="0 0 200 48" role="img" aria-labelledby="badge-t"><title id="badge-t">Badge: Onze markten staan op Snuffelkaart</title><rect x=".75" y=".75" width="198.5" height="46.5" rx="11" fill="#fbf8f0" stroke="#1e2229" stroke-width="1.5"/><rect x="9" y="9" width="30" height="30" rx="8" fill="#1e2229"/><g transform="translate(12.6 12.6)" fill="none" stroke="#fbfaf8" stroke-width="1.9" stroke-linejoin="round"><path d="M3.5 12.2V4.5a1 1 0 0 1 1-1h7.7l8.3 8.3a1.5 1.5 0 0 1 0 2.1l-6.6 6.6a1.5 1.5 0 0 1-2.1 0z"/><circle cx="8.2" cy="8.2" r="1.6"/></g><text x="48" y="21" font-family="Figtree,sans-serif" font-size="11" fill="#545a66">Onze markten staan op</text><text x="48" y="36" font-family="Figtree,sans-serif" font-size="15" font-weight="760" fill="#1e2229">Snuffelkaart</text></svg>
         <span>Organiseer je vlooienmarkten? Dan staan ze er waarschijnlijk al op. <a href="/markten/">Zoek je organisatie bij de markten</a> en zet de badge op je eigen site.</span>
