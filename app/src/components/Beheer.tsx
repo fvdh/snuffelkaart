@@ -534,7 +534,7 @@ function Shops({ s }: { s: Session }) {
     catch (e) { setErr((e as Error).message); }
   };
   const setCat = (r: Row, c: Cat) => { const { sub, ...d } = r.data; save(r, { data: c === 'kringloop' ? { ...d, kind: 'kringloop' } : { ...d, kind: 'tweedehands', ...(c === 'tweedehands' ? {} : { sub: c }) }, locked: lock(r, 'kind', 'sub') }); };
-  const [pin, setPin] = useState(''), spot = parseLatLon(pin);
+  const [pin, setPin] = useState(''), spot = parseLatLon(pin), [web, setWeb] = useState(''), webOk = /^https?:\/\/[^\s/]+\.[^\s]+$/.test(web.trim()) || /facebook\.com\//i.test(web);
   const list = which === 'fb' ? fbs ?? [] : which ? dead ?? [] : rows, r = list[sel], site = r?.data.website && (/^https?:/.test(r.data.website) ? r.data.website : `https://${r.data.website}`);
   return (<>
     <section className="adm-q" aria-label="Winkels">
@@ -542,7 +542,7 @@ function Shops({ s }: { s: Session }) {
         {!!dead?.length && <button className={`btn sm${which === 'dead' ? ' primary' : ''}`} onClick={() => { setQ(''); setWhich('dead'); setSel(0); }}>Nakijken ({dead.length})</button>}
         {!!fbs?.length && <button className={`btn sm${which === 'fb' ? ' primary' : ''}`} onClick={() => { setQ(''); setWhich('fb'); setSel(0); }} title="Winkels met alleen Facebook en zonder tijden">Facebook ({fbs.length})</button>}</header>
       {err && <p className="bh-err">{err}</p>}
-      {list.length ? <ul className="adm-list">{list.map((x, i) => <li key={x.id}><button className={`adm-item${i === sel ? ' on' : ''}${x.status === 'verborgen' ? ' off' : ''}`} onClick={() => { setSel(i); setPin(''); }}>
+      {list.length ? <ul className="adm-list">{list.map((x, i) => <li key={x.id}><button className={`adm-item${i === sel ? ' on' : ''}${x.status === 'verborgen' ? ' off' : ''}`} onClick={() => { setSel(i); setPin(''); setWeb(''); }}>
         <span className={`tile c-${catOfData(x.data)}`}><Ic n={CAT[catOfData(x.data)][2]} /></span>
         <span><b>{x.data.name}</b><span>{x.data.addr ?? x.data.place}</span>{x.status === 'verborgen' ? <span className="bh-st cancel">{x.data.gone ? 'Niet meer in de bron' : 'Verborgen'}</span> : x.data.siteGuess && !x.data.siteGuess.nee ? <span className="bh-st org">Website gevonden?</span> : x.data.siteDead ? <span className="bh-st unconf">Website weg</span> : MELD[x.data.meld?.k] && <span className="bh-st unconf">{MELD[x.data.meld.k][0]}</span>}</span><time>{x.data.place}</time></button></li>)}</ul>
         : <p className="adm-empty">{onlyDead ? 'Alles bekeken.' : q.trim().length < 2 ? 'Typ minstens twee letters.' : 'Niets gevonden.'}</p>}
@@ -557,6 +557,13 @@ function Shops({ s }: { s: Session }) {
         {r.locked.length > 0 && <><dt>Met de hand</dt><dd>{r.locked.join(', ')}</dd></>}
       </dl>
       {which === 'fb' && !r.data.oh && <FbHours r={r} onSave={(oh, today) => save(r, { data: { ...r.data, oh, checked: today, hs: 'fb' }, locked: lock(r, 'oh', 'checked', 'hs') }).then(loadFb)} />}
+      {/* Nieuwe website (of alleen nog Facebook): vastgezet, "website weg" eraf. De wekelijkse lezer haalt er de tijden van. Leeg = geen website meer. */}
+      <form className="adm-edit" onSubmit={e => { e.preventDefault(); const v = web.trim(), fb = /facebook\.com\/([^/?#]+)/i.exec(v)?.[1]; const { siteDead, website, ...data } = r.data;
+        save(r, { data: fb ? { ...data, fb } : v ? { ...data, website: v } : data, locked: lock(r, 'website', 'siteDead', ...(fb ? ['fb'] : [])) }).then(() => { setWeb(''); loadDead(); }); }}>
+        <label>Website wijzigen<input className="input" value={web} onChange={e => setWeb(e.target.value)} placeholder="https://… of een Facebook-link" /></label>
+        {web.trim() && !webOk && <p className="bh-err">Begin met https://</p>}
+        {(webOk || (!web.trim() && r.data.website)) && <button className="btn sm">{web.trim() ? (/facebook\.com/i.test(web) ? 'Facebookpagina zetten (website eraf)' : 'Website opslaan') : 'Website weghalen'}</button>}
+      </form>
       <form className="adm-edit" onSubmit={e => { e.preventDefault(); if (spot) save(r, { data: { ...r.data, ...spot }, locked: lock(r, 'lat', 'lon') }).then(() => setPin('')); }}>
         <label>Pin verplaatsen<input className="input" value={pin} onChange={e => setPin(e.target.value)} placeholder={PIN_HINT} /></label>
         {pin.trim() && !spot && <p className="bh-err">Geen plek in Nederland herkend.</p>}
