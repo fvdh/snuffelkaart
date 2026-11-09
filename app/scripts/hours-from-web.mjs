@@ -14,7 +14,7 @@ const OSM = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'];
 const D = '(maandag|dinsdag|woensdag|donderdag|vrijdag|zaterdag|zondag|ma|di|wo|do|vrij|vr|zat|za|zon|zo)(?:en|s)?\\.?'; // "de zaterdagen" en "dinsdags" tellen ook
 const dayIdx = w => DAY.findIndex(n => n.includes(w.toLowerCase().replace('.', '').replace(/(dag)(en|s)$/, '$1')));
 const T = '(\\d{1,2})(?:[:.](\\d{2}))?\\s*(?:uur|u)?';
-const RANGE = `${T}\\s*(?:-|–|tot|t/m)\\s*${T}`;
+const RANGE = `${T}\\s*(?:-|–|tot|t/m|to)\\s*${T}`; // "to": tikfout of Engels (GOED voor GOED: "10:00 to 17:00")
 // Eén regel-element: dagen (met t/m of opsomming), dan tijden of "gesloten".
 const ENTRY = new RegExp(`\\b${D}(?:\\s*(?:t/m|tot en met|-|–|tot)\\s*${D}|(?:\\s*(?:,|en|én|&)\\s*${D})*)(\\s*koopavond)?\\s*:?\\s*(?:open\\s+)?(?:van\\s+|tussen\\s+)?(${RANGE}(?:\\s*(?:en|&|,|/|\\|)\\s*(?:van\\s+)?${RANGE})*|(?:zijn\\s+(?:wij|we)\\s+)?(?:gesloten|dicht|closed))`, 'gi');
 // Blokken die niet over de winkeltijden gaan.
@@ -45,7 +45,8 @@ function entry(m) {
 }
 
 /** Tekst → { oh, days } of null. Kiest het enige winkelblok; twee verschillende blokken = twijfel = null. */
-export function parseHoursNL(text) {
+/** place: plaats van de winkel. Een ketenpagina met blokken per plaats ("Sommelsdijk, Oude-Tonge en Stellendam:" / "Halsteren:") kiest dan het blok met die plaats in de kop. */
+export function parseHoursNL(text, place = '') {
   // Gewone woorden voor dagen: "werkdagen" = ma t/m vr, "tm" = t/m, "zon- en feestdagen gesloten" = zondag dicht (+ PH off, zie onder).
   text = text.replace(/^werkdagen\b/gim, 'maandag t/m vrijdag').replace(/\btm\b/gi, 't/m')
     .replace(/\bzon-?\s*en feestdagen\s*:?\s*(gesloten|dicht)/gi, 'zondag gesloten\nOp feestdagen gesloten')
@@ -119,7 +120,7 @@ export function parseHoursNL(text) {
     // Eén dag mag alleen als hij elke week is: "Openingstijden: elke zaterdag 10-14" (niet "elke eerste zaterdag").
     const weekly = named === 1 && header && /\b(elke|iedere)\s+$/i.test(text.slice(Math.max(0, b.start - 10), b.start));
     if (clash || (named < (header ? 2 : 3) && !weekly) || !week.some(v => v && v !== 'off')) continue; // te weinig om op te bouwen
-    weeks.push(Object.assign(week, { shop: /winkel|kringloop/i.test(before) }));
+    weeks.push(Object.assign(week, { shop: /winkel|kringloop/i.test(before), head: before }));
   }
   // Twee blokken mogen alleen samen als ze op elke dag die ze allebei noemen hetzelfde zeggen (tabel + "geopend van ma t/m za" in de tekst).
   // Botsen ze, maar heeft precies één de kop "winkel" ("Openingstijden Kringloopwinkel" onder "… Verenigingsruimtes"), dan die.
@@ -131,7 +132,8 @@ export function parseHoursNL(text) {
     }
     return week;
   };
-  const shops = weeks.filter(w => w.shop), week = weeks.length ? merged(weeks) ?? (shops.length === 1 ? shops[0] : null) : null;
+  const shops = weeks.filter(w => w.shop), esc = place.replace(/[.*+?^${}()|[\]\\]/g, '\\const shops = weeks.filter(w => w.shop), week = weeks.length ? merged(weeks) ?? (shops.length === 1 ? shops[0] : null) : null;'), mine = place.length > 2 ? weeks.filter(w => new RegExp(`(^|[^\\p{L}])${esc}([^\\p{L}]|$)`, 'iu').test(w.head)) : [];
+  const week = weeks.length ? merged(weeks) ?? (mine.length === 1 ? mine[0] : shops.length === 1 ? shops[0] : null) : null;
   if (!week) return null;
   const parts = []; // opeenvolgende dagen met dezelfde tijden samen: Mo-Fr 09:30-16:00
   for (let i = 0; i < 7;) { const v = week[i] ?? 'off'; let j = i; while (j + 1 < 7 && (week[j + 1] ?? 'off') === v) j++; if (v !== 'off') parts.push(`${OSM[i]}${j > i ? '-' + OSM[j] : ''} ${v}`); i = j + 1; }
@@ -196,7 +198,8 @@ export function hoursFromHtml(html, addr = '') {
   // Microdata (itemprop="openingHours" content/datetime="Mo 10:00-17:00", It Fean): zelfde controle als JSON-LD.
   const micro = [...html.matchAll(/itemprop=["']openingHours["'][^>]*?(?:content|datetime)=["']([^"']+)["']|(?:content|datetime)=["']([^"']+)["'][^>]*?itemprop=["']openingHours["']/gi)].map(m => m[1] ?? m[2]);
   const microLD = micro.length ? hoursLD(`<script type="application/ld+json">${JSON.stringify({ openingHours: micro })}</script>`) : null;
-  return parseHoursNL(text) ?? ats.reduce((r, at) => r ?? block(at), null) ?? hoursLD(html) ?? microLD;
+  const town = (/\b\d{4}\s?[A-Z]{2}\s+(.+)$/i.exec(addr)?.[1] ?? (addr.includes(',') ? addr.split(',').pop() : '')).trim();
+  return parseHoursNL(text, town) ?? ats.reduce((r, at) => r ?? block(at), null) ?? hoursLD(html) ?? microLD;
 }
 
 /** Sleutel voor de cache: host + pad, zonder www en slash. Winkels van één keten op één pagina delen hem. */
