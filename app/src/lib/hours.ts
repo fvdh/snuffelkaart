@@ -25,7 +25,7 @@ export const UNKNOWN: Status = { cls: 'unknown', txt: 'Openingstijden onbekend' 
 /** Status van een kringloop op dit moment. */
 export function placeNow(p: Place, now: Date): Status {
   const today = isoDay(now), iv = intervals(p, today);
-  if (!iv) return p.dicht ? { cls: 'closed', txt: 'Tijdelijk gesloten' } : p.afspraak ? { cls: 'unknown', txt: 'Op afspraak' } : UNKNOWN;
+  if (!iv) return p.dicht ? { cls: 'closed', txt: p.dichtTot ? `Gesloten t/m ${new Date(p.dichtTot).toLocaleDateString('nl-NL', { day: 'numeric', month: 'short' })}` : 'Tijdelijk gesloten' } : p.afspraak ? { cls: 'unknown', txt: 'Op afspraak' } : p.meld?.k === 'onregelmatig' ? { cls: 'unknown', txt: 'Niet elke week open' } : UNKNOWN;
   const min = minutesOf(now), cur = iv.find(([a, b]) => min >= a && min < b);
   if (cur) {
     // open tot middernacht en morgen vanaf 0:00 verder? dan sluit hij morgen (02:00), of nooit als hij dan ook tot 24:00 open is

@@ -31,8 +31,10 @@ for (const r of rows) {
   const shared = rows.length > 1 && !own && !(w.pc?.includes(pc(r)?.[0]) && rows.filter(x => w.pc?.includes(pc(x)?.[0])).length === 1);
   if (shared) { console.log(`  ${d.name}: overgeslagen, gedeelde site zonder eigen blok`); continue; }
   const oh = own?.oh ?? w.oh, page = own?.page ?? w.page, h = oh && precompute(oh, today);
-  const { dicht: _, afspraak: __, ...rest } = d;
-  const data = h ? { ...rest, h, oh, checked, hs: 'web', hu: page } : w.dicht ? { ...rest, dicht: checked, hu: page } : w.afspraak ? { ...rest, afspraak: checked, hu: page } : null;
+  const { dicht: _, afspraak: __, dichtTot: ___, hq: ____, meld: _____, ...rest } = d, q = w.q ? { hq: w.q } : {};
+  const meld = rows.length === 1 && w.meld && !r.locked.includes('meld') ? { meld: { k: w.meld.k, q: w.meld.q, d: w.read.slice(0, 10), u: w.meld.page } } : {};
+  const data = h ? { ...rest, ...meld, h, oh, checked, hs: 'web', hu: page } : w.dicht ? { ...rest, ...meld, dicht: checked, hu: page, ...q, ...(w.tot ? { dichtTot: w.tot } : {}) }
+    : w.afspraak ? { ...rest, ...meld, afspraak: checked, hu: page, ...q } : w.meld ? { ...rest, ...meld } : null;
   if (!data) { console.log(`  ${d.name}: geen tijden gevonden, niets veranderd`); continue; }
   console.log(`  ${d.name} (${d.addr ?? d.place}): ${h ? oh : w.note}`);
   if (!dry) await req(`places?id=eq.${encodeURIComponent(r.id)}`, { method: 'PATCH', body: JSON.stringify({ data, updated_at: new Date().toISOString() }) }); // updated_at: de kwartier-run publiceert

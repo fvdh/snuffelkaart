@@ -174,7 +174,7 @@ export function hoursLD(html) {
 
 /** Tijden van een pagina: eerst wat de winkel zichtbaar op de pagina zet, dan schema.org (onzichtbaar, vaker verouderd). */
 /** "Openingstijden: -- tijdelijk gesloten --" (J. Brunekreef): niet verbergen, wel zo tonen. Alleen vlak na "openingstijden" of als "wij zijn tijdelijk gesloten". */
-export const tempClosed = text => /\b(?:openingstijd\w*|openingsuren)\b[^a-z0-9]{0,20}(?:(?:wij|we) zijn )?(?:tijdelijk|voorlopig) (?:gesloten|dicht)|\b(?:wij zijn|we zijn|de winkel is) (?:tijdelijk|voorlopig) (?:gesloten|dicht)/i.test(text);
+export const tempClosed = text => /\b(?:openingstijd\w*|openingsuren)\b[^a-z0-9]{0,20}(?:(?:wij|we) zijn )?(?:tijdelijk|voorlopig) (?:gesloten|dicht)|\b(?:wij zijn|we zijn|de winkel is) (?:tijdelijk|voorlopig) (?:gesloten|dicht)|\b(?:we are|we're|the shop is|the store is) temporarily closed\b/i.test(text);
 /** "Geen vaste openingstijden, maak een afspraak" (De Vries Antiek): er staat geen lijst, maar wel iets wat de bezoeker moet weten.
  *  Alleen gebruikt als er nergens tijden staan; "zaterdag 10-16, verder op afspraak" heeft gewoon tijden. */
 export const byAppointment = text => /\bgeen vaste openingstijden\b|\b(?:alleen|uitsluitend|enkel|bezoek\w*|showroom|winkel)\s+(?:is\s+)?(?:graag\s+)?(?:op|na|volgens)\s+(?:telefonische\s+)?afspraak|\bopeningstijden\W{0,5}(?:op|na|volgens)\s+afspraak|\b(?:open\s+|visits?\s+)?by appointment only\b|\bopen(?:ing)?\s+(?:only\s+)?by appointment\b/i.test(text);

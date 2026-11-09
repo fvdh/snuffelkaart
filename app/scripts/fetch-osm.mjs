@@ -171,8 +171,11 @@ if (fs.existsSync(WEB)) {
   }
   for (const p of places) {
     const k = !p.h && p.website && siteKey(p.website), w = k && web[k];
-    if (w?.dicht && uses.get(k) === 1) { Object.assign(p, { dicht: (w.ok ?? w.read).slice(0, 10), hu: w.page }); webStat.dicht = (webStat.dicht ?? 0) + 1; continue; }
-    if (w?.afspraak && uses.get(k) === 1) { Object.assign(p, { afspraak: (w.ok ?? w.read).slice(0, 10), hu: w.page }); webStat.afspraak = (webStat.afspraak ?? 0) + 1; continue; }
+    // Wat de site meldt als er geen tijden zijn (fetch-web-hours + hours-ai.mjs). Alleen bij een eigen site, niet bij een ketensite.
+    // meld: onregelmatig toont de kaart letterlijk; gestopt, verhuisd, online en adres ziet alleen beheer (Winkels → Website meldt).
+    if (w?.meld && uses.get(k) === 1) { p.meld = { k: w.meld.k, q: w.meld.q, d: w.read.slice(0, 10), u: w.meld.page }; webStat.meld = (webStat.meld ?? 0) + 1; }
+    if (w?.dicht && uses.get(k) === 1 && !(w.tot && w.tot < FROM)) { Object.assign(p, { dicht: (w.ok ?? w.read).slice(0, 10), hu: w.page }, w.tot ? { dichtTot: w.tot } : {}, w.q ? { hq: w.q } : {}); webStat.dicht = (webStat.dicht ?? 0) + 1; continue; }
+    if (w?.afspraak && uses.get(k) === 1) { Object.assign(p, { afspraak: (w.ok ?? w.read).slice(0, 10), hu: w.page }, w.q ? { hq: w.q } : {}); webStat.afspraak = (webStat.afspraak ?? 0) + 1; continue; }
     // Gedeelde site met een eigen blok voor deze winkel (fetch-web-hours: per, op volledige postcode): dat gaat voor.
     const own = uses.get(k) > 1 && w?.per?.[/\b([1-9]\d{3})\s?([A-Z]{2})\b/i.exec(p.addr ?? '')?.slice(1).join('').toUpperCase()];
     if (own) { const h = precompute(own.oh, FROM); if (h) { Object.assign(p, { h, oh: own.oh, checked: (w.ok ?? w.read).slice(0, 10), hs: 'web', hu: own.page }); webStat.used++; webStat.own = (webStat.own ?? 0) + 1; } continue; }

@@ -409,12 +409,20 @@ async function authApiBlob(s: Session, path: string) {
   if (!r.ok) throw new Error(String(r.status)); return r.blob();
 }
 
+/** Wat de eigen website meldt (zie scripts/hours-ai.mjs): label en uitleg in Winkels → Nakijken. */
+const MELD: Record<string, [string, string]> = {
+  gestopt: ['Site: gestopt', 'Volgens de eigen website is de winkel gestopt. Klopt dat, verberg hem dan.'],
+  verhuisd: ['Site: verhuisd', 'Volgens de eigen website is de winkel verhuisd. Zet de pin op de nieuwe plek (en het adres op OpenStreetMap).'],
+  online: ['Site: alleen online', 'Volgens de eigen website is er geen winkel om te bezoeken. Hoort hij dan op de kaart?'],
+  adres: ['Ander adres op site', 'Op de eigen website staat een ander adres dan bij ons. Misschien verhuisd: kijk welk adres klopt.'],
+};
 const catOfData = (d: Record<string, any>): Cat => (d.kind === 'tweedehands' ? d.sub ?? 'tweedehands' : 'kringloop');
 
 function Shops({ s }: { s: Session }) {
   const [q, setQ] = useState(''), [rows, setRows] = useState<Row[]>([]), [err, setErr] = useState(''), [sel, setSel] = useState(0), [dead, setDead] = useState<Row[] | null>(null), [onlyDead, setOnlyDead] = useState(false);
   // Winkels waarvan de website al een week echt weg is (domein bestaat niet meer, 404): misschien gestopt.
-  const loadDead = () => api(s, 'places?select=id,status,locked,data&status=eq.actief&data->>siteDead=not.is.null&order=id&limit=1000').then(r => setDead(r)).catch(e => setErr(e.message));
+  // En winkels waarvan de eigen site iets meldt dat een mens moet nakijken (fetch-web-hours + AI-lezer): gestopt, verhuisd, alleen online, ander adres.
+  const loadDead = () => api(s, 'places?select=id,status,locked,data&status=eq.actief&or=(data->>siteDead.not.is.null,data->meld->>k.in.(gestopt,verhuisd,online,adres))&order=id&limit=1000').then(r => setDead(r)).catch(e => setErr(e.message));
   useEffect(() => { loadDead(); }, []);
   useEffect(() => {
     if (q.trim().length < 2) return setRows([]);
@@ -431,11 +439,11 @@ function Shops({ s }: { s: Session }) {
   return (<>
     <section className="adm-q" aria-label="Winkels">
       <header><h2>Winkels</h2><label className="search"><Ic n="search" /><input type="search" placeholder="Zoek op naam of plaats" value={q} onChange={e => { setQ(e.target.value); setOnlyDead(false); }} autoFocus /></label>
-        {!!dead?.length && <button className={`btn sm${onlyDead ? ' primary' : ''}`} onClick={() => { setQ(''); setOnlyDead(true); setSel(0); }}>Website weg ({dead.length})</button>}</header>
+        {!!dead?.length && <button className={`btn sm${onlyDead ? ' primary' : ''}`} onClick={() => { setQ(''); setOnlyDead(true); setSel(0); }}>Nakijken ({dead.length})</button>}</header>
       {err && <p className="bh-err">{err}</p>}
       {list.length ? <ul className="adm-list">{list.map((x, i) => <li key={x.id}><button className={`adm-item${i === sel ? ' on' : ''}${x.status === 'verborgen' ? ' off' : ''}`} onClick={() => { setSel(i); setPin(''); }}>
         <span className={`tile c-${catOfData(x.data)}`}><Ic n={CAT[catOfData(x.data)][2]} /></span>
-        <span><b>{x.data.name}</b><span>{x.data.addr ?? x.data.place}</span>{x.status === 'verborgen' ? <span className="bh-st cancel">{x.data.gone ? 'Niet meer in de bron' : 'Verborgen'}</span> : x.data.siteDead && <span className="bh-st unconf">Website weg</span>}</span><time>{x.data.place}</time></button></li>)}</ul>
+        <span><b>{x.data.name}</b><span>{x.data.addr ?? x.data.place}</span>{x.status === 'verborgen' ? <span className="bh-st cancel">{x.data.gone ? 'Niet meer in de bron' : 'Verborgen'}</span> : x.data.siteDead ? <span className="bh-st unconf">Website weg</span> : MELD[x.data.meld?.k] && <span className="bh-st unconf">{MELD[x.data.meld.k][0]}</span>}</span><time>{x.data.place}</time></button></li>)}</ul>
         : <p className="adm-empty">{onlyDead ? 'Alles bekeken.' : q.trim().length < 2 ? 'Typ minstens twee letters.' : 'Niets gevonden.'}</p>}
     </section>
     {r ? <aside className="adm-detail" aria-label="Details">
@@ -455,9 +463,11 @@ function Shops({ s }: { s: Session }) {
       <p className="src"><Ic n="info" /><span>Wat je hier zet, overschrijft een import niet meer. Zichtbaar binnen ±15 minuten.</span></p>
       {r.data.gone && <p className="src"><Ic n="alert" /><span>Verborgen door de import van {r.data.gone}: staat niet meer in OpenStreetMap of Overture. Bestaat hij nog? Dan kun je hem weer tonen (en het liefst op OSM zetten).</span></p>}
       {r.data.siteDead && r.status !== 'verborgen' && <p className="src"><Ic n="alert" /><span>De website bestaat sinds {r.data.siteDead} niet meer (domein weg of pagina verdwenen). Misschien is de winkel gestopt. Zoek hem even op: bestaat hij nog, kies dan "Klopt nog".</span></p>}
+      {MELD[r.data.meld?.k] && r.status !== 'verborgen' && <p className="src"><Ic n="alert" /><span>{MELD[r.data.meld.k][1]} Op <a href={r.data.meld.u} target="_blank" rel="noopener">de website</a> stond op {r.data.meld.d}: <q>{r.data.meld.q}</q></span></p>}
       <div className="adm-btns"><button className="btn" onClick={() => { const { gone, ...data } = r.data; save(r, { status: r.status === 'verborgen' ? 'actief' : 'verborgen', data, locked: lock(r, 'status') }).then(loadDead); }}>{r.status === 'verborgen' ? 'Weer tonen' : 'Verbergen'}</button>
         {/* ponytail: vastgezet, dus een volgende keer dat de site wegvalt zie je het niet meer; ontgrendelen als dat gaat schuren */}
-        {r.data.siteDead && r.status !== 'verborgen' && <button className="btn" onClick={() => { const { siteDead, ...data } = r.data; save(r, { data, locked: lock(r, 'siteDead') }).then(loadDead); }}>Klopt nog</button>}</div>
+        {r.data.siteDead && r.status !== 'verborgen' && <button className="btn" onClick={() => { const { siteDead, ...data } = r.data; save(r, { data, locked: lock(r, 'siteDead') }).then(loadDead); }}>Klopt nog</button>}
+        {MELD[r.data.meld?.k] && r.status !== 'verborgen' && <button className="btn" onClick={() => { const { meld, ...data } = r.data; save(r, { data, locked: lock(r, 'meld') }).then(loadDead); }}>Bekeken, klopt nog</button>}</div>
     </aside> : <aside className="adm-detail" />}
   </>);
 }

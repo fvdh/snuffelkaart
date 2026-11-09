@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { snippet, check, mergeDays } from './hours-ai.mjs';
+import { snippet, check, mergeDays, checkStatus, statusSnippet } from './hours-ai.mjs';
 
 const page = 'Welkom bij Petit Circuit\nWij zijn geopend van woensdag tot en met zaterdag tussen 11:00 uur en 17:00 uur.\nItems doneren? Dat kan op dinsdag van 9 tot 12 uur.';
 
@@ -66,5 +66,45 @@ describe('AI-lezer: welk stuk tekst', () => {
     expect(snippet(page)).toContain('woensdag tot en met zaterdag');
     expect(snippet('Openingstijden: zie Facebook')).toBeNull();
     expect(snippet('Over ons\nWij verkopen meubels sinds 1990.')).toBeNull();
+  });
+});
+
+describe('statusvraag (geen tijden: wat meldt de site?)', () => {
+  const T = 'Welkom bij Het Zoldertje.\nWij zijn per 1 maart definitief gestopt. Bedankt voor alle mooie jaren!\nContact: info@zoldertje.nl';
+  it('letterlijke zin met een passend woord', () => {
+    expect(checkStatus({ soort: 'gestopt', bron: 'Wij zijn per 1 maart definitief gestopt.' }, T)).toEqual({ k: 'gestopt', q: 'Wij zijn per 1 maart definitief gestopt.' });
+  });
+  it('verzonnen of aangepaste zin: niets', () => {
+    expect(checkStatus({ soort: 'gestopt', bron: 'De winkel is definitief gesloten.' }, T)).toBeNull();
+  });
+  it('soort past niet bij de zin: niets', () => {
+    expect(checkStatus({ soort: 'verhuisd', bron: 'Wij zijn per 1 maart definitief gestopt.' }, T)).toBeNull();
+  });
+  it('vakantie of zondag dicht is geen "gestopt"', () => {
+    const t = 'In de bouwvakantie zijn wij gesloten.';
+    expect(checkStatus({ soort: 'gestopt', bron: t }, t)).toBeNull();
+  });
+  it('"ook online" is geen alleen-online', () => {
+    const t = 'Bestel ook online in onze webshop!';
+    expect(checkStatus({ soort: 'online', bron: t }, t)).toBeNull();
+    const u = 'Wij hebben geen fysieke winkel, alleen een webshop.';
+    expect(checkStatus({ soort: 'online', bron: u }, u)?.k).toBe('online');
+  });
+  it('tijdelijk dicht met einddatum; voorbije datum = oud bericht', () => {
+    const t = 'Wegens verbouwing zijn wij gesloten tot en met 14 december.';
+    expect(checkStatus({ soort: 'dicht', bron: t, tot: '2026-12-14' }, t, '2026-11-09')).toEqual({ k: 'dicht', q: t, tot: '2026-12-14' });
+    expect(checkStatus({ soort: 'dicht', bron: t, tot: '2026-10-01' }, t, '2026-11-09')).toBeNull();
+  });
+  it('onregelmatig: eens per maand', () => {
+    const t = 'Wij zijn elke eerste zaterdag van de maand open van 10 tot 15 uur.';
+    expect(checkStatus({ soort: 'onregelmatig', bron: t }, t)?.k).toBe('onregelmatig');
+  });
+  it('"geen" en onbekende soorten: niets', () => {
+    expect(checkStatus({ soort: 'geen', bron: 'Welkom bij Het Zoldertje.' }, T)).toBeNull();
+    expect(checkStatus({ soort: 'misschien', bron: 'Welkom bij Het Zoldertje.' }, T)).toBeNull();
+  });
+  it('snippet alleen als er een signaalwoord staat', () => {
+    expect(statusSnippet(T)).toContain('definitief gestopt');
+    expect(statusSnippet('Welkom! Wij verkopen mooie spullen.')).toBeNull();
   });
 });

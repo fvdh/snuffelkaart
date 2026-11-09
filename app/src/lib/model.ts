@@ -15,6 +15,11 @@ export interface Place {
   dicht?: string;
   /** Eigen website: geen vaste tijden, alleen op afspraak (datum gelezen, pagina hu). Alleen zonder tijden. */
   afspraak?: string;
+  /** Bij dicht: t/m welke datum (als de site die noemt). hq: de zin van de site over dicht of afspraak, letterlijk. */
+  dichtTot?: string; hq?: string;
+  /** Wat de eigen website verder meldt zonder tijden (AI-lezer, letterlijk gecontroleerd): onregelmatig tonen we; gestopt, verhuisd,
+   *  online en adres zijn voor beheer. d = gelezen op, u = pagina. */
+  meld?: { k: 'onregelmatig' | 'gestopt' | 'verhuisd' | 'online' | 'adres'; q: string; d: string; u?: string };
   /** Tijden doorgegeven door een bezoeker (hs = 'bezoeker'): diens schermnaam. */
   hb?: string;
 }

@@ -85,24 +85,96 @@ of als er meerdere winkels staan en niet duidelijk is welke bij dit adres hoort.
 Tekst:
 ${text}`;
 
+/* ---------- Geen tijden: wat zegt de site dan wél? ----------
+ * Randgevallen die we tegenkomen (en wat we ermee doen):
+ *   afspraak        "geen vaste openingstijden", "alleen op afspraak", "by appointment only"   → kaart: op afspraak
+ *   dicht           tijdelijk gesloten: verbouwing, ziekte, vakantie, "tot nader bericht"     → kaart: tijdelijk gesloten (t/m datum als die er staat)
+ *   onregelmatig    "elke eerste zaterdag", "alleen in de zomer", "wisselende tijden, zie Facebook",
+ *                   "open tijdens evenementen"                                                → kaart: de zin van de site, letterlijk
+ *   gestopt         "wij zijn gestopt", "definitief gesloten", "opgeheven", "failliet"         → beheer: nakijken (niet zelf verbergen)
+ *   verhuisd        "we zijn verhuisd naar …", "nieuwe locatie"                                → beheer: adres nakijken
+ *   online          "alleen online", "geen fysieke winkel", "alleen webshop"                   → beheer: nakijken (hoort hij op de kaart?)
+ * Elk antwoord moet een letterlijke zin van de pagina zijn, met een woord dat bij de soort past. Twijfel = niets. */
+const STATUS_WORDS = /afspraak|appointment|gesloten|dicht\b|closed|gestopt|stoppen|opgeheven|failliet|verhuisd|verhuizen|nieuwe (?:locatie|adres|winkel)|moved|webshop|online|vakantie|verbouw|seizoen|wisselend|van de maand|tot nader bericht|openingstijd|openingsuren|opening hours/gi;
+/** Stukken tekst rond woorden die iets zeggen over open of dicht, samen hooguit ~2500 tekens. Null als er niets van dat soort staat. */
+export function statusSnippet(text) {
+  const parts = [];
+  for (const m of text.matchAll(STATUS_WORDS)) {
+    if (/^(online|webshop|openingstijd|openingsuren|opening hours)$/i.test(m[0]) && parts.length) continue; // komt overal voor; alleen als er verder niets is
+    const s = text.slice(Math.max(0, m.index - 200), m.index + 300);
+    if (!parts.some(p => p.includes(s.slice(180, 240)))) parts.push(s);
+    if (parts.join('').length > 2200) break;
+  }
+  return parts.length ? parts.join('\n…\n').slice(0, 2500) : null;
+}
+const KIND_WORDS = {
+  afspraak: /afspraak|appointment/,
+  dicht: /tijdelijk|voorlopig|vakantie|verbouw|ziek|tot nader|gesloten|dicht|closed/,
+  onregelmatig: /eerste|tweede|derde|vierde|laatste|van de maand|per maand|om de week|seizoen|zomer|winter|lente|herfst|wisselend|facebook|instagram|evenement|januari|februari|maart|april|mei|juni|juli|augustus|september|oktober|november|december/,
+  gestopt: /gestopt|stoppen|stopt|opgeheven|definitief|failliet|faillissement|sluit|gesloten|closed|laatste dag|afscheid/,
+  verhuisd: /verhuis|nieuwe (?:locatie|adres|winkel|plek)|moved|nieuw adres/,
+  online: /online|webshop|web shop|internet/,
+};
+/** Antwoord op de statusvraag controleren. Geeft { k, q, tot? } of null. */
+export function checkStatus(ans, text, today = todayIso()) {
+  const k = ans?.soort, q = typeof ans?.bron === 'string' ? ans.bron.trim() : '';
+  if (!KIND_WORDS[k] || q.length < 10 || q.length > 300) return null;
+  const Q = flat(q);
+  if (!flat(text).includes(Q) || !KIND_WORDS[k].test(Q)) return null; // verzonnen, aangepast of past niet bij de soort
+  if (k === 'online' && !/alleen|uitsluitend|geen (?:fysieke |echte )?winkel|only/.test(Q)) return null; // "ook online" is geen reden
+  if (k === 'gestopt' && /tijdelijk|voorlopig|vakantie|verbouw|feestdag|zondag|maandag|kerst/.test(Q)) return null; // dat is gewoon dicht
+  const out = { k, q: q.replace(/\s+/g, ' ') };
+  if (k === 'dicht' && /^\d{4}-\d{2}-\d{2}$/.test(ans.tot ?? '')) { if (ans.tot < today) return null; out.tot = ans.tot; } // al voorbij: oud bericht
+  return out;
+}
+const STATUS_PROMPT = (name, addr, text, today) => `Hieronder staat tekst van de website van de tweedehandswinkel "${name}"${addr ? ` (${addr})` : ''}. Vandaag is ${today}.
+Er staan geen vaste wekelijkse openingstijden. Zegt de tekst iets anders over wanneer of of je de winkel kunt bezoeken?
+Antwoord alleen met JSON: {"soort": "...", "bron": "...", "tot": null}
+- "soort" is één van:
+  "afspraak" (alleen op afspraak, geen vaste tijden),
+  "dicht" (tijdelijk gesloten, bijvoorbeeld verbouwing, ziekte of vakantie),
+  "onregelmatig" (niet elke week: bijvoorbeeld eens per maand, alleen in een seizoen, wisselende tijden of tijden op Facebook),
+  "gestopt" (de winkel is definitief gesloten of opgeheven),
+  "verhuisd" (de winkel zit nu op een ander adres),
+  "online" (alleen een webshop, geen winkel om te bezoeken),
+  "geen" (niets van dit alles, of niet duidelijk).
+- "bron": de zin uit de tekst waar het staat, letterlijk overgenomen.
+- "tot": alleen bij "dicht": de datum (JJJJ-MM-DD) tot en met wanneer de winkel dicht is, als die er staat; anders null.
+Gaat het over een andere winkel, over inbreng of ophalen, of over feestdagen, antwoord dan {"soort": "geen"}.
+
+Tekst:
+${text}`;
+
+/** Statusvraag aan het model; zelfde regels voor tegoed en fouten als askAI. Geeft { k, q, tot? } of null. */
+export async function askStatus(name, addr, text, opts = {}) {
+  const raw = await chat(STATUS_PROMPT(name, addr, text, todayIso()), opts);
+  let ans = null; try { ans = JSON.parse(raw.slice(raw.indexOf('{'), raw.lastIndexOf('}') + 1)); } catch { /* geen JSON */ }
+  const ok = checkStatus(ans, text);
+  if (!ok && ans?.soort && ans.soort !== 'geen' && process.env.AI_DEBUG) console.log(`  AI-status afgewezen: ${name} → ${raw.replace(/\s+/g, ' ').slice(0, 300)}`);
+  return ok;
+}
+
 /** Vraag het model (Cloudflare Workers AI, OpenAI-vorm). Gooit bij dagtegoed op of geen toegang een fout met .limit, zodat de aanroeper stopt.
  *  GitHub Models was de eerste keus, maar is op 30 juli 2026 gestopt (het adres antwoordt alleen nog "OK"). */
-export async function askAI(name, addr, text, { account = process.env.CF_ACCOUNT_ID, token = process.env.CF_AI_TOKEN, model = '@cf/meta/llama-3.3-70b-instruct-fp8-fast' } = {}, tries = 3) {
-  const r = await fetch(`https://api.cloudflare.com/client/v4/accounts/${account}/ai/v1/chat/completions`, {
-    method: 'POST', signal: AbortSignal.timeout(60000),
-    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ model, temperature: 0, max_tokens: 400, messages: [{ role: 'user', content: PROMPT(name, addr, text) }] }),
-  });
-  const body = await r.text(), short = body.replace(/\s+/g, ' ').slice(0, 200);
-  // 429 met korte wachttijd: even wachten. Anders (dagtegoed op, 401/403 geen toegang): stoppen.
-  const wait = +(r.headers.get('retry-after') ?? 0);
-  if (r.status === 429 && wait && wait <= 90 && tries > 1) { await new Promise(ok => setTimeout(ok, wait * 1000)); return askAI(name, addr, text, { account, token, model }, tries - 1); }
-  if ([401, 403, 429].includes(r.status) || /allocation|quota|neurons/i.test(short)) throw Object.assign(new Error(`model ${r.status}: ${short}`), { limit: true });
-  if (!r.ok) throw new Error(`model ${r.status}: ${short}`);
-  let j; try { j = JSON.parse(body); } catch { throw Object.assign(new Error(`model gaf geen JSON: ${short}`), { limit: true }); } // verkeerd adres: niet 120 keer proberen
-  const raw = j.choices?.[0]?.message?.content ?? '';
+export async function askAI(name, addr, text, opts = {}) {
+  const raw = await chat(PROMPT(name, addr, text), opts);
   let ans = null; try { ans = JSON.parse(raw.slice(raw.indexOf('{'), raw.lastIndexOf('}') + 1)); } catch { /* geen JSON in het antwoord */ }
   const ok = check(ans, text, undefined, addr);
   if (!ok && process.env.AI_DEBUG) console.log(`  AI afgewezen: ${name} → ${raw.replace(/\s+/g, ' ').slice(0, 300)}`);
   return ok;
+}
+async function chat(content, { account = process.env.CF_ACCOUNT_ID, token = process.env.CF_AI_TOKEN, model = '@cf/meta/llama-3.3-70b-instruct-fp8-fast' } = {}, tries = 3) {
+  const r = await fetch(`https://api.cloudflare.com/client/v4/accounts/${account}/ai/v1/chat/completions`, {
+    method: 'POST', signal: AbortSignal.timeout(60000),
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ model, temperature: 0, max_tokens: 400, messages: [{ role: 'user', content }] }),
+  });
+  const body = await r.text(), short = body.replace(/\s+/g, ' ').slice(0, 200);
+  // 429 met korte wachttijd: even wachten. Anders (dagtegoed op, 401/403 geen toegang): stoppen.
+  const wait = +(r.headers.get('retry-after') ?? 0);
+  if (r.status === 429 && wait && wait <= 90 && tries > 1) { await new Promise(ok => setTimeout(ok, wait * 1000)); return chat(content, { account, token, model }, tries - 1); }
+  if ([401, 403, 429].includes(r.status) || /allocation|quota|neurons/i.test(short)) throw Object.assign(new Error(`model ${r.status}: ${short}`), { limit: true });
+  if (!r.ok) throw new Error(`model ${r.status}: ${short}`);
+  let j; try { j = JSON.parse(body); } catch { throw Object.assign(new Error(`model gaf geen JSON: ${short}`), { limit: true }); } // verkeerd adres: niet 120 keer proberen
+  return j.choices?.[0]?.message?.content ?? '';
 }

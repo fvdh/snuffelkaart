@@ -6,7 +6,7 @@
 //          npm run data:web -- --limit=50 (proef)
 import fs from 'node:fs';
 import { hoursFromHtml, parseHoursNL, toText, siteKey, keep, tempClosed, byAppointment } from './hours-from-web.mjs';
-import { snippet, hashOf, askAI } from './hours-ai.mjs';
+import { snippet, hashOf, askAI, statusSnippet, askStatus } from './hours-ai.mjs';
 
 const PLACES = new URL('../public/data/places.json', import.meta.url), OUT = new URL('../data-raw/web-hours.json', import.meta.url);
 const UA = 'Snuffelkaart-PoC/0.1 (openingstijden van kringlopen; freek@draad.nu)';
@@ -31,6 +31,8 @@ for (const p of places) {
   if (!SITE && cache[k] && cache[k].v === VERSION && Date.now() - Date.parse(cache[k].read) < MAX_AGE) continue; // --site: altijd opnieuw
   todo.set(k, /^https?:/i.test(p.website) ? p.website : 'https://' + p.website);
 }
+// Winkels per domein (ook met verschillende paden): een keten toont vaak het adres van het hoofdkantoor, geen verhuizing.
+const perHost = new Map(); for (const p of places) { const k = p.website && siteKey(p.website); if (k) perHost.set(k.split('/')[0], (perHost.get(k.split('/')[0]) ?? 0) + 1); }
 const LIMIT = +(process.argv.find(a => a.startsWith('--limit='))?.slice(8) ?? Infinity); // proefrun
 for (const k of [...todo.keys()].slice(LIMIT)) todo.delete(k);
 const byHost = new Map(); for (const [k, u] of todo) { const h = k.split('/')[0]; byHost.set(h, [...(byHost.get(h) ?? []), [k, u]]); }
@@ -146,9 +148,22 @@ async function read(key, url) {
     if (!hit) [hit, at] = await viaAI(key, seen, at, res);
     // Postcodes op de pagina (4 cijfers): staat de winkel er niet tussen, dan is het misschien een andere winkel (zie fetch-osm).
     if (hit) { res.oh = hit.oh; res.page = at; res.ok = res.read; res.pc = [...new Set(seen.flatMap(([, h]) => [...toText(h).matchAll(/\b([1-9]\d{3})\s?[A-Z]{2}\b/g)].map(m => m[1])))].slice(0, 12); } // ook van de pagina met de tijden (/contact), niet alleen de homepage
-    else { // geen tijden, maar wel "alleen op afspraak": dat tonen we
+    else { // geen tijden: wat zegt de site dan wel? Eerst de vaste regels, dan de AI-lezer (zie hours-ai.mjs: soorten en wat we ermee doen)
       const ap = seen.find(([, h]) => byAppointment(toText(h)));
-      if (ap) Object.assign(res, { afspraak: true, page: ap[0], ok: res.read, note: 'op afspraak' }); else res.note = 'geen tijden gevonden';
+      if (ap) Object.assign(res, { afspraak: true, page: ap[0], ok: res.read, note: 'op afspraak' });
+      else {
+        const [st, u] = await statusAI(key, seen, res);
+        if (st?.k === 'afspraak') Object.assign(res, { afspraak: true, page: u, ok: res.read, note: 'op afspraak', q: st.q });
+        else if (st?.k === 'dicht') Object.assign(res, { dicht: true, page: u, ok: res.read, note: 'tijdelijk gesloten', q: st.q, ...(st.tot ? { tot: st.tot } : {}) });
+        else if (st) Object.assign(res, { meld: { k: st.k, q: st.q, page: u }, note: `website meldt: ${st.k}` });
+        else res.note = 'geen tijden gevonden';
+      }
+    }
+    // Eén winkel op deze site, en op de site staat precies één ander adres (postcode): misschien verhuisd (Old Goods). Geen keten (zie perHost). Beheer kijkt.
+    const own = PCK0(addr), pcs = [...new Set(seen.flatMap(([, h]) => [...toText(h).matchAll(/\b([1-9]\d{3})\s?([A-Z]{2})\b/g)].map(m => m[1] + m[2])))];
+    if (own && !res.meld && (perHost.get(key.split('/')[0]) ?? 1) === 1 && pcs.length === 1 && pcs[0].slice(0, 4) !== own.slice(0, 4)) {
+      const t = seen.map(([, h]) => toText(h)).find(t => /\b[1-9]\d{3}\s?[A-Z]{2}\b/.test(t)), m = /[^\n]{0,60}\n?[^\n]{0,10}\b[1-9]\d{3}\s?[A-Z]{2}\b[^\n]{0,30}/.exec(t ?? '');
+      res.meld = { k: 'adres', q: (m?.[0] ?? pcs[0]).replace(/\s+/g, ' ').trim(), page: at };
     }
   } catch (e) {
     res.note = `fout: ${e.message ?? e.name}`;
@@ -156,6 +171,21 @@ async function read(key, url) {
     if (gone(e)) { const prev = cache[key]; res.dead = prev?.dead ?? (prev?.note?.startsWith('fout') ? prev.read : res.read); }
   }
   return keep(res, cache[key]);
+}
+/** Geen tijden: vraag de AI-lezer wat de site dan wel meldt. Alleen als er woorden als "afspraak", "gesloten" of "verhuisd" staan.
+ *  Zelfde tekst als vorige keer = zelfde antwoord, gratis. */
+async function statusAI(key, pages, res) {
+  for (const [url, html] of pages) {
+    const text = statusSnippet(toText(html)); if (!text) continue;
+    const h = hashOf(text), prev = cache[key];
+    res.stHash = h;
+    if (prev?.stHash === h) { res.st = prev.st ?? null; return [prev.st ?? null, prev.st?.page ?? url]; }
+    if (aiOff || aiAsked >= AI_MAX) { res.stHash = undefined; return [null, url]; }
+    const p = who.get(key);
+    try { aiAsked++; const r = await askStatus(p?.name ?? '', p?.addr ?? '', text); res.st = r ? { ...r, page: url } : null; if (r) console.log(`  AI-status: ${p?.name} → ${r.k}: ${r.q.slice(0, 80)}`); return [r, url]; }
+    catch (e) { if (e.limit) { aiOff = true; console.log(`  AI-lezer gestopt: ${e.message}`); } else if (aiErr++ < 3) console.log(`  AI-fout: ${e.message}`); res.stHash = undefined; return [null, url]; }
+  }
+  return [null, pages[0]?.[0]];
 }
 /** Parser vond niets: laat de AI-lezer het stuk tekst rond "openingstijden" lezen. Zelfde tekst als vorige keer = zelfde antwoord, gratis. */
 async function viaAI(key, pages, at, res) {
