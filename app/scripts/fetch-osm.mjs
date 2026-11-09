@@ -159,6 +159,25 @@ if (fs.existsSync(OV)) {
 
 places.forEach(refine); // soort pas nu: de website kan uit Overture komen
 
+// ---------- Plaats (en adres) bij PDOK als OSM/Overture die niet hebben ----------
+// 9 nov: 132 winkels zonder addr:city stonden als "?" in Dekking en op geen enkele stadspagina. PDOK-locatieserver (Kadaster, CC0):
+// het dichtstbijzijnde adres bij de pin. Plaats altijd; straat en postcode alleen als dat adres binnen 30 m ligt (zelfde pand).
+const PDOK = new URL('../data-raw/pdok-plaats.json', import.meta.url), pdok = fs.existsSync(PDOK) ? JSON.parse(fs.readFileSync(PDOK, 'utf8')) : {};
+const pdokStat = { place: 0, addr: 0 };
+for (const p of places.filter(x => !x.place)) {
+  const k = `${p.lat},${p.lon}`;
+  if (!(k in pdok)) try {
+    const r = await fetch(`https://api.pdok.nl/bzk/locatieserver/search/v3_1/reverse?lat=${p.lat}&lon=${p.lon}&type=adres&rows=1&fl=woonplaatsnaam,straatnaam,huis_nlt,postcode,afstand`, { signal: AbortSignal.timeout(10000) });
+    pdok[k] = (await r.json()).response?.docs?.[0] ?? null;
+  } catch { continue; } // PDOK even weg: volgende week
+  const d = pdok[k]; if (!d?.woonplaatsnaam) continue;
+  p.place = d.woonplaatsnaam; pdokStat.place++;
+  if (!p.addr && d.afstand < 30 && d.postcode) { p.addr = `${d.straatnaam} ${d.huis_nlt}, ${d.postcode.slice(0, 4)} ${d.postcode.slice(4)} ${d.woonplaatsnaam}`; pdokStat.addr++; }
+  else if (p.addr && !p.addr.includes(d.woonplaatsnaam)) p.addr = /\b\d{4}\s?[A-Z]{2}$/i.test(p.addr) ? `${p.addr} ${d.woonplaatsnaam}` : `${p.addr}, ${d.woonplaatsnaam}`;
+}
+fs.writeFileSync(PDOK, JSON.stringify(pdok));
+console.log(`  plaats van PDOK: ${pdokStat.place} winkels (waarvan ${pdokStat.addr} ook een adres)`);
+
 // ---------- Openingstijden van de eigen website van de winkel (fetch-web-hours.mjs) ----------
 const WEB = new URL('../data-raw/web-hours.json', import.meta.url), webStat = { used: 0, shared: 0, market: 0, otherShop: 0, dead: 0 };
 if (fs.existsSync(WEB)) {
