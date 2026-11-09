@@ -56,7 +56,7 @@ export function dedupe(places) {
 
 /** Rijen → bestanden voor de app (zelfde vorm als vroeger, zodat de app niet verandert). */
 export function toFiles(places, markets, from) {
-  const p = dedupe(places.filter(r => r.status === 'actief').map(({ id, data: { oh, ...d } }) => {
+  const p = dedupe(places.filter(r => r.status === 'actief').map(({ id, data: { oh, siteGuess, ...d } }) => { // siteGuess: voorstel voor beheer, niet openbaar
     const h = oh ? precompute(oh, from) : null;
     return { ...d, id, ...(h ? { h } : {}) };
   }));

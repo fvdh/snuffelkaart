@@ -61,3 +61,12 @@ jobs:
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      - name: Websites raden voor winkels zonder site (voorstel in beheer → Nakijken)
+        run: |
+          node scripts/raad-sites.mjs
+          git add -f data-raw/site-raad.json # data-raw staat in .gitignore
+          git diff --cached --quiet || { git commit -m "Websites geraden $(date +%F)" && for i in 1 2 3; do git push && break; git pull --rebase -X theirs; done; }
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        continue-on-error: true
