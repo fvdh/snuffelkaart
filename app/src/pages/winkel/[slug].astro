@@ -20,7 +20,7 @@ export function getStaticPaths() {
 const { p } = Astro.props as { p: Place };
 const c = catOf(p), sort = c === 'kringloop' ? 'Kringloopwinkel' : CAT[c][0], wk = weekIntervals(p.h, from, holidays), cityUrl = ix.cityUrl(p.place);
 const ivTxt = (iv: [number, number][]) => (iv.length ? iv.map(([a, b]) => `${hm(a)}–${hm(b % 1440)}`).join(' en ') : 'dicht');
-const web = p.website ? (p.website.startsWith('http') ? p.website : `https://${p.website}`) : null;
+const web = p.website && !p.siteDead ? (p.website.startsWith('http') ? p.website : `https://${p.website}`) : null;
 const webTxt = p.website?.replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '');
 const tel = p.phone?.split(';')[0].trim(), telTxt = tel && fmtTel(tel), telHref = tel?.replace(/[^\d+]/g, '');
 const { street, pc, town } = splitAddr(p.addr, p.place);
@@ -40,7 +40,7 @@ const reviews = extra.reviews[p.id] ?? [], photos = extra.photos[p.id] ?? [], ra
 const MONTHS = ['januari', 'februari', 'maart', 'april', 'mei', 'juni', 'juli', 'augustus', 'september', 'oktober', 'november', 'december'];
 const url = ix.url(p.id), title = `${p.name}${p.place ? `, ${p.place}` : ''}: openingstijden en adres`;
 const summary = wk && hoursSummary(wk);
-const description = `${sort}${p.place ? ` in ${p.place}` : ''}${p.addr ? `, ${street}` : ''}. ` + (summary ? `Open ${summary}.` : p.dicht ? 'Volgens de eigen website tijdelijk gesloten.' : p.afspraak ? 'Alleen op afspraak.' : p.meld?.k === 'onregelmatig' ? `Niet elke week open: ${p.meld.q.slice(0, 80)}` : 'Openingstijden nog onbekend; bel even voordat je gaat.') + (telTxt ? ` Telefoon ${telTxt}.` : '');
+const description = `${sort}${p.place ? ` in ${p.place}` : ''}${p.addr ? `, ${street}` : ''}. ` + (summary ? `Open ${summary}.` : p.dicht ? 'Volgens de eigen website tijdelijk gesloten.' : p.afspraak ? 'Alleen op afspraak.' : p.meld?.k === 'onregelmatig' ? `Niet elke week open: ${p.meld.q.slice(0, 80)}` : p.siteDead ? 'Openingstijden onbekend en de website werkt niet meer; bel even voordat je gaat.' : 'Openingstijden nog onbekend; bel even voordat je gaat.') + (telTxt ? ` Telefoon ${telTxt}.` : '');
 const crumbs: [string, string][] = [['Snuffelkaart', '/'], ...(cityUrl ? [[p.place!, cityUrl] as [string, string]] : []), [p.name, url]];
 const ld = { '@context': 'https://schema.org', '@type': 'Store', name: p.name, url: SITE + url, geo: { '@type': 'GeoCoordinates', latitude: p.lat, longitude: p.lon },
   ...(p.addr ? { address: { '@type': 'PostalAddress', streetAddress: street, ...(pc ? { postalCode: pc } : {}), addressLocality: town ?? undefined, addressCountry: 'NL' } } : {}), ...(tel ? { telephone: telTxt } : {}), ...(web ? { sameAs: web } : {}), ...(wk ? { openingHoursSpecification: hoursSpec(wk) } : {}),
@@ -64,12 +64,14 @@ const fmtDate = (iso: string) => `${dLong(iso)}${iso.slice(0, 4) !== from.slice(
         : p.dicht ? <p class="pl-week bad">{p.dichtTot ? `Gesloten tot en met ${dLong(p.dichtTot).toLowerCase()}` : 'Tijdelijk gesloten'}, volgens de eigen website.</p>
         : p.afspraak ? <p class="pl-week unk">Geen vaste openingstijden: <em>alleen op afspraak</em>.</p>
         : p.meld?.k === 'onregelmatig' ? <p class="pl-week unk"><em>Niet elke week open.</em> Kijk op hun website of bel even.</p>
+        : p.siteDead ? <p class="pl-week unk">Openingstijden <em>onbekend</em>, en de website werkt niet meer. Misschien is de winkel gestopt; bel even voordat je gaat.</p>
         : <p class="pl-week unk">Openingstijden <em>onbekend</em>. Bel even voordat je gaat.</p>}
     </div>
     <dl class="pl-facts">
       <div><dt>Adres</dt><dd>{street ?? p.place}{(pc || town) && street && <small>{[pc, town].filter(Boolean).join(' ')}</small>}</dd></div>
       {tel && <div><dt>Telefoon</dt><dd><a class="pl-big" href={`tel:${telHref}`}>{telTxt}</a></dd></div>}
       {web ? <div><dt>Website</dt><dd><a href={web} rel="nofollow">{webTxt}</a></dd></div>
+        : p.siteDead ? <div><dt>Website</dt><dd>{webTxt}<small>werkt niet meer sinds {dLong(p.siteDead).toLowerCase()}</small></dd></div>
         : p.fb && <div><dt>Facebook</dt><dd><a href={`https://www.facebook.com/${p.fb}`} rel="nofollow">Op Facebook</a></dd></div>}
     </dl>
     <div class="pl-acts">

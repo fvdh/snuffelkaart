@@ -20,6 +20,8 @@ export interface Place {
   /** Wat de eigen website verder meldt zonder tijden (AI-lezer, letterlijk gecontroleerd): onregelmatig tonen we; gestopt, verhuisd,
    *  online en adres zijn voor beheer. d = gelezen op, u = pagina. */
   meld?: { k: 'onregelmatig' | 'gestopt' | 'verhuisd' | 'online' | 'adres'; q: string; d: string; u?: string };
+  /** Eigen website werkt niet meer (domein weg of pagina verdwenen) sinds deze datum: geen link meer, wel zeggen. */
+  siteDead?: string;
   /** Tijden doorgegeven door een bezoeker (hs = 'bezoeker'): diens schermnaam. */
   hb?: string;
 }
