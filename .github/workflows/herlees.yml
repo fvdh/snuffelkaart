@@ -1,0 +1,53 @@
+# Eén website opnieuw lezen: knop "Opnieuw lezen" in /beheer → Websitelezer (via de worker, alleen beheerders) of hier met de hand.
+# Leest de site (parser + AI-lezer), bewaart het in data-raw/web-hours.json en zet de tijden meteen in Supabase (scripts/herlees.mjs);
+# de kwartier-run publiceert ze daarna. De wekelijkse winkelrun rekent alles weer opnieuw uit.
+name: Website opnieuw lezen
+run-name: Opnieuw lezen ${{ inputs.site }}
+on:
+  workflow_dispatch:
+    inputs:
+      site:
+        description: Website, bijvoorbeeld themusketeer.nl
+        required: true
+permissions:
+  contents: write
+concurrency:
+  group: web-hours # niet tegelijk met een andere lezing die hetzelfde bestand schrijft
+  cancel-in-progress: false
+jobs:
+  lees:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: app
+    env:
+      SITE: ${{ inputs.site }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+      - run: npm ci
+      - name: Site lezen
+        run: |
+          [[ "$SITE" =~ ^[A-Za-z0-9.-]+\.[A-Za-z]{2,}(/[A-Za-z0-9._~%/-]*)?$ ]] || { echo "::error::Geen geldige site: $SITE"; exit 1; }
+          node scripts/fetch-web-hours.mjs "--site=$SITE"
+        env:
+          CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+          CF_AI_TOKEN: ${{ secrets.CF_AI_TOKEN }}
+          AI_DEBUG: '1'
+      - name: Bewaren in de repo
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data-raw/web-hours.json
+          push() { for i in 1 2 3; do git push && return; git pull --rebase -X theirs || return 1; done; return 1; }
+          git diff --cached --quiet || { git commit -m "Website opnieuw gelezen: $SITE" && push; }
+      - name: Tijden naar Supabase
+        run: node scripts/herlees.mjs "$SITE"
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}

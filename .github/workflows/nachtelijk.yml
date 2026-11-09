@@ -73,6 +73,14 @@ jobs:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }} # ontbreekt hij, dan slaat het script over
+      - name: Zoekwoorden uit Google Search Console (voor /beheer)
+        if: steps.w.outputs.doe == 'alles'
+        run: node scripts/fetch-gsc.mjs
+        continue-on-error: true # zonder GSC_KEY of bij een storing bij Google: overslaan
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          GSC_KEY: ${{ secrets.GSC_KEY }} # json-sleutel van het Google-serviceaccount; ontbreekt hij, dan slaat het script over
       - name: Kaartdata uit Supabase (tijden vooruit vanaf vandaag)
         if: steps.w.outputs.doe
         run: node scripts/db.mjs export

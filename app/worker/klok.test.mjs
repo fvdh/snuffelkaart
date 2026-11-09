@@ -1,5 +1,5 @@
 import { it, expect } from 'vitest';
-import worker, { due } from './klok.js';
+import worker, { due, SITE } from './klok.js';
 
 const at = iso => due(new Date(iso)).map(([f, i]) => f + (i.modus ? `:${i.modus}` : ''));
 it('klok: elk kwartier publiceren, 02:30 alles, back-up, controle en winkels op hun tijd', () => {
@@ -18,4 +18,9 @@ it('oude kaartlinks op / gaan naar /kaart/, de rest naar de bestanden', async ()
   expect(await go('https://snuffelkaart.nl/?dag=2026-11-08&v=600&s=a,b')).toBe('https://snuffelkaart.nl/kaart/?dag=2026-11-08&v=600&s=a,b');
   expect(await go('https://snuffelkaart.nl/')).toBe('bestand');
   expect(await go('https://snuffelkaart.nl/?utm_source=x')).toBe('bestand');
+});
+
+it('opnieuw lezen: alleen een gewone sitenaam, geen pad met rare tekens', () => {
+  for (const ok of ['themusketeer.nl', 'aktiefonline.nl/kringloopwinkels/winterswijk', 'www.dorcas.nl']) expect(SITE.test(ok)).toBe(true);
+  for (const nee of ['', 'localhost', 'a.nl/../x?y', 'a.nl;rm -rf', 'https://a.nl']) expect(SITE.test(nee)).toBe(false);
 });

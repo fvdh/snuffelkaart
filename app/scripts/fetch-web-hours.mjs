@@ -19,7 +19,7 @@ const WORKERS = 8, PAUSE = 800, MAX_AGE = 6 * 864e5, VERSION = 11; // 3: AI-antw
 
 const cache = fs.existsSync(OUT) && !process.argv.includes('--fresh') ? JSON.parse(fs.readFileSync(OUT, 'utf8')) : {};
 const places = JSON.parse(fs.readFileSync(PLACES, 'utf8')).places;
-const SITE = process.argv.find(a => a.startsWith('--site='))?.slice(7); // één site opnieuw lezen: --site=kringloopdeliemers.nl --fresh
+const SITE = process.argv.find(a => a.startsWith('--site='))?.slice(7); // één site opnieuw lezen (ook als hij net gelezen is): --site=kringloopdeliemers.nl; de rest van de cache blijft staan
 const todo = new Map(), who = new Map(), sharing = new Map(); // key → url, key → winkel (naam en adres voor de AI-lezer), key → alle winkels met die site
 // AI-lezer alleen met CF_ACCOUNT_ID en CF_AI_TOKEN (GitHub-secrets). Gratis tegoed is per dag beperkt: hooguit AI_MAX vragen per run.
 const AI = !!(process.env.CF_ACCOUNT_ID && process.env.CF_AI_TOKEN) && !process.argv.includes('--no-ai'), AI_MAX = +(process.env.AI_MAX ?? 120); let aiAsked = 0, aiFound = 0, aiErr = 0, aiOff = !AI;
@@ -28,7 +28,7 @@ for (const p of places) {
   const k = siteKey(p.website); if (!k || (SITE && k !== SITE)) continue;
   sharing.set(k, [...(sharing.get(k) ?? []), p]); if (todo.has(k) || who.has(k)) continue;
   who.set(k, p);
-  if (cache[k] && cache[k].v === VERSION && Date.now() - Date.parse(cache[k].read) < MAX_AGE) continue;
+  if (!SITE && cache[k] && cache[k].v === VERSION && Date.now() - Date.parse(cache[k].read) < MAX_AGE) continue; // --site: altijd opnieuw
   todo.set(k, /^https?:/i.test(p.website) ? p.website : 'https://' + p.website);
 }
 const LIMIT = +(process.argv.find(a => a.startsWith('--limit='))?.slice(8) ?? Infinity); // proefrun

@@ -5,7 +5,7 @@
 // Ontwerp: ontwerp/beheer/index.html ("sorteerloods"). Grafieken zonder bibliotheek: svg en css.
 import { Fragment, useEffect, useMemo, useState, type ReactNode } from 'react';
 import type { Session } from '../lib/auth';
-import { api } from '../lib/auth';
+import { api, fresh } from '../lib/auth';
 import { slugify } from '../lib/seo';
 import { km } from '../lib/model';
 import { NIET_METEN } from '../lib/ev';
@@ -187,7 +187,20 @@ export function Live({ d }: { d: Data }) {
   </>;
 }
 
-export function Verkeer({ p }: { p: P }) {
+type Gsc = { queries: [string, number, number, number][]; pages: [string, number, number, number][]; days: [string, number, number][] };
+/** Zoekwoorden uit Search Console (scripts/fetch-gsc.mjs, elke nacht), opgeteld over de gekozen periode. */
+function useGsc(s: Session, days: number) {
+  const [g, setG] = useState<Gsc | null>(null);
+  useEffect(() => { setG(null); api(s, 'rest/v1/rpc/beheer_zoekwoorden', { method: 'POST', body: JSON.stringify({ sinds: ago(Math.max(days, 3) - 1) }) }).then(j => setG(j ?? { queries: [], pages: [], days: [] })).catch(() => setG({ queries: [], pages: [], days: [] })); }, [days]);
+  return g;
+}
+function GscTable({ rows, label }: { rows: [string, number, number, number][]; label: string }) {
+  return <div className="tscroll"><table className="tbl"><thead><tr><th>{label}</th><th className="r">Vertoningen</th><th className="r">Klikken</th><th className="r">CTR</th><th className="r">Positie</th></tr></thead>
+    <tbody>{rows.slice(0, 50).map(([k, c, i, pos]) => <tr key={k}><td>{label === 'Pagina' ? <a href={k} target="_blank" rel="noopener">{k}</a> : k}</td><td className="r">{nl(i)}</td><td className="r">{nl(c)}</td><td className="r">{i ? ((c / i) * 100).toFixed(1).replace('.', ',') : '0'}%</td><td className="r">{pos?.toFixed?.(1).replace('.', ',') ?? '–'}</td></tr>)}</tbody></table></div>;
+}
+
+export function Verkeer({ p, s }: { p: P; s: Session }) {
+  const gsc = useGsc(s, p.days), gi = sum((gsc?.days ?? []).map(d => d[2])), gc = sum((gsc?.days ?? []).map(d => d[1]));
   const pv = p.ec.filter(x => x[2] === 'pv').length, mob = p.vs.filter(v => v.dev === 'm').length;
   return <>
     <Kpi label="Bezoeken" {...p.k.bezoek} />
@@ -197,7 +210,11 @@ export function Verkeer({ p }: { p: P }) {
     <Card title="Waar komen ze vandaan" sub="bron van het bezoek" span={6}><Bars rows={count(p.vs, v => v.src)} empty="Nog geen bezoeken." /></Card>
     <Card title="Landingspagina's" sub="eerste pagina van een bezoek" span={6}><Bars rows={count(p.vs, v => v.land || '?').slice(0, 10)} tone="m" empty="Nog geen bezoeken." /></Card>
     <Card title="Soort eerste pagina" span={6}><Bars rows={count(p.vs, v => landKind(v.land))} /></Card>
-    <Card title="Zoekwoorden in Google" sub="Search Console" span={6}><Empty>Komt in fase 3 (koppeling met de Search Console-API). Tot dan: <a href="https://search.google.com/search-console?resource_id=sc-domain%3Asnuffelkaart.nl" target="_blank" rel="noopener">Search Console</a> en <a href="https://dash.cloudflare.com/" target="_blank" rel="noopener">Cloudflare Web Analytics</a>.</Empty></Card>
+    <Card title="Google" sub="Search Console · loopt ±2 dagen achter" span={6}>{!gsc ? <Empty>Laden…</Empty> : gsc.days.length
+      ? <div className="facts3"><div><span className="lbl">vertoningen</span><b>{nl(gi)}</b></div><div><span className="lbl">klikken</span><b>{nl(gc)}</b></div><div><span className="lbl">CTR</span><b>{gi ? ((gc / gi) * 100).toFixed(1).replace('.', ',') : 0}%</b></div></div>
+      : <Empty>Nog geen gegevens uit Search Console. Die komen elke nacht binnen zodra de sleutel GSC_KEY in GitHub staat (zie de stappen in HANDOFF.md). Tot dan: <a href="https://search.google.com/search-console?resource_id=sc-domain%3Asnuffelkaart.nl" target="_blank" rel="noopener">Search Console</a>.</Empty>}</Card>
+    {!!gsc?.queries.length && <Card title="Zoekwoorden in Google" sub="meeste vertoningen bovenaan" span={7} flush><GscTable rows={gsc.queries} label="Zoekwoord" /></Card>}
+    {!!gsc?.pages.length && <Card title="Pagina's in Google" span={5} flush><GscTable rows={gsc.pages} label="Pagina" /></Card>}
   </>;
 }
 
@@ -340,8 +357,18 @@ export function Dekking({ d, p }: { d: Data; p: P }) {
   </>;
 }
 
-export function Lezer() {
-  const sites = useLezer(), [f, setF] = useState('alles'), [q, setQ] = useState('');
+export function Lezer({ s }: { s: Session }) {
+  const sites = useLezer(), [f, setF] = useState('alles'), [q, setQ] = useState(''), [run, setRun] = useState<Record<string, string>>({});
+  // Opnieuw lezen via de worker (/api/herlees): die controleert of je beheerder bent en start workflow herlees.yml.
+  const reread = async (site: string) => {
+    setRun(r => ({ ...r, [site]: 'bezig' }));
+    try {
+      const ses = await fresh(s); if (!ses) throw new Error('Log opnieuw in.');
+      const r = await fetch('/api/herlees', { method: 'POST', headers: { Authorization: `Bearer ${ses.token}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ site }) });
+      const j = await r.json().catch(() => ({}));
+      setRun(x => ({ ...x, [site]: r.ok ? 'gestart' : j.fout ?? `fout ${r.status}` }));
+    } catch (e) { setRun(x => ({ ...x, [site]: (e as Error).message })); }
+  };
   if (!sites) return <p className="b-empty s12">Laden…</p>;
   const read = sites.map(s => s[4]).sort().at(-1) ?? '', withH = sites.filter(s => s[1]).length, ai = sites.filter(s => s[1] && s[5]).length, bad = sites.filter(s => /^fout/.test(s[2] ?? '')).length;
   const F: Record<string, (s: Site) => boolean> = { alles: () => true, 'met tijden': s => !!s[1], 'geen tijden': s => !s[1] && !/^fout/.test(s[2] ?? ''), 'AI-lezer': s => s[5], fout: s => /^fout/.test(s[2] ?? ''), 'tijdelijk dicht': s => s[6] };
@@ -353,11 +380,13 @@ export function Lezer() {
     <Kpi label="Via de AI-lezer" now={ai} prev={0} tone="m" />
     <Kpi label="Onbereikbaar" now={bad} prev={0} tone="t" />
     <Card title="Waarom geen tijden" sub={`stand van ${when(read)}`} span={5}><Bars rows={count(sites.filter(s => !s[1]), s => reason(s))} tone="m" /></Card>
-    <Card title="Hoe het werkt" span={7}><ul className="howto"><li>Elke maandag 00:30 (UTC) leest de winkelrun alle websites van winkels zonder tijden in OSM.</li><li>Eerst de parser (tabellen, “di t/m za 10–17”, Engels, vestigingen), dan de AI-lezer (Cloudflare, max. 250 vragen per run).</li><li>Een site met tijden voor meer winkels (keten) telt alleen voor de winkel met de postcode of plaats op die pagina.</li><li>Eén site opnieuw lezen: <code>node scripts/fetch-web-hours.mjs --site=voorbeeld.nl --fresh</code></li></ul></Card>
+    <Card title="Hoe het werkt" span={7}><ul className="howto"><li>Elke maandag 00:30 (UTC) leest de winkelrun alle websites van winkels zonder tijden in OSM.</li><li>Eerst de parser (tabellen, “di t/m za 10–17”, Engels, vestigingen), dan de AI-lezer (Cloudflare, max. 250 vragen per run).</li><li>Een site met tijden voor meer winkels (keten) telt alleen voor de winkel met de postcode of plaats op die pagina.</li><li>Eén site opnieuw lezen: de knop “Opnieuw lezen” hieronder (±3 minuten, daarna binnen een kwartier op de kaart), of <code>node scripts/fetch-web-hours.mjs --site=voorbeeld.nl</code></li></ul></Card>
     <Card title="Sites" sub={`${nl(list.length)} van ${nl(sites.length)}`} flush extra={<><div className="seg">{Object.keys(F).map(k => <button key={k} className={f === k ? 'on' : ''} onClick={() => setF(k)}>{k}</button>)}</div><label className="kbtn"><input value={q} onChange={e => setQ(e.target.value)} placeholder="Zoek site…" aria-label="Zoek site" /></label></>}>
-      <div className="tscroll"><table className="tbl"><thead><tr><th>Site</th><th>Resultaat</th><th>Gevonden op</th><th className="r">Gelezen</th></tr></thead>
+      <div className="tscroll"><table className="tbl"><thead><tr><th>Site</th><th>Resultaat</th><th>Gevonden op</th><th className="r">Gelezen</th><th /></tr></thead>
         <tbody>{list.slice(0, 300).map(s => <tr key={s[0]}><td className="mono">{s[0]}</td><td><span className={`tag ${s[1] ? 'ok' : s[6] ? 'warn' : /^fout/.test(s[2] ?? '') ? 'bad' : ''}`}>{s[1] ?? (s[6] ? 'tijdelijk gesloten' : s[2]?.replace(/^fout: /, '') ?? '—')}</span>{s[5] && s[1] ? <span className="tag m">AI</span> : null}{s[7] ? <span className="tag k">per vestiging</span> : null}</td>
-          <td className="ghost mono small">{s[3] ? <a href={s[3]} target="_blank" rel="noopener">{s[3].replace(/^https?:\/\/(www\.)?/, '').slice(0, 60)}</a> : '—'}</td><td className="r">{when(s[4])}</td></tr>)}</tbody></table></div></Card>
+          <td className="ghost mono small">{s[3] ? <a href={s[3]} target="_blank" rel="noopener">{s[3].replace(/^https?:\/\/(www\.)?/, '').slice(0, 60)}</a> : '—'}</td><td className="r">{when(s[4])}</td>
+          <td className="r">{run[s[0]] === 'gestart' ? <span className="tag ok" title="Klaar over ±3 minuten; daarna binnen een kwartier op de kaart">gestart · ±3 min</span> : run[s[0]] && run[s[0]] !== 'bezig' ? <span className="tag bad">{run[s[0]]}</span>
+            : <button className="btn" disabled={run[s[0]] === 'bezig'} onClick={() => reread(s[0])}>{run[s[0]] === 'bezig' ? 'Starten…' : 'Opnieuw lezen'}</button>}</td></tr>)}</tbody></table></div></Card>
   </>;
 }
 

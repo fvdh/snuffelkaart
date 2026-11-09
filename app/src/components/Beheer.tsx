@@ -121,12 +121,12 @@ function Panel({ s, out }: { s: Session; out: () => void }) {
   const [, group, title] = VIEWS.find(v => v[0] === view)!;
   const content = view === 'overzicht' ? <Overzicht d={data} p={p} att={att} />
     : view === 'live' ? <Live d={data} />
-    : view === 'verkeer' ? <Verkeer p={p} />
+    : view === 'verkeer' ? <Verkeer p={p} s={s} />
     : view === 'gedrag' ? <Gedrag p={p} />
     : view === 'inhoud' ? <Inhoud d={data} p={p} q={q} setQ={setQ} />
     : view === 'regios' ? <Regios d={data} p={p} />
     : view === 'dekking' ? <Dekking d={data} p={p} />
-    : view === 'lezer' ? <Lezer />
+    : view === 'lezer' ? <Lezer s={s} />
     : view === 'fouten' ? <Fouten d={data} />
     : !rows && !err ? <p className="adm-loading">Laden…</p>
     : view === 'wachtrij' ? <Markets key="q" title="Wachtrij" items={qu.map(j => ({ row: j.row, j }))} save={save}

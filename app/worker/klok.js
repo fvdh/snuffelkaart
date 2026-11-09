@@ -17,18 +17,33 @@ export function due(d) {
   return out;
 }
 
+/** Eén website opnieuw lezen (knop in /beheer → Websitelezer). Alleen voor beheerders: de inlog van de beheerder gaat mee
+ *  en Supabase (rpc is_admin) beslist. De GitHub-sleutel blijft hier; de browser ziet hem nooit. */
+export const SITE = /^[a-z0-9-]+(\.[a-z0-9-]+)+(\/[a-z0-9._~%/-]*)?$/i;
+async function herlees(req, env) {
+  const site = String((await req.json().catch(() => ({}))).site ?? '').trim().toLowerCase();
+  if (!SITE.test(site) || site.length > 120) return Response.json({ fout: 'Geen geldige site.' }, { status: 400 });
+  const auth = req.headers.get('Authorization') ?? '';
+  const r = await fetch(`${env.SUPABASE_URL}/rest/v1/rpc/is_admin`, { method: 'POST', headers: { apikey: env.SUPABASE_SERVICE_ROLE_KEY, Authorization: auth, 'Content-Type': 'application/json' }, body: '{}' });
+  if (!r.ok || (await r.json()) !== true) return Response.json({ fout: 'Alleen voor beheerders.' }, { status: 403 });
+  if (!env.GITHUB_TOKEN) return Response.json({ fout: 'GITHUB_TOKEN ontbreekt in de worker.' }, { status: 500 });
+  return (await dispatch(env, 'herlees.yml', { site })) ? Response.json({ ok: true }) : Response.json({ fout: 'GitHub weigerde de run.' }, { status: 502 });
+}
+
 async function dispatch(env, file, inputs) {
   const r = await fetch(`https://api.github.com/repos/${REPO}/actions/workflows/${file}/dispatches`, {
     method: 'POST', body: JSON.stringify({ ref: 'main', inputs }),
     headers: { Authorization: `Bearer ${env.GITHUB_TOKEN}`, Accept: 'application/vnd.github+json', 'User-Agent': 'snuffelkaart-klok', 'X-GitHub-Api-Version': '2022-11-28' },
   });
   if (!r.ok) console.error(`${file}: ${r.status} ${await r.text()}`);
+  return r.ok;
 }
 
 export default {
   fetch(req, env) {
     // De kaart woonde op / tot de homepage kwam (nov 2026): oude links (?open=, ?plek=, ?dag=, gedeelde rondjes) naar /kaart/ met dezelfde vraag.
     const u = new URL(req.url);
+    if (u.pathname === '/api/herlees' && req.method === 'POST') return herlees(req, env);
     if (u.pathname.startsWith('/api/')) return api(req, env); // mail-aanmeldingen (worker/mail.js)
     if (u.pathname === '/' && DEEP.test(u.search)) return Response.redirect(`${u.origin}/kaart/${u.search}`, 302);
     return env.ASSETS.fetch(req);

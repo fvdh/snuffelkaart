@@ -172,3 +172,17 @@ Licenties per databron staan in `LICENTIES.md`; dit gaat over de verantwoordelij
 
 ### Later (M7)
 België (Vlaanderen), Koningsdag-campagne, winkels/organisatoren laten claimen, vertrouwde bijdragers.
+
+
+## Search Console koppelen (zoekwoorden in /beheer → Verkeer)
+Eenmalig, ±10 minuten. Gratis; Google vraagt hier geen betaalgegevens (vraagt hij dat toch: stoppen).
+1. https://console.cloud.google.com → nieuw project `snuffelkaart` (zonder factureringsaccount).
+2. API's en services → Bibliotheek → **Google Search Console API** → Inschakelen.
+3. IAM en beheer → Serviceaccounts → Serviceaccount maken, naam `snuffelkaart-gsc`, geen rollen nodig → Klaar.
+4. Open het serviceaccount → Sleutels → Sleutel toevoegen → JSON. Er downloadt een .json-bestand (geheim houden).
+5. https://search.google.com/search-console → property `snuffelkaart.nl` → Instellingen → Gebruikers en rechten → Gebruiker toevoegen:
+   het e-mailadres van het serviceaccount (`…@….iam.gserviceaccount.com`), recht **Beperkt**.
+6. GitHub → fvdh/snuffelkaart → Settings → Secrets and variables → Actions → New repository secret: naam `GSC_KEY`,
+   waarde = de hele inhoud van het .json-bestand. Daarna het .json-bestand weggooien.
+De nachtelijke run (02:30 UTC) haalt dan elke nacht de laatste 7 dagen op (`scripts/fetch-gsc.mjs` → tabel `zoekwoorden`).
+Eerder testen: Actions → Nachtelijke verversing → Run workflow → alles.
