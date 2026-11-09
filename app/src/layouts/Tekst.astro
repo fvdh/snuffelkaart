@@ -74,14 +74,16 @@ const canonical = SITE + Astro.url.pathname;
   </body>
 <script>
   // Anonieme paginateller (rpc tel, zie migratie tellers): alleen dát deze pagina bekeken is, en of je via de badge van een organisator kwam.
+  import { ev, pv, skip } from '../lib/ev';
   declare const __SB_URL__: string, __SB_KEY__: string;
   const key = document.body.dataset.tel, post = (metric: string, k: string) => fetch(`${__SB_URL__}/rest/v1/rpc/tel`, { method: 'POST', keepalive: true,
     headers: { apikey: __SB_KEY__, 'Content-Type': 'application/json' }, body: JSON.stringify({ metric, key: k }) }).catch(() => {});
-  if (key && __SB_URL__ && !import.meta.env.DEV) {
+  pv();
+  if (key && __SB_URL__ && !import.meta.env.DEV && !skip()) {
     post('pagina', key);
     if (new URLSearchParams(location.search).get('via') === 'badge' && key.startsWith('org:')) { post('badge', key.slice(4)); history.replaceState(null, '', location.pathname); }
     // Doorklikken naar de app (de kaart, "Plan in Mijn dag", "Open de kaart rond …"): telt per pagina, zodat we zien of een pagina mensen naar de kaart brengt.
-    document.addEventListener('click', e => { const a = (e.target as Element).closest?.('a[href]') as HTMLAnchorElement | null; if (a && a.host === location.host && a.pathname === '/kaart/') post('naarkaart', key); }, true);
+    document.addEventListener('click', e => { const a = (e.target as Element).closest?.('a[href]') as HTMLAnchorElement | null; if (a && a.host === location.host && a.pathname === '/kaart/') { post('naarkaart', key); ev('naarkaart', key); } }, true);
   }
 </script>
 </html>

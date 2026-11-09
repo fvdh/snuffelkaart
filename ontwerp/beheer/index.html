@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Snuffelkaart · Beheer (ontwerp)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --font:"Figtree",ui-sans-serif,system-ui,sans-serif; --mono:"DM Mono",ui-monospace,Menlo,monospace;
+  --bg:oklch(0.962 0.006 85); --paper:oklch(0.985 0.008 88); --surface:oklch(0.995 0.003 85); --surface-2:oklch(0.948 0.006 85);
+  --line:oklch(0.885 0.007 85); --line-strong:oklch(0.80 0.009 85);
+  --fg:oklch(0.24 0.012 260); --fg-2:oklch(0.43 0.012 260); --fg-3:oklch(0.53 0.010 260);
+  --ink:oklch(0.215 0.018 262); --ink-2:oklch(0.27 0.02 262); --ink-line:oklch(0.33 0.02 262); --on-ink:oklch(0.93 0.008 85); --on-ink-2:oklch(0.70 0.015 262);
+  --kring:oklch(0.47 0.15 262); --kring-soft:oklch(0.93 0.035 262);
+  --tweede:oklch(0.48 0.11 330); --markt:oklch(0.78 0.15 70); --markt-ink:oklch(0.50 0.12 60); --markt-soft:oklch(0.95 0.05 80);
+  --open:oklch(0.62 0.16 150); --open-ink:oklch(0.47 0.13 150); --open-soft:oklch(0.95 0.045 150);
+  --warn:oklch(0.72 0.15 75); --warn-ink:oklch(0.50 0.12 65); --warn-soft:oklch(0.96 0.045 85);
+  --bad:oklch(0.56 0.19 27); --bad-ink:oklch(0.50 0.18 27); --bad-soft:oklch(0.96 0.025 25);
+  --shadow:0 1px 0 oklch(0.88 0.01 85), 0 8px 24px -16px oklch(0.3 0.02 260 / .25);
+  --r:10px;
+}
+[data-theme=dark]{
+  --bg:oklch(0.19 0.012 262); --paper:oklch(0.235 0.012 262); --surface:oklch(0.225 0.013 262); --surface-2:oklch(0.26 0.013 262);
+  --line:oklch(0.31 0.014 262); --line-strong:oklch(0.38 0.016 262);
+  --fg:oklch(0.94 0.006 85); --fg-2:oklch(0.78 0.01 85); --fg-3:oklch(0.66 0.012 262);
+  --ink:oklch(0.15 0.012 262); --ink-2:oklch(0.20 0.014 262); --ink-line:oklch(0.27 0.016 262);
+  --kring:oklch(0.70 0.13 262); --kring-soft:oklch(0.30 0.06 262);
+  --open-ink:oklch(0.76 0.14 150); --open-soft:oklch(0.30 0.05 150); --warn-ink:oklch(0.80 0.12 75); --warn-soft:oklch(0.31 0.05 75);
+  --bad-ink:oklch(0.74 0.15 27); --bad-soft:oklch(0.30 0.06 27); --markt-ink:oklch(0.80 0.12 70); --markt-soft:oklch(0.31 0.05 70);
+  --shadow:0 0 0 1px oklch(0.30 0.014 262);
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{font-family:var(--font);background:var(--bg);color:var(--fg);font-size:14px;line-height:1.45;-webkit-font-smoothing:antialiased;font-kerning:normal}
+button,input,select{font:inherit;color:inherit}
+.num,.tnum{font-variant-numeric:tabular-nums}
+.mono{font-family:var(--mono)}
+a{color:var(--kring)}
+
+/* ---------- shell ---------- */
+.app{display:grid;grid-template-columns:248px 1fr;min-height:100vh}
+.side{background:var(--ink);color:var(--on-ink);position:sticky;top:0;height:100vh;display:flex;flex-direction:column;padding:16px 12px 12px;
+  background-image:radial-gradient(oklch(1 0 0 / .035) 1px,transparent 1px);background-size:14px 14px}
+.brand{display:flex;align-items:center;gap:10px;padding:4px 8px 18px}
+.brand .mk{width:30px;height:30px;border-radius:8px;background:var(--surface);display:grid;place-items:center;color:var(--ink);box-shadow:inset 0 0 0 1.5px oklch(1 0 0 / .4)}
+.brand b{font-weight:800;letter-spacing:-.01em;font-size:15px;display:block}
+.brand small{font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--on-ink-2)}
+.nav{flex:1;overflow:auto;margin:0 -4px;padding:0 4px}
+.grp{font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--on-ink-2);padding:14px 10px 6px;display:flex;justify-content:space-between}
+.nav button{all:unset;cursor:pointer;display:flex;align-items:center;gap:10px;width:calc(100% - 20px);padding:7px 10px;border-radius:7px;color:oklch(0.86 0.01 85);font-weight:500;font-size:13.5px;position:relative}
+.nav button svg{width:16px;height:16px;opacity:.75;flex:none}
+.nav button:hover{background:var(--ink-2)}
+.nav button.on{background:oklch(0.30 0.03 262);color:#fff}
+.nav button.on::before{content:"";position:absolute;left:-4px;top:7px;bottom:7px;width:3px;border-radius:3px;background:var(--markt)}
+.nav .ct{margin-left:auto;font-family:var(--mono);font-size:11.5px;color:var(--on-ink-2)}
+.nav .ct.hot{background:var(--markt);color:oklch(0.26 0.04 55);border-radius:20px;padding:0 7px;font-weight:500}
+.nav .ct.bad{background:var(--bad);color:#fff;border-radius:20px;padding:0 7px}
+.nav .pulse{width:7px;height:7px;border-radius:50%;background:var(--open);margin-left:auto;box-shadow:0 0 0 0 oklch(0.62 0.16 150 / .6);animation:pulse 2s infinite}
+@keyframes pulse{70%{box-shadow:0 0 0 7px oklch(0.62 0.16 150 / 0)}100%{box-shadow:0 0 0 0 oklch(0.62 0.16 150 / 0)}}
+.me{border-top:1px solid var(--ink-line);margin-top:8px;padding:12px 8px 2px;display:flex;align-items:center;gap:10px;font-size:12.5px}
+.me .av{flex:none;width:26px;height:26px;border-radius:50%;background:var(--kring);display:grid;place-items:center;font-weight:700;font-size:12px;color:#fff}
+.me span{flex:1;color:var(--on-ink-2);overflow:hidden;text-overflow:ellipsis}
+.me button{all:unset;cursor:pointer;color:var(--on-ink-2)}
+
+.main{min-width:0;display:flex;flex-direction:column}
+.top{position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:14px;padding:14px 28px;background:color-mix(in oklch,var(--bg) 88%,transparent);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+.crumb{font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--fg-3)}
+.top h1{margin:0;font-size:20px;font-weight:800;letter-spacing:-.02em}
+.top .sp{flex:1}
+.seg{display:inline-flex;background:var(--surface-2);border:1px solid var(--line);border-radius:8px;padding:2px}
+.seg button{all:unset;cursor:pointer;padding:4px 10px;border-radius:6px;font-size:12.5px;font-weight:600;color:var(--fg-2)}
+.seg button.on{background:var(--surface);color:var(--fg);box-shadow:0 1px 2px oklch(0.3 0.02 260 / .15)}
+.kbtn{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:5px 8px 5px 10px;color:var(--fg-3);cursor:pointer;min-width:220px;font-size:13px}
+.kbd{font-family:var(--mono);font-size:10.5px;border:1px solid var(--line-strong);border-bottom-width:2px;border-radius:4px;padding:0 5px;color:var(--fg-2);background:var(--surface)}
+.ib{all:unset;cursor:pointer;width:32px;height:32px;display:grid;place-items:center;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--fg-2)}
+.ib svg{width:16px;height:16px}
+
+.page{padding:22px 28px 60px;display:grid;gap:16px;grid-template-columns:repeat(12,1fr);align-content:start}
+.page > *{animation:rise .45s cubic-bezier(.2,.7,.2,1) both}
+.page > *:nth-child(2){animation-delay:.04s}.page > *:nth-child(3){animation-delay:.08s}.page > *:nth-child(4){animation-delay:.12s}.page > *:nth-child(5){animation-delay:.16s}.page > *:nth-child(6){animation-delay:.2s}.page > *:nth-child(7){animation-delay:.24s}.page > *:nth-child(8){animation-delay:.28s}
+@keyframes rise{from{opacity:0;transform:translateY(6px)}}
+.c3{grid-column:span 3}.c4{grid-column:span 4}.c5{grid-column:span 5}.c6{grid-column:span 6}.c7{grid-column:span 7}.c8{grid-column:span 8}.c12{grid-column:span 12}
+@media (max-width:1180px){.c3{grid-column:span 6}.c4,.c5,.c7,.c8{grid-column:span 12}.c6{grid-column:span 12}}
+
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);min-width:0}
+.card > header{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--line)}
+.card > header h3{margin:0;font-size:13.5px;font-weight:700}
+.card > header .sub{color:var(--fg-3);font-size:12px}
+.card > header .sp{flex:1}
+.cb{padding:14px 16px}
+.lbl{font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--fg-3)}
+.chip{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:600;border-radius:20px;padding:1px 8px;background:var(--surface-2);color:var(--fg-2);white-space:nowrap}
+.chip.ok{background:var(--open-soft);color:var(--open-ink)}.chip.warn{background:var(--warn-soft);color:var(--warn-ink)}.chip.bad{background:var(--bad-soft);color:var(--bad-ink)}.chip.k{background:var(--kring-soft);color:var(--kring)}.chip.m{background:var(--markt-soft);color:var(--markt-ink)}
+.btn{all:unset;cursor:pointer;display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:7px;border:1px solid var(--line);background:var(--surface);font-weight:600;font-size:12.5px}
+.btn:hover{border-color:var(--line-strong)}
+.btn.pri{background:var(--ink);color:var(--on-ink);border-color:var(--ink)}
+[data-theme=dark] .btn.pri{background:var(--kring);border-color:var(--kring)}
+
+/* KPI */
+.kpi{padding:14px 16px 0;position:relative;overflow:hidden}
+.kpi .v{font-family:var(--mono);font-size:30px;font-weight:500;letter-spacing:-.03em;line-height:1.1;margin-top:6px}
+.kpi .d{font-family:var(--mono);font-size:11.5px;margin-top:2px}
+.kpi .d.up{color:var(--open-ink)}.kpi .d.down{color:var(--bad-ink)}
+.kpi .d small{color:var(--fg-3);font-family:var(--font)}
+.kpi svg{display:block;width:calc(100% + 32px);margin:8px -16px 0;height:44px}
+.kpi .area{fill:color-mix(in oklch,var(--kring) 12%,transparent)}.kpi .line{fill:none;stroke:var(--kring);stroke-width:1.6;vector-effect:non-scaling-stroke}
+.kpi.m .area{fill:color-mix(in oklch,var(--markt) 18%,transparent)}.kpi.m .line{stroke:var(--markt-ink)}
+.kpi.o .area{fill:color-mix(in oklch,var(--open) 14%,transparent)}.kpi.o .line{stroke:var(--open-ink)}
+.kpi.t .area{fill:color-mix(in oklch,var(--tweede) 12%,transparent)}.kpi.t .line{stroke:var(--tweede)}
+
+/* attention */
+.att{list-style:none;margin:0;padding:6px 8px}
+.att li{display:flex;align-items:center;gap:12px;padding:9px 8px;border-radius:8px;cursor:pointer}
+.att li:hover{background:var(--surface-2)}
+.att .dot{width:9px;height:9px;border-radius:3px;flex:none}
+.att b{font-weight:650}
+.att .m{margin-left:auto;font-family:var(--mono);font-size:12px;color:var(--fg-3)}
+
+/* funnel */
+.fun{display:grid;gap:10px;padding:16px}
+.fun .row{display:grid;grid-template-columns:150px 1fr 70px 52px;align-items:center;gap:12px}
+.fun .bar{height:26px;background:var(--surface-2);border-radius:5px;overflow:hidden;position:relative}
+.fun .bar i{position:absolute;inset:0 auto 0 0;background:linear-gradient(90deg,var(--kring),color-mix(in oklch,var(--kring) 70%,var(--tweede)));border-radius:5px;transform-origin:left;animation:grow .8s cubic-bezier(.2,.7,.2,1) both}
+@keyframes grow{from{transform:scaleX(0)}}
+.fun .n{font-family:var(--mono);text-align:right}
+.fun .p{font-family:var(--mono);font-size:11.5px;color:var(--fg-3);text-align:right}
+
+/* receipt (live) */
+.receipt{background:var(--paper);border-radius:4px;position:relative;padding:18px 18px 22px;font-family:var(--mono);font-size:12.5px;color:var(--fg);
+  box-shadow:0 1px 0 var(--line),0 14px 30px -18px oklch(0.3 0.03 260 / .35);
+}
+.receipt::before{content:"";position:absolute;left:0;right:0;top:-7px;height:8px;background:radial-gradient(circle at 7px 8px,var(--paper) 6px,transparent 6.5px) 0 0/14px 8px repeat-x}
+.receipt::after{content:"";position:absolute;left:0;right:0;bottom:-7px;height:8px;background:radial-gradient(circle at 7px 0,var(--paper) 6px,transparent 6.5px) 0 0/14px 8px repeat-x}
+.receipt h4{margin:0 0 2px;text-align:center;font-weight:500;letter-spacing:.2em;text-transform:uppercase;font-size:11.5px}
+.receipt .meta{text-align:center;color:var(--fg-3);font-size:11px;margin-bottom:10px}
+.receipt hr{border:0;border-top:1px dashed var(--line-strong);margin:10px 0}
+.feed{list-style:none;margin:0;padding:0;max-height:var(--fh,320px);overflow:hidden;position:relative}
+.feed::after{content:"";position:absolute;left:0;right:0;bottom:0;height:40px;background:linear-gradient(transparent,var(--paper))}
+.feed li{display:grid;grid-template-columns:44px 1fr auto;gap:10px;padding:4px 0;align-items:baseline}
+.feed li.new{animation:print .6s ease-out both}
+@keyframes print{from{opacity:0;transform:translateY(-10px);background:color-mix(in oklch,var(--markt) 25%,transparent)}}
+.feed .t{color:var(--fg-3)}
+.feed .w{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.feed .w em{font-style:normal;color:var(--kring)}
+.feed .w .ar{color:var(--fg-3)}
+.feed .s{font-size:11px;color:var(--fg-3)}
+.feed .s.g{color:var(--open-ink)}
+
+/* tables */
+.tbl{width:100%;border-collapse:collapse;font-size:13px}
+.tbl th{position:sticky;top:0;background:var(--surface);text-align:left;font-family:var(--mono);font-weight:400;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--fg-3);padding:9px 12px;border-bottom:1px solid var(--line);cursor:pointer;white-space:nowrap;user-select:none}
+.tbl th:hover{color:var(--fg)}
+.tbl th.r,.tbl td.r{text-align:right}
+.tbl th .sa{opacity:.5;margin-left:3px}
+.tbl td{padding:8px 12px;border-bottom:1px solid var(--line);vertical-align:middle}
+.tbl td.r{font-family:var(--mono);font-size:12.5px}
+.tbl td .btn{font-family:var(--font)}
+.kpi:not(:has(svg)){padding-bottom:16px}
+.tbl tbody tr:hover td{background:var(--surface-2)}
+.tbl tr:last-child td{border-bottom:0}
+.tbl .nm b{font-weight:650;display:block}.tbl .nm small{color:var(--fg-3)}
+.tscroll{max-height:520px;overflow:auto}
+.mini{display:inline-block;width:70px;height:6px;background:var(--surface-2);border-radius:3px;overflow:hidden;vertical-align:middle;margin-left:8px}
+.mini i{display:block;height:100%;background:var(--kring)}
+
+/* bars */
+.bars{list-style:none;margin:0;padding:12px 16px;display:grid;gap:7px}
+.bars li{display:grid;grid-template-columns:130px 1fr 54px;align-items:center;gap:10px;font-size:13px}
+.bars .k{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bars .b{height:10px;background:var(--surface-2);border-radius:3px;overflow:hidden}
+.bars .b i{display:block;height:100%;background:var(--kring);border-radius:3px;animation:grow .7s both;transform-origin:left}
+.bars.m .b i{background:var(--markt)}
+.bars .n{font-family:var(--mono);text-align:right;font-size:12.5px}
+
+/* heat */
+.heat{display:grid;grid-template-columns:24px repeat(24,1fr);gap:2px;padding:14px 16px;font-family:var(--mono);font-size:10px;color:var(--fg-3)}
+.heat i{aspect-ratio:1;border-radius:2px;background:var(--kring)}
+.heat span{display:flex;align-items:center}
+
+/* paths */
+.path{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.step{font-size:12px;font-weight:600;padding:3px 9px;border-radius:6px;background:var(--surface-2);border:1px solid var(--line)}
+.step.g{background:var(--open-soft);border-color:transparent;color:var(--open-ink)}
+.step.k{background:var(--kring-soft);border-color:transparent;color:var(--kring)}
+.path .ar{color:var(--fg-3)}
+
+/* coverage ring */
+.cov{display:flex;gap:22px;align-items:center;padding:18px}
+.ring{--p:38;width:120px;height:120px;border-radius:50%;background:conic-gradient(var(--open) calc(var(--p)*1%),var(--surface-2) 0);display:grid;place-items:center;flex:none}
+.ring div{width:90px;height:90px;border-radius:50%;background:var(--surface);display:grid;place-items:center;text-align:center}
+.ring b{font-family:var(--mono);font-size:24px;font-weight:500;display:block;line-height:1}
+.ring small{font-size:11px;color:var(--fg-3)}
+.stack{display:flex;height:12px;border-radius:4px;overflow:hidden;background:var(--surface-2)}
+.stack i{display:block}
+.legend{display:flex;flex-wrap:wrap;gap:12px;font-size:12px;color:var(--fg-2);margin-top:8px}
+.legend span::before{content:"";display:inline-block;width:9px;height:9px;border-radius:2px;background:var(--c);margin-right:6px;vertical-align:-1px}
+
+/* run timeline */
+.runs{display:flex;gap:6px;align-items:flex-end;height:120px;padding:14px 16px 0}
+.runs div{flex:1;display:flex;flex-direction:column;justify-content:flex-end;gap:2px;height:100%;cursor:default}
+.runs div i{display:block;border-radius:2px}
+.runs-x{display:flex;gap:6px;padding:6px 16px 12px;font-family:var(--mono);font-size:10px;color:var(--fg-3)}
+.runs-x span{flex:1;text-align:center}
+
+/* regions map */
+.map{position:relative;height:420px;background:var(--surface-2);border-radius:0 0 var(--r) var(--r);overflow:hidden}
+.map svg{width:100%;height:100%}
+
+/* palette */
+.pal-bg{position:fixed;inset:0;background:oklch(0.2 0.02 262 / .35);backdrop-filter:blur(2px);display:none;z-index:20;align-items:flex-start;justify-content:center;padding-top:12vh}
+.pal-bg.on{display:flex}
+.pal{width:min(560px,92vw);background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:0 30px 60px -20px oklch(0.2 0.03 262 / .5);overflow:hidden;animation:rise .2s both}
+.pal input{width:100%;border:0;border-bottom:1px solid var(--line);padding:14px 16px;font-size:15px;background:transparent;outline:none}
+.pal ul{list-style:none;margin:0;padding:6px;max-height:340px;overflow:auto}
+.pal li{display:flex;gap:10px;align-items:center;padding:8px 10px;border-radius:7px;cursor:pointer}
+.pal li.on,.pal li:hover{background:var(--surface-2)}
+.pal li small{margin-left:auto;color:var(--fg-3);font-family:var(--mono);font-size:11px}
+
+/* queue */
+.q{display:grid;grid-template-columns:340px 1fr;min-height:520px}
+.q ul{list-style:none;margin:0;padding:0;border-right:1px solid var(--line)}
+.q li{padding:10px 14px;border-bottom:1px solid var(--line);cursor:pointer}
+.q li.on{background:var(--kring-soft)}
+.q li b{display:block;font-weight:650}
+.q li small{color:var(--fg-3)}
+.q .det{padding:18px 22px}
+.q dl{display:grid;grid-template-columns:130px 1fr;gap:6px 14px;margin:14px 0}
+.q dt{color:var(--fg-3)}
+.keys{display:flex;gap:8px;margin-top:16px}
+.note{grid-column:span 12;font-size:12px;color:var(--fg-3);display:flex;gap:8px;align-items:center}
+.ghost{color:var(--fg-3)}
+.err{font-family:var(--mono);font-size:12px;background:var(--surface-2);padding:8px 10px;border-radius:6px;color:var(--bad-ink);white-space:pre-wrap}
+.toggle{display:flex;align-items:center;gap:10px;padding:12px 16px;border-top:1px solid var(--line);font-size:13px}
+.sw{width:34px;height:20px;border-radius:20px;background:var(--line-strong);position:relative;cursor:pointer;flex:none;transition:background .2s}
+.sw::after{content:"";position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:#fff;transition:transform .2s}
+.sw.on{background:var(--open)}.sw.on::after{transform:translateX(14px)}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute">
+  <symbol id="i-home" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></symbol>
+  <symbol id="i-live" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4.9 19.1a10 10 0 0 1 0-14.2M19.1 4.9a10 10 0 0 1 0 14.2M7.8 16.2a6 6 0 0 1 0-8.4M16.2 7.8a6 6 0 0 1 0 8.4"/><circle cx="12" cy="12" r="2"/></symbol>
+  <symbol id="i-chart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 3v18h18M7 15l4-4 3 3 5-6"/></symbol>
+  <symbol id="i-route" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="6" cy="19" r="2"/><circle cx="18" cy="5" r="2"/><path d="M8 19h8.5a3.5 3.5 0 0 0 0-7h-9a3.5 3.5 0 0 1 0-7H16"/></symbol>
+  <symbol id="i-box" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M21 8 12 3 3 8v8l9 5 9-5zM3 8l9 5 9-5M12 13v8"/></symbol>
+  <symbol id="i-pin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-7-6.2-7-11a7 7 0 1 1 14 0c0 4.8-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></symbol>
+  <symbol id="i-inbox" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M3 13h5l2 3h4l2-3h5M5 5h14l2 8v6H3v-6z"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 11l3 3 8-8M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h9"/></symbol>
+  <symbol id="i-cal" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></symbol>
+  <symbol id="i-gift" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 20v-9M4 11h16v9H4zM3 7h18v4H3zM12 7S10.5 3 8 3.5 7.5 7 12 7zm0 0s1.5-4 4-3.5S16.5 7 12 7z"/></symbol>
+  <symbol id="i-flag" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 21V4h11l-1.5 4L16 12H5"/></symbol>
+  <symbol id="i-shop" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 9h16l-1-5H5zM5 9v11h14V9M9 20v-6h6v6"/></symbol>
+  <symbol id="i-read" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 7v14M3 18V5a1 1 0 0 1 1-1h5a3 3 0 0 1 3 3 3 3 0 0 1 3-3h5a1 1 0 0 1 1 1v13h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/></symbol>
+  <symbol id="i-db" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></symbol>
+  <symbol id="i-bug" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="7" y="7" width="10" height="13" rx="5"/><path d="M12 7V4M7 12H3M21 12h-4M7 17l-3 2M17 17l3 2M7 9 4 7M17 9l3-2"/></symbol>
+  <symbol id="i-log" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8z"/></symbol>
+  <symbol id="i-dl" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></symbol>
+  <symbol id="i-tag" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8z"/><circle cx="7.5" cy="7.5" r="1.5"/></symbol>
+</svg>
+
+<div class="app">
+  <aside class="side">
+    <div class="brand"><span class="mk"><svg width="16" height="16"><use href="#i-tag"/></svg></span><div><b>Snuffelkaart</b><small>Beheer</small></div></div>
+    <nav class="nav" id="nav"></nav>
+    <div class="me"><span class="av">F</span><span>freek@draad.nu</span><button title="Uitloggen">⏻</button></div>
+  </aside>
+  <div class="main">
+    <div class="top">
+      <div><div class="crumb" id="crumb">Overzicht</div><h1 id="title">Overzicht</h1></div>
+      <span class="sp"></span>
+      <div class="seg" id="period"><button data-d="1">Vandaag</button><button data-d="7">7d</button><button data-d="30" class="on">30d</button><button data-d="90">90d</button></div>
+      <button class="kbtn" id="kopen"><svg width="14" height="14"><use href="#i-search"/></svg>Zoek winkel, markt, pagina…<span style="flex:1"></span><span class="kbd">⌘K</span></button>
+      <button class="ib" id="theme" title="Donker/licht"><svg><use href="#i-moon"/></svg></button>
+    </div>
+    <div class="page" id="page"></div>
+  </div>
+</div>
+
+<div class="pal-bg" id="pal"><div class="pal"><input id="palq" placeholder="Spring naar… (winkel, markt, organisator of pagina)"><ul id="pall"></ul></div></div>
+
+<script>
+// ---------- nepdata (vast zaadje, zodat het ontwerp elke keer hetzelfde toont) ----------
+let seed = 7; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+const R = (a, b) => Math.round(a + rnd() * (b - a));
+const nl = n => n.toLocaleString('nl-NL');
+let DAYS = 30;
+
+const SHOPS = [
+  ['Het Boelhuys','Den Helder','web'],['Organisatie Bureau VAC','markten','m'],['Appel & Ei','Haarlem','osm'],['Van Aerle','Eindhoven','web'],['Dorcas','Aalten','osm'],
+  ['Kringloop Aktief','Winterswijk','web'],['The Musketeer','Bredevoort','web'],['Zolder van Den Helder','Den Helder','web'],['De Sjop','Den Burg','web'],['Kringloopcentrum The Liemers','Zevenaar','web'],
+  ['Mooier','Den Helder',null],['Kringloop Nunspeet','Nunspeet','osm'],['Rataplan','Amsterdam','osm'],['Emmaus','Haarlem','osm'],['Outfit Library LESS','Arnhem','web'],
+  ['J. Brunekreef','Kootwijkerbroek','dicht'],['De Lokatie','Harderwijk',null],['Snuffelschuur','Elburg','bezoeker'],['Het Goed','Apeldoorn','osm'],['Kringloop Zwolle','Zwolle',null]
+].map(([n, p, s], i) => { const v = Math.round(260 / (i + 1.4) + R(4, 30)); const o = Math.round(v * (.45 + rnd() * .35)); return { n, p, s, v, o, plan: Math.round(o * (.08 + rnd() * .12)), out: Math.round(o * (.15 + rnd() * .25)) }; });
+
+function series(base, noise, trend = .006) { return Array.from({ length: 90 }, (_, i) => Math.max(0, Math.round(base * (1 + trend * i) * (1 + (i % 7 === 5 || i % 7 === 6 ? .45 : 0)) + R(-noise, noise)))); }
+const S = { bezoek: series(28, 9, .012), kaart: series(18, 7, .011), actie: series(4, 3, .015), bij: series(.4, 1, .01) };
+const sum = a => a.reduce((x, y) => x + y, 0);
+const win = k => S[k].slice(-DAYS), prevWin = k => S[k].slice(-2 * DAYS, -DAYS);
+
+// ---------- navigatie ----------
+const NAV = [
+  ['Overzicht', [['overzicht','Overzicht','home'],['live','Live','live','pulse']]],
+  ['Inzicht', [['verkeer','Verkeer','chart'],['gedrag','Gedrag','route'],['inhoud','Inhoud','box'],['regios',"Regio's",'pin']]],
+  ['Werk', [['wachtrij','Wachtrij','inbox',6],['kandidaten','Kandidaten','check',2],['week','Markten deze week','cal',41],['bijdragen','Bijdragen','gift',3],['meldingen','Meldingen','flag',2]]],
+  ['Data', [['winkels','Winkels','shop'],['lezer','Websitelezer','read'],['bronnen','Bronnen','db','!1']]],
+  ['Systeem', [['fouten','Fouten','bug',4],['log','Log','log']]],
+];
+let view = 'overzicht';
+function drawNav() {
+  document.getElementById('nav').innerHTML = NAV.map(([g, items]) => `<div class="grp">${g}</div>` + items.map(([k, l, ic, c]) =>
+    `<button data-v="${k}" class="${view === k ? 'on' : ''}"><svg><use href="#i-${ic}"/></svg>${l}${c === 'pulse' ? '<span class="pulse"></span>' : typeof c === 'string' && c[0] === '!' ? `<span class="ct bad">${c.slice(1)}</span>` : c ? `<span class="ct ${['wachtrij','meldingen','bijdragen'].includes(k) ? 'hot' : ''}">${c}</span>` : ''}</button>`).join('')).join('');
+}
+document.getElementById('nav').onclick = e => { const b = e.target.closest('button'); if (b) go(b.dataset.v); };
+function go(v) { view = v; history.replaceState(null, '', '#' + v); drawNav(); render(); scrollTo(0, 0); }
+if (location.hash.slice(1) in { overzicht: 1, live: 1, verkeer: 1, gedrag: 1, inhoud: 1, regios: 1, wachtrij: 1, kandidaten: 1, week: 1, bijdragen: 1, meldingen: 1, winkels: 1, lezer: 1, bronnen: 1, fouten: 1, log: 1 }) view = location.hash.slice(1);
+
+// ---------- bouwstenen ----------
+function spark(v, h = 44) {
+  const max = Math.max(1, ...v), w = 300, pts = v.map((x, i) => `${(i / Math.max(1, v.length - 1)) * w},${h - 3 - (x / max) * (h - 8)}`).join(' ');
+  return `<svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none"><polyline class="area" points="0,${h} ${pts} ${w},${h}"/><polyline class="line" points="${pts}"/></svg>`;
+}
+function kpi(label, key, cls = '', help = '') {
+  const now = sum(win(key)), prev = sum(prevWin(key)), d = prev ? Math.round((now - prev) / prev * 100) : 0;
+  return `<div class="card c3"><div class="kpi ${cls}" title="${help}"><div class="lbl">${label}</div><div class="v">${nl(now)}</div>
+    <div class="d ${d >= 0 ? 'up' : 'down'}">${d >= 0 ? '▲' : '▼'} ${Math.abs(d)}% <small>t.o.v. vorige ${DAYS === 1 ? 'dag' : DAYS + ' dagen'}</small></div>${spark(win(key).length > 1 ? win(key) : S[key].slice(-14))}</div></div>`;
+}
+const card = (cls, title, sub, body, extra = '') => `<section class="card ${cls}"><header><h3>${title}</h3>${sub ? `<span class="sub">${sub}</span>` : ''}<span class="sp"></span>${extra}</header>${body}</section>`;
+const bars = (rows, cls = '', u = '') => { const m = Math.max(...rows.map(r => r[1])); return `<ul class="bars ${cls}">${rows.map(([k, n]) => `<li><span class="k">${k}</span><span class="b"><i style="width:${n / m * 100}%"></i></span><span class="n">${nl(n)}${u}</span></li>`).join('')}</ul>`; };
+const f = DAYS => DAYS / 30;
+
+// ---------- live ----------
+const EV = [
+  ['Google', 'winkel/het-boelhuys', 'kaart', 'route', 'Den Helder'], ['direct', 'kaart', 'filter “Nu open”', 'Appel & Ei', 'Haarlem'],
+  ['Google', 'markt/vlooienmarkt-zwolle', 'dagplan', '', 'Zwolle'], ['badge', 'org/bureau-vac', 'markt geopend', '', 'Utrecht'],
+  ['direct', 'kaart', 'zoeken “kringloop zwolle”', '0 resultaten', 'Zwolle'], ['Google', 'winkel/dorcas-aalten', 'bellen', '', 'Aalten'],
+  ['Facebook', 'kaart', 'Mijn dag', '3 stops', 'Arnhem'], ['Google', 'stad/haarlem', 'kaart', 'Emmaus', 'Haarlem'],
+  ['direct', 'kaart', 'Ik weet de tijden', 'bijdrage', 'Nunspeet'], ['Google', 'winkel/the-musketeer', 'website', '', 'Bredevoort'],
+];
+let clock = 14 * 60 + 2;
+function evLine(e, cls = '') {
+  const [src, land, a, b, plaats] = e, t = `${String(Math.floor(clock / 60)).padStart(2, '0')}:${String(clock % 60).padStart(2, '0')}`;
+  const good = /route|bellen|website|bijdrage|dagplan|Mijn dag/.test(a + b);
+  return `<li class="${cls}"><span class="t">${t}</span><span class="w">${src} <span class="ar">→</span> <em>${land}</em> <span class="ar">→</span> ${a}${b ? ` <span class="ar">→</span> ${b}` : ''}</span><span class="s ${good ? 'g' : ''}">${plaats}</span></li>`;
+}
+function receipt(n, h) {
+  let rows = ''; for (let i = 0; i < n; i++) { rows += evLine(EV[i % EV.length]); clock -= R(1, 4); }
+  clock = 14 * 60 + 2;
+  return `<div class="receipt" style="--fh:${h}px"><h4>Snuffelkaart · live</h4><div class="meta">ma 9 nov 2026 · 3 bezoeken nu actief</div><hr>
+    <ul class="feed" id="feed">${rows}</ul><hr><div style="display:flex;justify-content:space-between"><span>BEZOEKEN VANDAAG</span><span>${nl(S.bezoek.at(-1))}</span></div>
+    <div style="display:flex;justify-content:space-between;color:var(--fg-3)"><span>WAARVAN ROUTE/BEL/SITE</span><span>${nl(S.actie.at(-1))}</span></div></div>`;
+}
+let liveTimer;
+function startLive() {
+  clearInterval(liveTimer);
+  liveTimer = setInterval(() => { const ul = document.getElementById('feed'); if (!ul) return; clock += R(0, 2); ul.insertAdjacentHTML('afterbegin', evLine(EV[R(0, EV.length - 1)], 'new')); if (ul.children.length > 40) ul.lastElementChild.remove(); }, 2600);
+}
+
+// ---------- pagina's ----------
+const P = {
+  overzicht: () => `
+    ${kpi('Bezoeken', 'bezoek', '', 'Unieke bezoeken (anonieme dagcode)')}${kpi('Kaart geopend', 'kaart', 't')}${kpi('Route · bel · site', 'actie', 'o', 'Iemand ging echt op pad')}${kpi('Bijdragen', 'bij', 'm')}
+    ${card('c5', 'Aandacht nodig', '', `<ul class="att">
+      <li onclick="go('bronnen')"><span class="dot" style="background:var(--bad)"></span><span><b>Bureau VAC</b> gaf 0 edities bij de nachtrun</span><span class="m">02:38</span></li>
+      <li onclick="go('wachtrij')"><span class="dot" style="background:var(--markt)"></span><span><b>6</b> markten in de wachtrij, 2 kritiek</span><span class="m">→</span></li>
+      <li onclick="go('meldingen')"><span class="dot" style="background:var(--markt)"></span><span><b>2</b> meldingen van bezoekers</span><span class="m">→</span></li>
+      <li onclick="go('bijdragen')"><span class="dot" style="background:var(--kring)"></span><span><b>3</b> bijdragen te keuren (2 tijden, 1 foto)</span><span class="m">→</span></li>
+      <li onclick="go('fouten')"><span class="dot" style="background:var(--warn)"></span><span><b>4</b> JavaScript-fouten, 1 nieuw</span><span class="m">→</span></li>
+      <li onclick="go('lezer')"><span class="dot" style="background:var(--open)"></span><span>Websitelezer: <b>+32</b> winkels met tijden deze week</span><span class="m">ma 00:50</span></li></ul>`)}
+    ${card('c7', 'Trechter', `laatste ${DAYS === 1 ? 'dag' : DAYS + ' dagen'}`, funnel(), `<span class="chip">alle bronnen ▾</span>`)}
+    ${card('c7', 'Bezoeken per dag', 'met bron', stackChart())}
+    <section class="c5" style="padding:0 6px">${receipt(14, 262)}</section>`,
+
+  live: () => `
+    <section class="c5">${receipt(30, 620)}</section>
+    ${card('c7', 'Nu actief', '3 bezoeken in de laatste 5 minuten', `<div class="cb" style="display:grid;gap:14px">
+      ${[['Google · mobiel · Den Helder', ['winkel/het-boelhuys', 'kaart', 'route'], '2 min'], ['direct · desktop · Haarlem', ['kaart', 'filter Nu open', 'Appel & Ei', 'Mijn dag'], '4 min'], ['badge Bureau VAC · mobiel · Utrecht', ['org/bureau-vac', 'markt Jaarbeurs'], '1 min']]
+        .map(([w, steps, t]) => `<div><div style="display:flex;justify-content:space-between;margin-bottom:6px"><b style="font-weight:650">${w}</b><span class="ghost mono" style="font-size:12px">${t}</span></div><div class="path">${steps.map((s, i) => `<span class="step ${i === steps.length - 1 && /route|Mijn dag/.test(s) ? 'g' : i === 0 ? 'k' : ''}">${s}</span>`).join('<span class="ar">→</span>')}</div></div>`).join('<hr style="border:0;border-top:1px solid var(--line);margin:0">')}
+      </div><div class="toggle"><span class="sw on" onclick="this.classList.toggle('on')"></span><span>Dit apparaat niet meetellen <span class="ghost">(jouw eigen bezoeken rond Nunspeet)</span></span></div>`)}
+    <p class="note">ⓘ Een bezoek is een willekeurige code die alleen in die tab bestaat en elke dag wisselt. Geen cookie, geen IP, geen account.</p>`,
+
+  verkeer: () => `
+    ${kpi('Bezoeken', 'bezoek')}${kpi('Paginaweergaven', 'kaart', 't')}
+    <div class="card c3"><div class="kpi"><div class="lbl">Mobiel</div><div class="v">71%</div><div class="d ghost">desktop 26% · tablet 3%</div></div></div>
+    <div class="card c3"><div class="kpi o"><div class="lbl">Laadtijd (LCP)</div><div class="v">1,4s</div><div class="d up">goed · 92% van de bezoeken</div></div></div>
+    ${card('c6', 'Waar komen ze vandaan', '', bars([['Google', 612 * f(DAYS)], ['direct', 288 * f(DAYS)], ['badge organisator', 74 * f(DAYS)], ['Facebook', 41 * f(DAYS)], ['Bing', 22 * f(DAYS)], ['overig', 19 * f(DAYS)]].map(([k, n]) => [k, Math.round(n)])))}
+    ${card('c6', 'Landingspagina’s', 'eerste pagina van een bezoek', bars([['/kaart', 341], ['/winkel/het-boelhuys', 174], ['/organisator/bureau-vac', 172], ['/winkel/appel-ei-haarlem', 166], ['/', 120], ['/stad/haarlem', 64]].map(([k, n]) => [k, Math.round(n * f(DAYS))]), 'm'))}
+    ${card('c12', 'Zoekwoorden in Google', 'Search Console · fase 3', `<table class="tbl"><thead><tr><th>Zoekwoord</th><th class="r">Vertoningen</th><th class="r">Klikken</th><th class="r">CTR</th><th class="r">Positie</th></tr></thead><tbody>
+      ${[['kringloop den helder', 812, 31, 6.2], ['het boelhuys openingstijden', 344, 28, 2.1], ['vlooienmarkt zwolle', 610, 19, 8.4], ['kringloop open zondag', 1204, 17, 11.7], ['appel en ei haarlem', 288, 14, 3.4], ['rommelmarkt utrecht jaarbeurs', 455, 11, 7.9]]
+        .map(([k, v, c, p]) => `<tr><td>${k}</td><td class="r">${nl(v)}</td><td class="r">${c}</td><td class="r">${(c / v * 100).toFixed(1)}%</td><td class="r">${p.toFixed(1)}</td></tr>`).join('')}</tbody></table>`)}`,
+
+  gedrag: () => `
+    ${card('c7', 'Trechter', 'van binnenkomst tot op pad', funnel(), `<span class="chip">vanaf Google ▾</span>`)}
+    ${card('c5', 'Wanneer wordt er gekeken', 'weekdag × uur', heat())}
+    ${card('c7', 'Veelgelopen routes', 'top 6 · per bezoek', `<div class="cb" style="display:grid;gap:12px">${[
+      [['Google', 'winkelpagina', 'kaart', 'route'], 118], [['direct', 'kaart', 'Nu open', 'winkel', 'route'], 94], [['Google', 'winkelpagina'], 402],
+      [['direct', 'kaart', 'Mijn dag', 'route 3 stops'], 41], [['badge', 'organisator', 'markt'], 66], [['Google', 'stadspagina', 'kaart', 'winkel'], 58]]
+      .map(([s, n]) => `<div style="display:flex;align-items:center;gap:12px"><div class="path" style="flex:1">${s.map((x, i) => `<span class="step ${i === 0 ? 'k' : /route/.test(x) ? 'g' : ''}">${x}</span>`).join('<span class="ar">→</span>')}</div><span class="mono">${Math.round(n * f(DAYS))}</span></div>`).join('')}</div>`)}
+    ${card('c5', 'Zoeken zonder resultaat', 'wat ontbreekt op de kaart', `<table class="tbl"><tbody>${[['kringloop zwolle', 23, 'winkel ontbreekt?'], ['rommelmarkt zondag', 17, 'synoniem'], ['vintage arnhem', 12, 'categorie'], ['boekenmarkt deventer', 9, 'markt ontbreekt?'], ['ikea tweedehands', 6, '—']]
+      .map(([q, n, h]) => `<tr><td>“${q}”</td><td class="r">${n}</td><td><span class="chip ${h === '—' ? '' : 'warn'}">${h}</span></td></tr>`).join('')}</tbody></table>`)}
+    ${card('c6', 'Filters', 'welke worden aangezet', bars([['Nu open', 214], ['Markten', 168], ['Gratis', 61], ['Bewaard', 38], ['Antiek', 33], ['Overdekt', 21]]))}
+    ${card('c6', 'Dagplannen', '', `<div class="cb" style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px">${[['gestart', 132], ['route geopend', 57], ['gem. stops', '2,8']].map(([l, v]) => `<div><div class="lbl">${l}</div><div class="mono" style="font-size:24px">${v}</div></div>`).join('')}</div>${bars([['zaterdag', 71], ['zondag', 33], ['vrijdag', 14], ['doordeweeks', 14]], 'm')}`)}`,
+
+  inhoud: () => card('c12', 'Per winkel, markt en organisator', `${SHOPS.length} van 3.402 · meest bekeken bovenaan`, `<div class="tscroll"><table class="tbl" id="ptab"><thead><tr>
+      <th data-k="n">Naam</th><th data-k="s">Tijden</th><th class="r" data-k="v">Pagina <span class="sa">▾</span></th><th class="r" data-k="o">Geopend</th><th class="r" data-k="plan">Dagplan</th><th class="r" data-k="out">Op pad</th><th class="r" data-k="c">Conversie</th></tr></thead><tbody></tbody></table></div>`,
+      `<label class="kbtn" style="min-width:200px"><svg width="14" height="14"><use href="#i-search"/></svg><input id="tq" placeholder="Filter…" style="all:unset;flex:1"></label><button class="btn"><svg width="14" height="14"><use href="#i-dl"/></svg>CSV</button>`),
+
+  regios: () => card('c8', 'Waar wordt gekeken', 'vakken van ±10 km · grootte = bezoeken, kleur = aanbod', `<div class="map">${map()}</div>`) +
+    card('c4', 'Veel vraag, weinig aanbod', 'kansen om aan te vullen', `<table class="tbl"><thead><tr><th>Regio</th><th class="r">Bezoeken</th><th class="r">Aanbod</th></tr></thead><tbody>${[['Nunspeet', 212, 4], ['Zwolle', 140, 9], ['Den Helder', 131, 7], ['Harderwijk', 88, 3], ['Elburg', 61, 2], ['Kampen', 44, 3]].map(([r, b, a]) => `<tr><td>${r}</td><td class="r">${b}</td><td class="r"><span class="chip ${a < 5 ? 'warn' : 'ok'}">${a}</span></td></tr>`).join('')}</tbody></table>
+      <div class="cb ghost" style="font-size:12px">Nunspeet is jouw eigen omgeving: zet “dit apparaat niet meetellen” aan om dat eruit te halen.</div>`),
+
+  wachtrij: () => card('c12', 'Wachtrij', '6 te beoordelen · A keurt goed, R wijst af, Z maakt ongedaan', `<div class="q"><ul id="ql">${[['Vlooienmarkt Jaarbeurs', 'za 14 nov · Utrecht', 'kritiek'], ['Rommelmarkt Wezep', 'zo 15 nov · Wezep', 'gemeenteblad'], ['Kofferbakmarkt Ermelo', 'za 21 nov · Ermelo', 'gemeenteblad'], ['Boekenmarkt Deventer', 'zo 22 nov · Deventer', 'verdwenen'], ['Kerstmarkt Elburg', 'za 12 dec · Elburg', 'kritiek'], ['Snuffelmarkt Epe', 'za 28 nov · Epe', 'gemeenteblad']]
+      .map(([n, w, k], i) => `<li class="${i ? '' : 'on'}"><span class="chip ${k === 'kritiek' ? 'bad' : k === 'verdwenen' ? 'warn' : 'k'}" style="float:right">${k}</span><b>${n}</b><small>${w}</small></li>`).join('')}</ul>
+      <div class="det"><span class="chip bad">kritiek · over 5 dagen</span><h2 style="margin:10px 0 0;font-size:22px;letter-spacing:-.02em">Vlooienmarkt Jaarbeurs</h2><p class="ghost" style="margin:4px 0 0">Organisatie Bureau VAC · bron vac.nl/agenda</p>
+      <dl><dt>Datum</dt><dd>zaterdag 14 november 2026</dd><dt>Tijd</dt><dd>09:00–16:00</dd><dt>Plaats</dt><dd>Jaarbeursplein 6, Utrecht</dd><dt>Entree</dt><dd>€ 4,50</dd><dt>Waarom hier</dt><dd>Bron gaf deze nacht 0 edities; markt staat nog op de site van de organisator.</dd></dl>
+      <div class="keys"><button class="btn pri">Goedkeuren <span class="kbd">A</span></button><button class="btn">Bewerken <span class="kbd">E</span></button><button class="btn">Afwijzen <span class="kbd">R</span></button></div></div></div>`),
+
+  winkels: () => `
+    ${card('c5', 'Dekking openingstijden', '3.402 winkels', `<div class="cov"><div class="ring" style="--p:38"><div><span><b>38%</b><small>met tijden</small></span></div></div>
+      <div style="flex:1"><div class="stack"><i style="width:17%;background:var(--kring)"></i><i style="width:20.5%;background:var(--open)"></i><i style="width:.4%;background:var(--tweede)"></i><i style="width:.1%;background:var(--warn)"></i></div>
+      <div class="legend"><span style="--c:var(--kring)">OSM 586</span><span style="--c:var(--open)">website 697</span><span style="--c:var(--tweede)">bezoeker 12</span><span style="--c:var(--warn)">tijdelijk dicht 2</span><span style="--c:var(--surface-2)">onbekend 2.105</span></div>
+      <p class="ghost" style="font-size:12.5px;margin:12px 0 0">Vrijdag 6 nov: 32% → nu 38%. Doel volgende maand: 45%.</p></div></div>`)}
+    ${card('c7', 'Per provincie', 'met tijden / totaal', bars([['Noord-Holland', 46], ['Gelderland', 41], ['Utrecht', 40], ['Zuid-Holland', 37], ['Overijssel', 36], ['Noord-Brabant', 33], ['Friesland', 29], ['Zeeland', 24]], '', '%'))}
+    ${card('c12', 'Zonder tijden, meest bekeken', 'pak deze eerst op', `<table class="tbl"><thead><tr><th>Winkel</th><th>Waarom geen tijden</th><th class="r">Pagina</th><th></th></tr></thead><tbody>${[['Mooier', 'Den Helder', 'site blokkeert ons (Cloudflare 403)', 'bad', 61], ['De Lokatie', 'Harderwijk', 'geen website', '', 44], ['Kringloop Zwolle', 'Zwolle', 'tijden alleen op Facebook', 'warn', 39], ['Het Boelhuys', 'Den Helder (Drs. F. Bijlweg)', 'twee vestigingen botsen', 'warn', 27], ['Kringloopcentrum De Liemers', "'s-Heerenberg", 'adres wijkt af van site', 'warn', 19]]
+      .map(([n, p, w, c, v]) => `<tr><td class="nm"><b>${n}</b><small>${p}</small></td><td><span class="chip ${c}">${w}</span></td><td class="r">${v}</td><td class="r"><button class="btn">Tijden invullen</button></td></tr>`).join('')}</tbody></table>`)}`,
+
+  lezer: () => `
+    <div class="card c3"><div class="kpi o"><div class="lbl">Sites met tijden</div><div class="v">839</div><div class="d up">▲ 40 sinds vorige run</div></div></div>
+    <div class="card c3"><div class="kpi"><div class="lbl">Gelezen</div><div class="v">1.995</div><div class="d ghost">versie 11 · ma 00:50</div></div></div>
+    <div class="card c3"><div class="kpi m"><div class="lbl">AI-lezer</div><div class="v">27 <small style="font-size:14px;color:var(--fg-3)">/ 250</small></div><div class="d ghost">gevonden / gevraagd · 0 fouten</div></div></div>
+    <div class="card c3"><div class="kpi t"><div class="lbl">Onbereikbaar</div><div class="v">422</div><div class="d ghost">waarvan 203 > 1 week weg</div></div></div>
+    ${card('c8', 'Runs', 'websites met tijden per week', runs())}
+    ${card('c4', 'Waarom geen tijden', 'laatste run', bars([['geen tijden op site', 734], ['onbereikbaar', 422], ['gedeelde ketensite', 67], ['andere postcode', 27], ['robots.txt', 27], ['geblokkeerd (403)', 11]], 'm'))}
+    ${card('c12', 'Laatst gelezen', '', `<table class="tbl"><thead><tr><th>Site</th><th>Resultaat</th><th>Gevonden op</th><th class="r">Gelezen</th><th></th></tr></thead><tbody>${[['aktiefonline.nl', 'Mo-Fr 10:00-18:00; Sa 10:00-17:00', 'ok', '/kringloopwinkels/winterswijk'], ['themusketeer.nl', 'Fr-Sa 09:00-12:00,14:00-17:00', 'ok', '/onze-winkel/'], ['jbrunekreef.nl', 'tijdelijk gesloten', 'warn', '/contact.html'], ['kringloopmooier.nl', 'geblokkeerd: 403', 'bad', '—'], ['kringloopdeliemers.nl', 'per vestiging: 1 van 2', 'ok', '/'], ['outfitlibraryless.com', 'We-Sa 13:00-18:00 (Engels)', 'ok', 'wordpress.com']]
+      .map(([s, r, c, p]) => `<tr><td class="mono">${s}</td><td><span class="chip ${c}">${r}</span></td><td class="ghost mono" style="font-size:12px">${p}</td><td class="r">ma 00:5${R(0, 9)}</td><td class="r"><button class="btn">Opnieuw lezen</button></td></tr>`).join('')}</tbody></table>`)}`,
+
+  bronnen: () => card('c12', 'Bronnen', 'nachtelijke import', `<table class="tbl"><thead><tr><th>Bron</th><th>Status</th><th class="r">Markten</th><th class="r">Δ</th><th class="r">Laatste run</th></tr></thead><tbody>${[['Bureau VAC', 'bad', '0 edities', 0, -38], ['Donevents', 'ok', 'ok', 64, 2], ['Evenementenlijn', 'ok', 'ok', 112, -3], ['Gemeenteblad', 'ok', 'ok', 27, 5], ['Carbootsale Horst', 'ok', 'ok', 9, 0], ['OSM / Overture', 'ok', 'wekelijks', 3402, -6]]
+    .map(([n, c, s, m, d]) => `<tr><td><b style="font-weight:650">${n}</b></td><td><span class="chip ${c}">${s}</span></td><td class="r">${nl(m)}</td><td class="r" style="color:${d < 0 ? 'var(--bad-ink)' : 'var(--fg-3)'}">${d > 0 ? '+' : ''}${d}</td><td class="r">ma 02:3${R(0, 9)}</td></tr>`).join('')}</tbody></table>`),
+
+  fouten: () => card('c12', 'Fouten bij bezoekers', '4 soorten · 30 dagen', `<table class="tbl"><thead><tr><th>Fout</th><th>Waar</th><th class="r">Aantal</th><th class="r">Laatst</th><th></th></tr></thead><tbody>${[['TypeError: Cannot read properties of undefined (reading \'h\')', '/kaart · Safari 18', 12, 'vandaag 13:41', 'bad', 'nieuw'], ['Failed to fetch (tiles)', '/kaart · Chrome', 31, 'gisteren', 'warn', 'netwerk'], ['ResizeObserver loop limit exceeded', '/kaart', 88, 'vandaag', '', 'onschuldig'], ['Script error.', 'extensie', 7, 'za 7 nov', '', 'negeren']]
+    .map(([e, w, n, t, c, l]) => `<tr><td><div class="err">${e}</div></td><td class="ghost">${w}</td><td class="r">${n}</td><td class="r">${t}</td><td><span class="chip ${c}">${l}</span></td></tr>`).join('')}</tbody></table>`),
+};
+['kandidaten', 'week', 'bijdragen', 'meldingen', 'log'].forEach(k => P[k] = () => card('c12', NAV.flatMap(g => g[1]).find(x => x[0] === k)[1], 'zelfde werkscherm als nu, in de nieuwe vormgeving (zie Wachtrij)', `<div class="cb ghost" style="padding:40px;text-align:center">Lijst links, details rechts, sneltoetsen A / R / Z — als <a href="#" onclick="go('wachtrij');return false">Wachtrij</a>.</div>`));
+
+function funnel() {
+  const b = sum(win('bezoek')), rows = [['Binnengekomen', b], ['Kaart of lijst bekeken', Math.round(b * .66)], ['Winkel of markt geopend', Math.round(b * .43)], ['Mijn dag of bewaard', Math.round(b * .14)], ['Route · bel · site', sum(win('actie'))]];
+  return `<div class="fun">${rows.map(([l, n], i) => `<div class="row"><span>${l}</span><span class="bar"><i style="width:${n / b * 100}%;animation-delay:${i * .07}s"></i></span><span class="n">${nl(n)}</span><span class="p">${Math.round(n / b * 100)}%</span></div>`).join('')}</div>`;
+}
+function stackChart() {
+  const v = win('bezoek').length > 1 ? win('bezoek') : S.bezoek.slice(-14), max = Math.max(...v), w = 640, h = 190, bw = w / v.length;
+  const parts = v.map((x, i) => { const g = x * .58, d = x * .3, o = x - g - d, y = n => h - 20 - n / max * (h - 34); let y0 = h - 20;
+    return [[g, 'var(--kring)'], [d, 'var(--markt)'], [o, 'var(--tweede)']].map(([n, c]) => { const y1 = y0 - n / max * (h - 34), r = `<rect x="${i * bw + 1.5}" y="${y1}" width="${bw - 3}" height="${y0 - y1}" fill="${c}" rx="1.5"/>`; y0 = y1; return r; }).join(''); }).join('');
+  return `<div class="cb"><svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" style="width:100%;height:290px">${[0.25, .5, .75, 1].map(t => `<line x1="0" x2="${w}" y1="${h - 20 - t * (h - 34)}" y2="${h - 20 - t * (h - 34)}" stroke="var(--line)" stroke-dasharray="2 4"/>`).join('')}${parts}</svg>
+    <div class="legend"><span style="--c:var(--kring)">Google</span><span style="--c:var(--markt)">direct</span><span style="--c:var(--tweede)">badge & social</span></div></div>`;
+}
+function heat() {
+  const D = ['ma', 'di', 'wo', 'do', 'vr', 'za', 'zo']; let s = '<span></span>' + Array.from({ length: 24 }, (_, h) => `<span style="justify-content:center">${h % 6 ? '' : h}</span>`).join('');
+  D.forEach((d, wd) => { s += `<span>${d}</span>`; for (let h = 0; h < 24; h++) { const base = h < 7 ? .02 : h < 9 ? .2 : h < 12 ? .55 : h < 17 ? .7 : h < 21 ? .5 : .15, wk = wd >= 4 ? 1.35 : 1, v = Math.min(1, base * wk * (wd === 4 && h > 17 ? 1.5 : 1) + rnd() * .12); s += `<i style="opacity:${(.06 + v * .94).toFixed(2)}" title="${d} ${h}:00"></i>`; } });
+  return `<div class="heat">${s}</div><div class="cb ghost" style="padding-top:0;font-size:12px">Piek: vrijdagavond en zaterdagochtend — wie een dag plant, kijkt de avond ervoor.</div>`;
+}
+function runs() {
+  const w = [612, 640, 655, 669, 681, 697, 839], wk = ['12 okt', '19 okt', '26 okt', '2 nov', '6 nov', '6 nov*', '9 nov'], max = 1000;
+  return `<div class="runs">${w.map((n, i) => { const ai = i >= 4 ? [0, 0, 0, 0, 99, 102, 127][i] : 0; return `<div title="${n} sites"><span class="mono" style="font-size:10.5px;text-align:center;color:var(--fg-3)">${n}</span><i style="height:${ai / max * 100}%;background:var(--markt)"></i><i style="height:${(n - ai) / max * 100}%;background:var(--open)"></i></div>`; }).join('')}</div>
+    <div class="runs-x">${wk.map(x => `<span>${x}</span>`).join('')}</div><div class="cb" style="padding-top:0"><div class="legend"><span style="--c:var(--open)">parser</span><span style="--c:var(--markt)">AI-lezer</span></div></div>`;
+}
+function map() {
+  // schets van Nederland in vakjes (geen echte kaart): bolletjes op ongeveer de goede plek
+  const pts = [['Den Helder', 115, 70, 131, 7], ['Haarlem', 100, 175, 96, 22], ['Amsterdam', 140, 185, 118, 31], ['Utrecht', 170, 245, 102, 18], ['Zwolle', 290, 170, 140, 9], ['Nunspeet', 245, 190, 212, 4], ['Harderwijk', 225, 205, 88, 3], ['Arnhem', 270, 280, 77, 14], ['Winterswijk', 360, 290, 21, 3], ['Eindhoven', 210, 380, 54, 12], ['Groningen', 340, 50, 33, 11], ['Den Haag', 70, 240, 61, 19], ['Rotterdam', 90, 270, 70, 24], ['Elburg', 255, 175, 61, 2], ['Aalten', 340, 300, 18, 2], ['Den Burg', 110, 35, 12, 2]];
+  return `<svg viewBox="0 0 440 440"><path d="M95 20 L170 10 L260 20 L380 25 L410 70 L395 150 L400 230 L385 300 L330 330 L300 400 L250 430 L190 425 L150 395 L120 330 L50 300 L40 250 L75 190 L80 120 Z" fill="var(--surface)" stroke="var(--line-strong)" stroke-width="1.5" stroke-dasharray="3 3"/>
+    ${pts.map(([n, x, y, b, a]) => { const r = 6 + Math.sqrt(b) * 1.6, c = a < 5 ? 'var(--markt)' : a < 15 ? 'var(--kring)' : 'var(--open)'; return `<g><circle cx="${x}" cy="${y}" r="${r}" fill="${c}" fill-opacity=".28" stroke="${c}" stroke-width="1.5"/><circle cx="${x}" cy="${y}" r="2.5" fill="${c}"/><text x="${x + r + 4}" y="${y + 4}" font-size="11" font-family="Figtree" fill="var(--fg-2)">${n}</text></g>`; }).join('')}</svg>
+    <div class="legend" style="position:absolute;left:14px;bottom:12px;background:var(--surface);padding:6px 10px;border-radius:6px;border:1px solid var(--line)"><span style="--c:var(--markt)">weinig aanbod</span><span style="--c:var(--kring)">gemiddeld</span><span style="--c:var(--open)">veel aanbod</span></div>`;
+}
+
+// ---------- tabel sorteren / filteren ----------
+let sortK = 'v', sortD = -1;
+function fillTable() {
+  const tb = document.querySelector('#ptab tbody'); if (!tb) return;
+  const q = (document.getElementById('tq')?.value ?? '').toLowerCase(), max = Math.max(...SHOPS.map(s => s.v));
+  const lbl = { web: ['website', 'ok'], osm: ['OSM', 'ok'], bezoeker: ['bezoeker', 'k'], dicht: ['tijdelijk dicht', 'warn'], m: ['organisator', 'm'] };
+  const rows = SHOPS.map(s => ({ ...s, c: s.out / s.o })).filter(s => (s.n + s.p).toLowerCase().includes(q)).sort((a, b) => (a[sortK] > b[sortK] ? 1 : -1) * sortD);
+  tb.innerHTML = rows.map(s => `<tr><td class="nm"><b>${s.n}</b><small>${s.p}</small></td><td><span class="chip ${lbl[s.s]?.[1] ?? 'bad'}">${lbl[s.s]?.[0] ?? 'geen'}</span></td>
+    <td class="r">${Math.round(s.v * f(DAYS))}<span class="mini"><i style="width:${s.v / max * 100}%"></i></span></td><td class="r">${Math.round(s.o * f(DAYS))}</td><td class="r">${Math.round(s.plan * f(DAYS))}</td><td class="r">${Math.round(s.out * f(DAYS))}</td><td class="r">${Math.round(s.c * 100)}%</td></tr>`).join('');
+  document.querySelectorAll('#ptab th').forEach(th => th.querySelector('.sa')?.remove());
+  document.querySelector(`#ptab th[data-k="${sortK}"]`)?.insertAdjacentHTML('beforeend', `<span class="sa">${sortD < 0 ? '▾' : '▴'}</span>`);
+}
+document.addEventListener('click', e => { const th = e.target.closest('#ptab th'); if (!th) return; const k = th.dataset.k; sortD = sortK === k ? -sortD : -1; sortK = k; fillTable(); });
+document.addEventListener('input', e => { if (e.target.id === 'tq') fillTable(); });
+document.addEventListener('click', e => { const li = e.target.closest('#ql li'); if (!li) return; li.parentNode.querySelectorAll('li').forEach(x => x.classList.toggle('on', x === li)); });
+
+// ---------- render ----------
+const TITLES = Object.fromEntries(NAV.flatMap(([g, it]) => it.map(([k, l]) => [k, [g, l]])));
+function render() {
+  seed = 7 + DAYS; const [g, l] = TITLES[view];
+  document.getElementById('crumb').textContent = g; document.getElementById('title').textContent = l;
+  document.getElementById('page').innerHTML = P[view]();
+  fillTable(); startLive();
+}
+document.getElementById('period').onclick = e => { const b = e.target.closest('button'); if (!b) return; DAYS = +b.dataset.d; document.querySelectorAll('#period button').forEach(x => x.classList.toggle('on', x === b)); render(); };
+
+// ---------- thema ----------
+const root = document.documentElement;
+if (matchMedia('(prefers-color-scheme: dark)').matches || /dark/.test(location.search)) root.dataset.theme = 'dark';
+document.getElementById('theme').onclick = () => root.dataset.theme = root.dataset.theme === 'dark' ? '' : 'dark';
+
+// ---------- ⌘K ----------
+const pal = document.getElementById('pal'), pq = document.getElementById('palq'), pl = document.getElementById('pall');
+const ALL = [...NAV.flatMap(([, it]) => it.map(([k, l]) => ({ l, s: 'pagina', go: () => go(k) }))), ...SHOPS.map(s => ({ l: s.n, s: s.p, go: () => { go('inhoud'); setTimeout(() => { document.getElementById('tq').value = s.n; fillTable(); }, 0); } }))];
+let pi = 0, hits = [];
+function drawPal() { const q = pq.value.toLowerCase(); hits = ALL.filter(x => (x.l + x.s).toLowerCase().includes(q)).slice(0, 9); pi = Math.min(pi, hits.length - 1); pl.innerHTML = hits.map((x, i) => `<li class="${i === pi ? 'on' : ''}" data-i="${i}">${x.l}<small>${x.s}</small></li>`).join(''); }
+const openPal = () => { pal.classList.add('on'); pq.value = ''; pi = 0; drawPal(); pq.focus(); };
+const closePal = () => pal.classList.remove('on');
+document.getElementById('kopen').onclick = openPal;
+pal.onclick = e => { if (e.target === pal) closePal(); const li = e.target.closest('li'); if (li) { hits[+li.dataset.i].go(); closePal(); } };
+pq.oninput = () => { pi = 0; drawPal(); };
+addEventListener('keydown', e => {
+  if ((e.metaKey || e.ctrlKey) && e.key === 'k') { e.preventDefault(); openPal(); }
+  if (!pal.classList.contains('on')) return;
+  if (e.key === 'Escape') closePal();
+  if (e.key === 'ArrowDown') { pi = Math.min(pi + 1, hits.length - 1); drawPal(); e.preventDefault(); }
+  if (e.key === 'ArrowUp') { pi = Math.max(pi - 1, 0); drawPal(); e.preventDefault(); }
+  if (e.key === 'Enter' && hits[pi]) { hits[pi].go(); closePal(); }
+});
+
+if (/static/.test(location.search)) document.head.insertAdjacentHTML('beforeend', '<style>*,*::before,*::after{animation:none!important}</style>');
+drawNav(); render();
+</script>
+</body>
+</html>

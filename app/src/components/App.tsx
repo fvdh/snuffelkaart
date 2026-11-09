@@ -15,6 +15,7 @@ import { applyStatus, type Live } from '../lib/markets';
 import { Ic, reduced } from './ui';
 import { watchErrors } from '../lib/errors';
 import { klik, linkKind, tel, kmBucket, regio } from '../lib/klik';
+import { ev, pv } from '../lib/ev';
 
 /** "Nu", met ?nu=2026-10-31T09:10 om tijdsbewust gedrag te testen. */
 function useNow(): [Date, boolean] {
@@ -121,7 +122,7 @@ export default function App() {
   const list = useMemo(() => inView ? all.filter(({ it }) => it.lon >= bounds!.w && it.lon <= bounds!.e && it.lat >= bounds!.s && it.lat <= bounds!.n) : all, [all, inView, bounds]);
   // Zoeken zonder resultaat: alleen dát het gebeurde (niet de tekst), één keer per zoekopdracht, pas als je even stopt met typen.
   const leeg = useRef(new Set<string>());
-  useEffect(() => { const q = f.q.trim().toLowerCase(); if (q.length < 3 || list.length || leeg.current.has(q)) return; const t = setTimeout(() => { leeg.current.add(q); tel('zoekleeg'); }, 1500); return () => clearTimeout(t); }, [f.q, list.length]);
+  useEffect(() => { const q = f.q.trim().toLowerCase(); if (q.length < 3 || list.length || leeg.current.has(q)) return; const t = setTimeout(() => { leeg.current.add(q); tel('zoekleeg'); ev('zoek0', q.replace(/[^a-zà-ÿ' -]/g, '').slice(0, 40)); }, 1500); return () => clearTimeout(t); }, [f.q, list.length]);
   const counts = useMemo(() => {
     // Tellers horen bij de kop "rond <plaats>": alleen binnen 25 km, niet heel Nederland (UX-review 28 okt).
     const near = (x: LatLon) => km(origin, x) < 25, g = items.filter(it => near(it) && matches(it, { ...f, open: false, q: '', only: null }, now, day, min)).map(it => groupOf(it, day, min));
@@ -135,6 +136,7 @@ export default function App() {
     if (p.hide?.length) CATS.filter(c => !p.hide!.includes(c)).forEach(c => tel('filter', `cat:${c}`, true));
     if (p.only) tel('filter', 'bewaard', true);
   };
+  useEffect(() => { pv(); }, []);
   useEffect(() => { const d = new Date(); tel('uur', `${d.getDay()}-${d.getHours()}`, true); }, []);
   useEffect(() => { if (me || spot) tel('regio', regio(me ?? spot!), true); }, [me, spot]);
   const setF = useCallback((p: Partial<Filters>) => { telFilter(p); setFState(o => ({ ...o, ...p })); setLimit(40); if (view !== 'list') { setView('list'); setSel(null); } }, [view]);
@@ -205,6 +207,7 @@ export default function App() {
       }
       const old = kind === 'review' ? mine.find(c => c.kind === 'review' && c.item_id === itemId) : undefined;
       await (old ? rest(`contributions?id=eq.${old.id}`, { method: 'PATCH', body: JSON.stringify({ data }) }) : rest('contributions', { method: 'POST', body: JSON.stringify({ item_id: itemId, kind, data }) }));
+      ev('bijdrage', kind);
       await loadMine();
     },
     setName: async n => { await (name ? rest(`profiles?user_id=eq.${userId(sess!)}`, { method: 'PATCH', body: JSON.stringify({ name: n }) }) : rest('profiles', { method: 'POST', body: JSON.stringify({ name: n }) })); setName(n); },

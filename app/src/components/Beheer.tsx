@@ -7,7 +7,7 @@ import { CATS, dLong, type Cat } from '../lib/model';
 import { queue, alerts, parseLatLon, type MRow, type Judged, type Run } from '../lib/beheer';
 import { CAT, Ic } from './ui';
 import { SB, KEY, readSession, sendLink, logout, fresh, api as authApi, type Session } from '../lib/auth';
-import { Dashboard } from './Dashboard';
+import { useData, usePeriod, Overzicht, Live, Verkeer, Gedrag, Inhoud, Regios, Dekking, Lezer, Fouten, type Info } from './Inzicht';
 import { watchErrors } from '../lib/errors';
 
 type Row = { id: string; status: string; locked: string[]; data: Record<string, any>; date?: string; updated_at?: string };
@@ -51,12 +51,29 @@ function Login() {
   </form></main>);
 }
 
-type View = 'dashboard' | 'wachtrij' | 'bijdragen' | 'meldingen' | 'kandidaten' | 'week' | 'winkels' | 'bronnen' | 'klikken' | 'log';
-const NAV: [View, string][] = [['dashboard', 'Dashboard'], ['wachtrij', 'Wachtrij'], ['bijdragen', 'Bijdragen'], ['meldingen', 'Meldingen'], ['kandidaten', 'Kandidaten'], ['week', 'Markten deze week'], ['winkels', 'Winkels'], ['bronnen', 'Bronnen'], ['klikken', 'Klikken'], ['log', 'Moderatielog']];
+type View = 'overzicht' | 'live' | 'verkeer' | 'gedrag' | 'inhoud' | 'regios' | 'wachtrij' | 'kandidaten' | 'week' | 'bijdragen' | 'meldingen' | 'dekking' | 'lezer' | 'winkels' | 'bronnen' | 'fouten' | 'log';
+// Indeling volgens het ontwerp (ontwerp/beheer/index.html): groepen in de zijbalk, bovenbalk met periode, ⌘K en licht/donker.
+const NAV: [string, [View, string, string][]][] = [
+  ['Overzicht', [['overzicht', 'Overzicht', 'home'], ['live', 'Live', 'live']]],
+  ['Inzicht', [['verkeer', 'Verkeer', 'chart'], ['gedrag', 'Gedrag', 'route'], ['inhoud', 'Inhoud', 'box'], ['regios', "Regio's", 'pin']]],
+  ['Werk', [['wachtrij', 'Wachtrij', 'inbox'], ['kandidaten', 'Kandidaten', 'check'], ['week', 'Markten deze week', 'cal'], ['bijdragen', 'Bijdragen', 'gift'], ['meldingen', 'Meldingen', 'flag']]],
+  ['Data', [['dekking', 'Dekking', 'shop'], ['lezer', 'Websitelezer', 'read'], ['winkels', 'Winkels', 'search'], ['bronnen', 'Bronnen', 'db']]],
+  ['Systeem', [['fouten', 'Fouten', 'bug'], ['log', 'Log', 'log']]],
+];
+const VIEWS = NAV.flatMap(([g, it]) => it.map(([k, l]) => [k, g, l] as const));
+const PERIOD = new Set<View>(['overzicht', 'verkeer', 'gedrag', 'inhoud', 'regios', 'dekking']), WORK = new Set<View>(['wachtrij', 'kandidaten', 'week', 'bijdragen', 'meldingen', 'winkels']);
 const STATUS: Record<string, string> = { org: 'Bevestigd door organisator', chk: 'Gecontroleerd', unconf: 'Nog niet bevestigd', cancel: 'Afgelast', kandidaat: 'Kandidaat', afgewezen: 'Afgewezen' };
+const Bi = ({ n }: { n: string }) => <svg className="bi" aria-hidden="true"><use href={`#b-${n}`} /></svg>;
+const fromHash = (): View => { const h = location.hash.slice(1) as View; return VIEWS.some(v => v[0] === h) ? h : 'overzicht'; };
 
 function Panel({ s, out }: { s: Session; out: () => void }) {
-  const [view, setView] = useState<View>('dashboard'), [rows, setRows] = useState<MRow[] | null>(null), [err, setErr] = useState('');
+  const [view, setView] = useState<View>(fromHash), [rows, setRows] = useState<MRow[] | null>(null), [err, setErr] = useState('');
+  const [days, setDays] = useState(30), [q, setQ] = useState(''), [pal, setPal] = useState(false);
+  const [dark, setDark] = useState(() => document.documentElement.dataset.theme === 'dark' || (!document.documentElement.dataset.theme && matchMedia('(prefers-color-scheme: dark)').matches));
+  const go = (v: View) => { setView(v); history.replaceState(null, '', `#${v}`); scrollTo(0, 0); };
+  useEffect(() => { const h = () => setView(fromHash()); addEventListener('hashchange', h); return () => removeEventListener('hashchange', h); }, []);
+  const theme = () => { const t = dark ? 'light' : 'dark'; document.documentElement.dataset.theme = t; localStorage.setItem('sk-beheer-thema', t); setDark(!dark); };
+  const data = useData(s), p = usePeriod(data, days);
   // ponytail: alle markten vanaf vandaag in één keer (±300; PostgREST geeft er max. 1000). Pagineren als het er meer worden.
   useEffect(() => { api(s, `markets?select=id,date,status,locked,data,updated_at&date=gte.${today()}&order=date,id`).then(setRows).catch(e => setErr(e.message)); }, []);
   const [undo, setUndo] = useState<{ before?: Row; what: string; revert?: () => Promise<unknown> } | null>(null);
@@ -72,7 +89,10 @@ function Panel({ s, out }: { s: Session; out: () => void }) {
   const revert = () => { if (!undo) return; const { before: b, revert: r } = undo; setUndo(null); (r ? r() : patch(b!, { status: b!.status, data: b!.data, locked: b!.locked })).catch(e => setErr(e.message)); };
   useEffect(() => { if (!undo) return; const t = setTimeout(() => setUndo(null), 10000); return () => clearTimeout(t); }, [undo]);
   useEffect(() => {
-    const k = (e: KeyboardEvent) => { if (e.key === 'z' && undo && !typing(e) && !e.metaKey && !e.ctrlKey) { e.preventDefault(); revert(); } };
+    const k = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') { e.preventDefault(); setPal(true); return; }
+      if (e.key === 'z' && undo && !typing(e) && !e.metaKey && !e.ctrlKey) { e.preventDefault(); revert(); }
+    };
     addEventListener('keydown', k); return () => removeEventListener('keydown', k);
   });
   const [runs, setRuns] = useState<Run[]>([]), [reps, setReps] = useState<Rep[]>([]);
@@ -81,37 +101,87 @@ function Panel({ s, out }: { s: Session; out: () => void }) {
   useEffect(() => { api(s, 'contributions?select=id&status=eq.nieuw').then(r => setNBij(r.length)).catch(() => {}); }, [view]);
   useEffect(() => { api(s, 'import_runs?select=*&order=at.desc&limit=30').then(setRuns).catch(() => {}); }, []);
   const warn = alerts(runs, new Date());
-  const q = useMemo(() => rows ? queue(rows, today()) : [], [rows]);
+  const qu = useMemo(() => rows ? queue(rows, today()) : [], [rows]);
   const week = useMemo(() => (rows ?? []).filter(r => r.date <= plusDays(7) && STATUS[r.status] && !['kandidaat', 'afgewezen'].includes(r.status)), [rows]);
   const cands = useMemo(() => (rows ?? []).filter(r => r.status === 'kandidaat' || r.status === 'afgewezen'), [rows]);
-  const count: Partial<Record<View, number>> = { wachtrij: q.length, kandidaten: cands.filter(r => r.status === 'kandidaat').length, week: week.length, meldingen: reps.length, bijdragen: nBij };
+  const fout24 = data.fouten.filter(f => Date.now() - Date.parse(f.at) < 864e5).length;
+  const count: Partial<Record<View, number>> = { wachtrij: qu.length, kandidaten: cands.filter(r => r.status === 'kandidaat').length, week: week.length, meldingen: reps.length, bijdragen: nBij, fouten: fout24 };
+  const hot = new Set<View>(['wachtrij', 'meldingen', 'bijdragen']);
+  const crit = qu.filter(j => j.urgent).length;
 
-  return (<div className="admin">
-    <nav className="adm-nav" aria-label="Beheer">
-      <h1 className="bh-brand"><span className="bh-mark"><Ic n="tag" /></span>Beheer</h1>
-      {NAV.map(([k, l]) => <button key={k} className={view === k ? 'on' : ''} aria-current={view === k ? 'page' : undefined} onClick={() => setView(k)}>{l}{k === 'bronnen' && warn.length ? <span className="adm-bad">{warn.length} fout</span> : <span>{count[k] ?? ''}</span>}</button>)}
-      <div className="adm-me"><span>{s.email}</span><button className="link" onClick={out}>Uitloggen</button></div>
-    </nav>
-    <main style={{ display: 'contents' }}>
-    {err && <p className="bh-err adm-err" role="alert">{err}</p>}
-    {!rows && !err ? <p className="adm-loading">Laden…</p>
-      : view === 'wachtrij' ? <Markets key="q" title="Wachtrij" items={q.map(j => ({ row: j.row, j }))} save={save}
+  const att = <ul className="att">
+    {warn.map(w => <li key={w} onClick={() => go('bronnen')}><span className="dot bad" /><span>{w}</span><span className="m">→</span></li>)}
+    {qu.length > 0 && <li onClick={() => go('wachtrij')}><span className="dot hot" /><span><b>{qu.length}</b> in de wachtrij{crit ? `, ${crit} kritiek` : ''}</span><span className="m">→</span></li>}
+    {reps.length > 0 && <li onClick={() => go('meldingen')}><span className="dot hot" /><span><b>{reps.length}</b> {reps.length === 1 ? 'melding' : 'meldingen'} van bezoekers</span><span className="m">→</span></li>}
+    {nBij > 0 && <li onClick={() => go('bijdragen')}><span className="dot k" /><span><b>{nBij}</b> {nBij === 1 ? 'bijdrage' : 'bijdragen'} te keuren</span><span className="m">→</span></li>}
+    {fout24 > 0 && <li onClick={() => go('fouten')}><span className="dot warn" /><span><b>{fout24}</b> JavaScript-{fout24 === 1 ? 'fout' : 'fouten'} in de laatste 24 uur</span><span className="m">→</span></li>}
+    {!warn.length && !qu.length && !reps.length && !nBij && !fout24 && <li className="calm"><span className="dot ok" /><span>Niets dat op je wacht. Alle bronnen draaiden goed.</span></li>}
+  </ul>;
+
+  const [, group, title] = VIEWS.find(v => v[0] === view)!;
+  const content = view === 'overzicht' ? <Overzicht d={data} p={p} att={att} />
+    : view === 'live' ? <Live d={data} />
+    : view === 'verkeer' ? <Verkeer p={p} />
+    : view === 'gedrag' ? <Gedrag p={p} />
+    : view === 'inhoud' ? <Inhoud d={data} p={p} q={q} setQ={setQ} />
+    : view === 'regios' ? <Regios d={data} p={p} />
+    : view === 'dekking' ? <Dekking d={data} p={p} />
+    : view === 'lezer' ? <Lezer />
+    : view === 'fouten' ? <Fouten d={data} />
+    : !rows && !err ? <p className="adm-loading">Laden…</p>
+    : view === 'wachtrij' ? <Markets key="q" title="Wachtrij" items={qu.map(j => ({ row: j.row, j }))} save={save}
         filters={[['Alles', () => true], ['Kritiek', i => !!i.j?.urgent], ['Gemeenteblad', i => i.j?.kind === 'kandidaat'], ['Verdwenen', i => i.j?.kind === 'verdwenen']]}
         empty="De wachtrij is leeg. Nieuwe kandidaten komen elke nacht binnen." />
-      : view === 'kandidaten' ? <Markets key="k" title="Kandidaten" items={cands.map(row => ({ row, j: q.find(j => j.row.id === row.id) }))} save={save}
+    : view === 'kandidaten' ? <Markets key="k" title="Kandidaten" items={cands.map(row => ({ row, j: qu.find(j => j.row.id === row.id) }))} save={save}
         filters={[['Te keuren', i => i.row.status === 'kandidaat'], ['Afgewezen', i => i.row.status === 'afgewezen']]} empty="Geen kandidaten." />
-      : view === 'week' ? <Markets key="w" title="Markten deze week" items={week.map(row => ({ row }))} save={save}
+    : view === 'week' ? <Markets key="w" title="Markten deze week" items={week.map(row => ({ row }))} save={save}
         filters={[['Alles', () => true], ...(['org', 'chk', 'unconf', 'cancel'] as const).map(k => [STATUS[k].replace(' door organisator', ''), (i: Item) => i.row.status === k] as Filter)]} empty="Geen markten de komende 7 dagen." />
-      : view === 'bijdragen' ? <Contribs s={s} setUndo={setUndo} />
-      : view === 'meldingen' ? <Reports s={s} reps={reps} setReps={setReps} rows={rows ?? []} />
-      : view === 'winkels' ? <Shops s={s} />
-      : view === 'bronnen' ? <Sources s={s} runs={runs} warn={warn} rows={rows ?? []} />
-      : view === 'klikken' ? <Clicks s={s} />
-      : view === 'dashboard' ? <Dashboard s={s} />
-      : <Log s={s} />}
-    </main>
+    : view === 'bijdragen' ? <Contribs s={s} setUndo={setUndo} />
+    : view === 'meldingen' ? <Reports s={s} reps={reps} setReps={setReps} rows={rows ?? []} />
+    : view === 'winkels' ? <Shops s={s} />
+    : view === 'bronnen' ? <Sources runs={runs} warn={warn} rows={rows ?? []} />
+    : <Log s={s} />;
+
+  return (<div className="admin">
+    <aside className="side">
+      <div className="brand"><span className="mk"><Ic n="tag" /></span><div><b>Snuffelkaart</b><small>Beheer</small></div></div>
+      <nav className="nav" aria-label="Beheer">{NAV.map(([g, items]) => <div key={g}><div className="grp">{g}</div>
+        {items.map(([k, l, ic]) => <button key={k} className={view === k ? 'on' : ''} aria-current={view === k ? 'page' : undefined} onClick={() => go(k)}><Bi n={ic} />{l}
+          {k === 'live' ? <span className="pulse" /> : k === 'bronnen' && warn.length ? <span className="ct bad">{warn.length}</span> : count[k] ? <span className={`ct${hot.has(k) ? ' hot' : k === 'fouten' ? ' bad' : ''}`}>{count[k]}</span> : null}</button>)}</div>)}</nav>
+      <div className="bme"><span className="av">{s.email?.[0]?.toUpperCase()}</span><span className="em">{s.email}</span><button onClick={out} title="Uitloggen" aria-label="Uitloggen">⏻</button></div>
+    </aside>
+    <div className="main">
+      <header className="top">
+        <div><div className="crumb">{group}</div><h1>{title}</h1></div><span className="sp" />
+        {PERIOD.has(view) && <div className="seg" role="group" aria-label="Periode">{([[1, 'Vandaag'], [7, '7d'], [30, '30d'], [90, '90d']] as const).map(([n, l]) => <button key={n} className={days === n ? 'on' : ''} aria-pressed={days === n} onClick={() => setDays(n)}>{l}</button>)}</div>}
+        <button className="kbtn" onClick={() => setPal(true)}><Bi n="search" /><span className="kt">Zoek winkel, markt, pagina…</span><span className="sp" /><span className="kbd">⌘K</span></button>
+        <button className="ib" onClick={theme} title={dark ? 'Licht' : 'Donker'} aria-label="Licht of donker"><Bi n="moon" /></button>
+      </header>
+      {(err || data.err) && <p className="bh-err adm-err" role="alert">{err || data.err}</p>}
+      <main className={WORK.has(view) ? 'page work' : 'page'} key={view}>{content}</main>
+    </div>
     {undo && <div className="adm-undo" role="status"><span>{undo.what}</span><button className="btn sm" onClick={revert}>Ongedaan maken <span className="kbd">Z</span></button></div>}
+    {pal && <Palette close={() => setPal(false)} info={data.info} pick={(v, name) => { if (name !== undefined) setQ(name); go(v); setPal(false); }} />}
   </div>);
+}
+
+/** ⌘K: spring naar een pagina, of naar een winkel/markt/organisator (opent Inhoud, gefilterd op de naam). */
+function Palette({ close, info, pick }: { close: () => void; info: Map<string, Info>; pick: (v: View, name?: string) => void }) {
+  const [q, setQ] = useState(''), [i, setI] = useState(0);
+  const items = useMemo(() => {
+    const t = q.trim().toLowerCase(), pages = VIEWS.filter(v => v[2].toLowerCase().includes(t)).map(v => ({ l: v[2], s: 'pagina', go: () => pick(v[0]) }));
+    if (t.length < 2) return pages.slice(0, 9);
+    const orgs = [...new Set([...info.values()].map(x => x.org).filter((o): o is string => !!o && o.toLowerCase().includes(t)))].slice(0, 4).map(o => ({ l: o, s: 'organisator', go: () => pick('inhoud', o) }));
+    const its = [...info.values()].filter(x => x.name.toLowerCase().includes(t) || (x.place ?? '').toLowerCase().includes(t)).slice(0, 8).map(x => ({ l: x.name, s: `${x.t === 'm' ? 'markt' : 'winkel'} · ${x.place ?? ''}`, go: () => pick('inhoud', x.name) }));
+    return [...pages, ...orgs, ...its].slice(0, 12);
+  }, [q, info]);
+  const sel = Math.min(i, items.length - 1);
+  return <div className="pal-bg" onClick={e => { if (e.target === e.currentTarget) close(); }}><div className="pal" role="dialog" aria-label="Zoeken">
+    <input autoFocus value={q} placeholder="Spring naar… (pagina, winkel, markt of organisator)" onChange={e => { setQ(e.target.value); setI(0); }}
+      onKeyDown={e => { if (e.key === 'Escape') close(); else if (e.key === 'ArrowDown') { e.preventDefault(); setI(Math.min(sel + 1, items.length - 1)); } else if (e.key === 'ArrowUp') { e.preventDefault(); setI(Math.max(sel - 1, 0)); } else if (e.key === 'Enter') items[sel]?.go(); }} />
+    <ul>{items.map((x, n) => <li key={x.l + x.s + n} className={n === sel ? 'on' : ''} onMouseEnter={() => setI(n)} onClick={x.go}>{x.l}<small>{x.s}</small></li>)}</ul>
+    {!items.length && <p className="b-empty">Niets gevonden.</p>}
+  </div></div>;
 }
 
 type Item = { row: MRow; j?: Judged };
@@ -392,25 +462,15 @@ function Shops({ s }: { s: Session }) {
   </>);
 }
 
-type Fout = { msg: string; src: string | null; ua: string | null; at: string };
-
-function Sources({ s, runs, warn, rows }: { s: Session; runs: Run[]; warn: string[]; rows: MRow[] }) {
-  const [errs, setErrs] = useState<Fout[]>([]);
-  useEffect(() => { api(s, `client_errors?select=msg,src,ua,at&at=gte.${new Date(Date.now() - 7 * 864e5).toISOString()}&order=at.desc&limit=500`).then(setErrs).catch(() => {}); }, []);
-  const byMsg = Object.values(errs.reduce<Record<string, { e: Fout; n: number }>>((a, e) => { (a[e.msg] ??= { e, n: 0 }).n++; return a; }, {})).sort((a, b) => b.n - a.n);
+function Sources({ runs, warn, rows }: { runs: Run[]; warn: string[]; rows: MRow[] }) {
   const per = Object.entries(rows.reduce<Record<string, Record<string, number>>>((a, r) => { const k = r.data.org ?? '?'; (a[k] ??= {})[r.status] = (a[k][r.status] ?? 0) + 1; return a; }, {}))
     .sort((a, b) => Object.values(b[1]).reduce((x, y) => x + y) - Object.values(a[1]).reduce((x, y) => x + y));
   return (<section className="adm-wide" aria-label="Bronnen">
-    <h2>Bronnen</h2>
     {warn.length > 0 && <div className="aibox adm-warn"><span className="ai rej"><Ic n="alert" />Aandacht nodig</span><ul>{warn.map(w => <li key={w}>{w}</li>)}</ul>
       <p className="src"><Ic n="info" /><span>Een uitlezer met een probleem houdt zijn vorige stand; de rest is gewoon bijgewerkt. Meestal is de site van de organisator veranderd en moet de uitlezer worden aangepast.</span></p></div>}
     <h3>Laatste imports</h3>
     <table className="adm-table"><thead><tr><th>Wanneer</th><th>Bron</th><th>Aantallen</th></tr></thead>
       <tbody>{runs.map(r => <tr key={r.id}><td>{new Date(r.at).toLocaleString('nl-NL', { dateStyle: 'short', timeStyle: 'short' })}</td><td>{r.source}</td><td>{Object.entries(r.counts).map(([k, v]) => `${k}: ${Array.isArray(v) ? v.length : v}`).join(' · ')}</td></tr>)}</tbody></table>
-    <h3>Fouten bij bezoekers (7 dagen)</h3>
-    {byMsg.length ? <table className="adm-table"><thead><tr><th>Laatst</th><th>Fout</th><th>Waar</th><th>Aantal</th></tr></thead>
-      <tbody>{byMsg.map(({ e, n }) => <tr key={e.msg}><td>{new Date(e.at).toLocaleString('nl-NL', { dateStyle: 'short', timeStyle: 'short' })}</td><td>{e.msg}</td><td><span className="muted">{e.src}</span></td><td className="tnum">{n}</td></tr>)}</tbody></table>
-      : <p className="adm-sub">Geen fouten. Gaat er bij een bezoeker iets stuk in de app, dan staat het hier (zonder wie het was).</p>}
     <h3>Markten vanaf vandaag, per bron</h3>
     <table className="adm-table"><thead><tr><th>Bron</th>{Object.keys(STATUS).map(k => <th key={k}>{STATUS[k].replace(' door organisator', '')}</th>)}</tr></thead>
       <tbody>{per.map(([org, c]) => <tr key={org}><td>{org}</td>{Object.keys(STATUS).map(k => <td key={k} className="tnum">{c[k] ?? ''}</td>)}</tr>)}</tbody></table>
@@ -425,52 +485,8 @@ function Log({ s }: { s: Session }) {
       .then(([m, p]) => setRows([...m.map((r: Row) => ({ ...r, t: 'markt' })), ...p.map((r: Row) => ({ ...r, t: 'winkel' }))].sort((a, b) => b.updated_at!.localeCompare(a.updated_at!)))).catch(() => setRows([]));
   }, []);
   return (<section className="adm-wide" aria-label="Moderatielog">
-    <h2>Moderatielog</h2>
     <p className="adm-sub">Alles wat met de hand is gezet, nieuwste eerst. Afwijzingen en afgelastingen hebben een reden (DSA).</p>
     {!rows ? <p>Laden…</p> : <table className="adm-table"><thead><tr><th>Wanneer</th><th>Wat</th><th>Status</th><th>Vastgezet</th><th>Reden</th></tr></thead>
       <tbody>{rows.map(r => <tr key={r.t + r.id}><td>{new Date(r.updated_at!).toLocaleString('nl-NL', { dateStyle: 'short', timeStyle: 'short' })}</td><td>{r.data.name}{r.date && <span className="muted"> · {day(r.date)}</span>}</td><td><span className={`bh-st ${r.status}`}>{STATUS[r.status] ?? r.status}</span></td><td>{r.locked.join(', ')}</td><td>{r.data.rejectWhy ?? r.data.cancelWhy ?? ''}</td></tr>)}</tbody></table>}
-  </section>);
-}
-
-const KLIK: [string, string][] = [['view', 'Bekeken'], ['plan', 'In dagplan'], ['route', 'Route'], ['site', 'Website'], ['tel', 'Gebeld'], ['share', 'Gedeeld']];
-type Tel = Record<string, number>;
-
-/** Klikteller (migratie klikken): per plek en per organisator, laatste 30 dagen. Onderbouwing voor gesprekken met organisatoren. */
-function Clicks({ s }: { s: Session }) {
-  const [rows, setRows] = useState<{ day: string; item_id: string; what: string; n: number }[] | null>(null), [names, setNames] = useState<Record<string, { name: string; org?: string }>>({}), [err, setErr] = useState('');
-  useEffect(() => {
-    api(s, 'rpc/beheer_tellers', { method: 'POST', body: JSON.stringify({ sinds: new Date(Date.now() - 30 * 864e5).toISOString().slice(0, 10) }) }).then(j => setRows(j?.clicks ?? [])).catch(e => setErr(e.message));
-    // ponytail: namen uit de openbare bestanden (±2 MB, staat meestal al in de cache); een view in Supabase als dit traag wordt
-    Promise.all([fetch('/data/places.json').then(r => r.json()), fetch('/data/markets.json').then(r => r.json())]).then(([p, m]) =>
-      setNames(Object.fromEntries([...(p.places ?? p), ...m.markets].map((x: { id: string; name: string; place?: string; org?: string }) => [x.id, { name: x.place ? `${x.name}, ${x.place}` : x.name, org: x.org }])))).catch(() => {});
-  }, []);
-  if (err) return <section className="adm-wide"><h2>Klikken</h2><p className="bh-err">{err}</p></section>;
-  if (!rows) return <section className="adm-wide"><h2>Klikken</h2><p className="adm-sub">Laden…</p></section>;
-  const add = (a: Record<string, Tel>, k: string, w: string, n: number) => { (a[k] ??= {})[w] = ((a[k] ??= {})[w] ?? 0) + n; };
-  const per: Record<string, Tel> = {}, org: Record<string, Tel> = {}, tot: Tel = {};
-  for (const r of rows) { add(per, r.item_id, r.what, r.n); tot[r.what] = (tot[r.what] ?? 0) + r.n; const o = names[r.item_id]?.org; if (o) add(org, o, r.what, r.n); }
-  const sum = (t: Tel) => Object.values(t).reduce((a, b) => a + b, 0);
-  // Week tegenover de week ervoor: groeit het? En wat trok deze week het meest (UX-voorstel 30 okt: "waar zit het werk").
-  const ago = (d: number) => new Date(Date.now() - d * 864e5).toISOString().slice(0, 10), w1 = ago(7), w2 = ago(14);
-  const wk: Tel = {}, prev: Tel = {}, top: Record<string, Tel> = {};
-  for (const r of rows) if (r.day >= w1) { wk[r.what] = (wk[r.what] ?? 0) + r.n; add(top, r.item_id, r.what, r.n); } else if (r.day >= w2) prev[r.what] = (prev[r.what] ?? 0) + r.n;
-  const delta = (a: number, b: number) => (b ? `${a >= b ? '+' : ''}${Math.round(((a - b) / b) * 100)}%` : a ? 'nieuw' : '–');
-  const table = (title: string, data: Record<string, Tel>, label: (k: string) => string) => <>
-    <h3>{title}</h3>
-    <table className="adm-table"><thead><tr><th>{title === 'Per organisator' ? 'Organisator' : 'Plek'}</th>{KLIK.map(([k, l]) => <th key={k} className="tnum">{l}</th>)}</tr></thead>
-      <tbody>{Object.entries(data).sort((a, b) => sum(b[1]) - sum(a[1])).slice(0, 50).map(([k, t]) =>
-        <tr key={k}><td>{label(k)}</td>{KLIK.map(([w]) => <td key={w} className="tnum">{t[w] ?? ''}</td>)}</tr>)}</tbody></table></>;
-  return (<section className="adm-wide" aria-label="Klikken">
-    <h2>Klikken</h2>
-    <h3>Deze week</h3>
-    <table className="adm-table"><thead><tr><th>Afgelopen 7 dagen</th>{KLIK.map(([k, l]) => <th key={k} className="tnum">{l}</th>)}</tr></thead>
-      <tbody><tr><td>Deze week</td>{KLIK.map(([k]) => <td key={k} className="tnum">{wk[k] ?? 0}</td>)}</tr>
-        <tr><td>Week ervoor</td>{KLIK.map(([k]) => <td key={k} className="tnum">{prev[k] ?? 0}</td>)}</tr>
-        <tr><td>Verschil</td>{KLIK.map(([k]) => <td key={k} className="tnum">{delta(wk[k] ?? 0, prev[k] ?? 0)}</td>)}</tr></tbody></table>
-    {Object.keys(top).length > 0 && <p className="adm-sub">Meest bekeken deze week: {Object.entries(top).sort((a, b) => sum(b[1]) - sum(a[1])).slice(0, 5).map(([k, t]) => `${names[k]?.name ?? k} (${sum(t)})`).join(' · ')}</p>}
-    <h3>Laatste 30 dagen</h3>
-    <p className="adm-sub">Zonder wie het was. {KLIK.map(([k, l]) => `${l}: ${tot[k] ?? 0}`).join(' · ')}</p>
-    {rows.length ? <>{Object.keys(org).length > 0 && table('Per organisator', org, k => k)}{table('Meest bekeken plekken', per, k => names[k]?.name ?? k)}</>
-      : <p className="adm-sub">Nog geen klikken. Ze komen binnen zodra bezoekers winkels en markten openen.</p>}
   </section>);
 }

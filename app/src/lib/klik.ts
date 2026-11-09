@@ -1,10 +1,12 @@
 // Klikteller (rpc count_click): alleen een teller per dag, plek en soort; niets over wie. Te zien in /beheer → Klikken.
 import { SB, KEY } from './auth';
+import { ev, skip } from './ev';
 
 export type Klik = 'view' | 'plan' | 'share' | 'route' | 'site' | 'tel';
 
 export function klik(item_id: string, what: Klik) {
-  if (!SB || !KEY || import.meta.env.DEV) return;
+  if (!SB || !KEY || import.meta.env.DEV || skip()) return;
+  ev(what, item_id);
   fetch(`${SB}/rest/v1/rpc/count_click`, { method: 'POST', headers: { apikey: KEY, 'Content-Type': 'application/json' }, keepalive: true,
     body: JSON.stringify({ item_id, what }) }).catch(() => {});
 }
@@ -22,8 +24,9 @@ export type Metric = 'pagina' | 'badge' | 'afstand' | 'plaats' | 'regio' | 'zoek
 const sent = new Set<string>();
 /** once: hooguit één keer per bezoek (paginalading) tellen, bijv. de regio of een filter dat je aan- en uitzet. */
 export function tel(metric: Metric, key = '', once = false) {
-  if (!SB || !KEY || import.meta.env.DEV) return;
+  if (!SB || !KEY || import.meta.env.DEV || skip()) return;
   if (once) { if (sent.has(metric + key)) return; sent.add(metric + key); }
+  if (metric !== 'uur' && metric !== 'zoekleeg') ev(metric, key); // uur en zoeken staan al in het log (tijd, zoek0)
   fetch(`${SB}/rest/v1/rpc/tel`, { method: 'POST', headers: { apikey: KEY, 'Content-Type': 'application/json' }, keepalive: true,
     body: JSON.stringify({ metric, key: key.slice(0, 120) }) }).catch(() => {});
 }

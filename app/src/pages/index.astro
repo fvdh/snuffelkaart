@@ -361,12 +361,14 @@ const ic = (id: string) => `<svg class="i" aria-hidden="true" focusable="false">
 <script>
   import '../scripts/home-demo.js';
   // Anonieme teller (rpc tel), zoals op de andere pagina's: of de homepage mensen naar de kaart brengt.
+  import { ev, pv, skip } from '../lib/ev';
   declare const __SB_URL__: string, __SB_KEY__: string;
-  if (__SB_URL__ && !import.meta.env.DEV) {
+  pv();
+  if (__SB_URL__ && !import.meta.env.DEV && !skip()) {
     const post = (metric: string) => fetch(`${__SB_URL__}/rest/v1/rpc/tel`, { method: 'POST', keepalive: true, headers: { apikey: __SB_KEY__, 'Content-Type': 'application/json' }, body: JSON.stringify({ metric, key: 'home' }) }).catch(() => {});
     post('pagina');
-    document.addEventListener('click', e => { const a = (e.target as Element).closest?.('a[href]') as HTMLAnchorElement | null; if (a && a.host === location.host && a.pathname === '/kaart/') post('naarkaart'); }, true);
-    document.querySelector('form.zoek')?.addEventListener('submit', () => post('naarkaart'));
+    document.addEventListener('click', e => { const a = (e.target as Element).closest?.('a[href]') as HTMLAnchorElement | null; if (a && a.host === location.host && a.pathname === '/kaart/') { post('naarkaart'); ev('naarkaart', 'home'); } }, true);
+    document.querySelector('form.zoek')?.addEventListener('submit', () => { post('naarkaart'); ev('naarkaart', 'home'); });
   }
 </script>
   </body>
