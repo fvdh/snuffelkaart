@@ -6,7 +6,9 @@ import { SB, KEY } from './auth';
 export const NIET_METEN = 'sk-niet-meten';
 const SID = 'sk-bezoek';
 
-export const skip = () => { try { return !!localStorage.getItem(NIET_METEN); } catch { return false; } };
+// Crawlers die JavaScript uitvoeren (Googlebot e.d.) tellen niet mee: op 30 okt bekeek "iemand" 1.135 verschillende pagina's.
+export const BOT = /bot|crawl|spider|slurp|google|bing|yandex|baidu|duckduck|facebookexternalhit|lighthouse|headless|preview|pingdom|uptime/i;
+export const skip = () => { try { return !!localStorage.getItem(NIET_METEN) || navigator.webdriver || BOT.test(navigator.userAgent); } catch { return false; } };
 
 /** Code van dit bezoek; nieuw = eerste pagina van het bezoek (dan sturen we ook waar het vandaan komt). */
 function visit(): { s: string; fresh: boolean } {

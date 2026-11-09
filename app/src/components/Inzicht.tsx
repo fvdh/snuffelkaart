@@ -172,7 +172,7 @@ export function Receipt({ d, rows = 14, height = 300 }: { d: Data; rows?: number
 
 export function Overzicht({ d, p, att }: { d: Data; p: P; att: ReactNode }) {
   return <>
-    <Kpi label="Bezoeken" {...p.k.bezoek} since={p.vp.length || p.days > 1 ? undefined : '9 nov'} help="Bezoeken (anonieme tab-code per dag), uit het gebeurtenissenlog" />
+    <Kpi label="Bezoeken" {...p.k.bezoek} since={p.from < EV_START ? '9 nov' : undefined} help="Bezoeken (anonieme tab-code per dag), uit het gebeurtenissenlog" />
     <Kpi label="Pagina's bekeken" {...p.k.pagina} tone="t" help="Winkel-, markt- en organisatorpagina's" />
     <Kpi label="Plekken geopend" {...p.k.view} tone="m" help="Detail van een winkel of markt in de app" />
     <Kpi label="Route · bel · site" {...p.k.door} tone="o" help="Iemand ging echt op pad" />

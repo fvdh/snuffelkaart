@@ -11,7 +11,7 @@ const env = loadEnv('', process.cwd(), '');
 const redirects = {
   name: 'snuffel-redirects',
   hooks: {
-    'astro:build:done': ({ dir }) => {
+    'astro:build:done': /** @param {{ dir: URL }} p */ ({ dir }) => {
       const gen = new URL('markt-redirects.txt', dir), out = new URL('_redirects', dir);
       if (!fs.existsSync(gen)) return;
       fs.appendFileSync(out, `\n# Markten: oude adressen per datum → pagina van de reeks (gegenereerd)\n${fs.readFileSync(gen, 'utf8')}`);
