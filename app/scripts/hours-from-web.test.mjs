@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseHoursNL, toText, hoursLD, keep } from './hours-from-web.mjs';
+import { parseHoursNL, toText, hoursLD, keep, hoursFromHtml } from './hours-from-web.mjs';
 import { precompute } from './hours-precompute.mjs';
 
 const oh = t => parseHoursNL(t)?.oh ?? null;
@@ -191,5 +191,24 @@ describe('twee vestigingen, "Openingstijden en inname" (Kringloop De Liemers)', 
     expect(hoursFromHtml(html, 'Hengelderweg 26-A, 6902 PA Zevenaar')).toEqual({ oh: 'Mo-Fr 08:30-17:00; Sa 10:00-17:00' });
     expect(hoursFromHtml(html, 'Molenpoort 1b, 7041BD s-Heerenberg')).toEqual({ oh: 'Mo-Fr 10:00-17:00; Sa 10:00-16:00' });
     expect(hoursFromHtml(html)).toBeNull();
+  });
+});
+
+describe("tijden zonder streepje of met spaties (proef 9 nov)", () => {
+  it("open en dicht onder elkaar zonder streepje (Van Roon Interieurs)", () => {
+    expect(parseHoursNL("openingstijden\nMaandag\ngesloten\nDinsdag\n10:00\n17:30\nWoensdag\n10:00\n17:30\nDonderdag\n10:00\n17:30\nVrijdag\n10:00\n17:30\nZaterdag\n10:00\n17:00\nZondag\ngesloten\n")?.oh).toBe("Tu-Fr 10:00-17:30; Sa 10:00-17:00");
+  });
+  it("\"wo t/m zo 11:00 17:00\" (1001 Lampen)", () => {
+    expect(parseHoursNL("1001 Lampen\nopeningstijden: wo t/m zo 11:00 17:00\nHome")?.oh).toBe("We-Su 11:00-17:00");
+  });
+  it("spaties rond de dubbele punt (Kringloop It Fean)", () => {
+    expect(parseHoursNL("Onze openingstijden\nmaandag\n10 : 00 – 17 : 00\ndinsdag\n10 : 00 – 17 : 00\nzaterdag\n10 : 00 – 17 : 00\nzondag\n12 : 00 – 17 : 00\n")?.oh).toBe("Mo-Tu 10:00-17:00; Sa 10:00-17:00; Su 12:00-17:00");
+  });
+  it("ochtend en middag in kolommen blijven twee tijden, niet één aan elkaar geplakt", () => {
+    expect(parseHoursNL("Openingstijden\nmaandag: 10:00-12:00\n13:00-17:00\ndinsdag: 10:00-12:00\n13:00-17:00\nwoensdag: gesloten\n")?.oh ?? "").not.toMatch(/12:00-13:00/);
+  });
+  it("microdata itemprop=openingHours", () => {
+    const h = ["Mo","Tu","We","Th","Fr","Sa"].map(d => `<time itemprop="openingHours" datetime="${d} 10:00-17:00">${d}</time>`).join("");
+    expect(hoursFromHtml(`<div>${h}</div>`)?.oh).toBe("Mo-Sa 10:00-17:00");
   });
 });

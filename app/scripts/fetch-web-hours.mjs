@@ -5,16 +5,18 @@
 //          npm run data:web -- --fresh (alles opnieuw)
 //          npm run data:web -- --limit=50 (proef)
 import fs from 'node:fs';
+import https from 'node:https';
 import { hoursFromHtml, parseHoursNL, toText, siteKey, keep, tempClosed, byAppointment } from './hours-from-web.mjs';
 import { snippet, hashOf, askAI, statusSnippet, askStatus } from './hours-ai.mjs';
 
 const PLACES = new URL('../public/data/places.json', import.meta.url), OUT = new URL('../data-raw/web-hours.json', import.meta.url);
-const UA = 'Snuffelkaart-PoC/0.1 (openingstijden van kringlopen; freek@draad.nu)';
+// Gewone bot-notatie: 31 sites weigerden "Snuffelkaart-PoC/0.1 (…)" maar laten deze door (9 nov). robots.txt "Snuffelkaart" geldt nog steeds.
+const UA = 'Mozilla/5.0 (compatible; Snuffelkaart/1.0; +https://snuffelkaart.nl/colofon/)';
 // Sociale media en gidssites van anderen: niet uitlezen (voorwaarden, databankenrecht §5).
 const SKIP = /facebook|instagram|marktplaats|g\.page|google\.|linktr\.ee|tiktok|twitter|x\.com|youtube|wa\.me|allekringloopwinkels|kringloopwinkels?\.(nl|info|com)|kringlopen\.nl|tweedehandswinkels|openingstijden\.|openingstijdenwinkels|telefoonboek|telefoongids|cylex|opendi|hotfrog|yelp|tripadvisor|goudengids|bedrijvenpagina|drimble|infobel|kompass|oozo|plaatsengids|nederlandsewinkels/i;
 // MAX_AGE 6 dagen: de wekelijkse run (elke 7 dagen, zelfde tijd) leest dan echt alles opnieuw; bij 7 was het net te vers (6 nov).
 // VERSION ophogen als de parser of de AI-lezer beter wordt: dan wordt alles meteen opnieuw gelezen, niet pas na de cache.
-const WORKERS = 8, PAUSE = 800, MAX_AGE = 6 * 864e5, VERSION = 12; // 3: AI-antwoorden met een dag in twee regels samengevoegd; 4: dagen en tijden in twee kolommen; 5: postcodes ook van de tijdenpagina; 6: vestigingsblok op eigen straat; 7: tijdelijk gesloten; 8: Engelse dagen; 9: vestiging op postcode, "openingstijden en inname"; 10: links "Onze winkel", niet de homepage zelf; 12: op afspraak
+const WORKERS = 8, PAUSE = 800, MAX_AGE = 6 * 864e5, VERSION = 13; // 3: AI-antwoorden met een dag in twee regels samengevoegd; 4: dagen en tijden in twee kolommen; 5: postcodes ook van de tijdenpagina; 6: vestigingsblok op eigen straat; 7: tijdelijk gesloten; 8: Engelse dagen; 9: vestiging op postcode, "openingstijden en inname"; 10: links "Onze winkel", niet de homepage zelf; 12: op afspraak; 13: tijden zonder streepje, microdata, archief bij blokkade, certificaat, andere UA
 
 
 const cache = fs.existsSync(OUT) && !process.argv.includes('--fresh') ? JSON.parse(fs.readFileSync(OUT, 'utf8')) : {};
@@ -40,14 +42,44 @@ console.log(`${todo.size} websites op ${byHost.size} domeinen te lezen (${Object
 
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 async function get(url) {
-  const r = await fetch(url, { headers: { 'User-Agent': UA, Accept: 'text/html' }, redirect: 'follow', signal: AbortSignal.timeout(12000) });
+  let r;
+  try { r = await fetch(url, { headers: { 'User-Agent': UA, Accept: 'text/html' }, redirect: 'follow', signal: AbortSignal.timeout(12000) }); }
+  catch (e) { if (/CERT|SIGNATURE|SELF_SIGNED|ISSUER/.test(e.cause?.code ?? '')) return laxGet(url).catch(() => archived(url, e)); if (/TIMEOUT/.test(e.cause?.code ?? '')) return archived(url, e); throw e; }
+  if ([403, 429, 503].includes(r.status)) return archived(url, new Error(`status ${r.status}`)); // blokkade (Cloudflare-controle e.d.), geen "weg"
   if (!r.ok || !/html/i.test(r.headers.get('content-type') ?? 'html')) throw new Error(`status ${r.status}`);
   return { html: (await r.text()).slice(0, 2_000_000), url: r.url };
 }
-/** Probeer de url zoals hij is, en anders via https en met/zonder www (oude http-adressen falen vaak). */
+/** Verlopen of verkeerd certificaat (±40 kleine sites, 9 nov): de pagina is openbaar en we sturen niets mee, dus toch lezen. */
+function laxGet(url, hops = 0) {
+  return new Promise((ok, no) => {
+    const u = new URL(url.replace(/^http:/, 'https:'));
+    const q = https.get(u, { rejectUnauthorized: false, headers: { 'User-Agent': UA, Accept: 'text/html' }, timeout: 12000 }, res => {
+      if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location && hops < 4) { res.resume(); return laxGet(new URL(res.headers.location, u).href, hops + 1).then(ok, no); }
+      if (res.statusCode !== 200) { res.resume(); return no(new Error(`status ${res.statusCode}`)); }
+      let d = ''; res.setEncoding('utf8'); res.on('data', c => { if (d.length < 2_000_000) d += c; }); res.on('end', () => ok({ html: d, url: u.href }));
+    });
+    q.on('error', no); q.on('timeout', () => q.destroy(new Error('timeout')));
+  });
+}
+/** Site weigert ons (403/503, certificaat, time-out): de laatste kopie in het Internet Archive, als die hooguit een jaar oud is.
+ *  De controledatum wordt dan de datum van de kopie (zie read), zodat oude tijden nooit vers ogen. */
+const ARCHIEF = new Map(); // url → datum van de kopie
+async function archived(url, err) {
+  try {
+    const r = await fetch(`https://web.archive.org/web/${new Date().toISOString().slice(0, 10).replace(/-/g, '')}id_/${url}`, { headers: { 'User-Agent': UA }, signal: AbortSignal.timeout(30000) });
+    const ts = /\/web\/(\d{8})/.exec(r.url)?.[1], d = ts && `${ts.slice(0, 4)}-${ts.slice(4, 6)}-${ts.slice(6, 8)}`;
+    if (!r.ok || !d || Date.now() - Date.parse(d) > 365 * 864e5) throw err;
+    ARCHIEF.set(url, d);
+    return { html: (await r.text()).slice(0, 2_000_000), url };
+  } catch { throw err; }
+}
+/** Probeer de url zoals hij is, en anders via https en met/zonder www (oude http-adressen falen vaak). Een diepe link die weg is
+ *  (terredeshommes.nl/winkels/arnhem, dorcas.nl/…/hoogeveen: de site is verbouwd) valt terug op de homepage. */
 async function getAny(url) {
   const u = new URL(url), alt = [url, `https://${u.host}${u.pathname}${u.search}`, `https://${u.host.startsWith('www.') ? u.host.slice(4) : 'www.' + u.host}${u.pathname}`];
-  let err; for (const a of [...new Set(alt)]) { try { return await get(a); } catch (e) { err = e; } } throw err;
+  let err; for (const a of [...new Set(alt)]) { try { return await get(a); } catch (e) { err = e; } }
+  if (u.pathname.length > 1 && /status 40[34]|status 410/.test(err?.message)) return get(`https://${u.host}/`);
+  throw err;
 }
 const robots = new Map();
 /** Minimale robots.txt: Disallow-regels voor * of voor ons. */
@@ -165,6 +197,7 @@ async function read(key, url) {
       const t = seen.map(([, h]) => toText(h)).find(t => /\b[1-9]\d{3}\s?[A-Z]{2}\b/.test(t)), m = /[^\n]{0,60}\n?[^\n]{0,10}\b[1-9]\d{3}\s?[A-Z]{2}\b[^\n]{0,30}/.exec(t ?? '');
       res.meld = { k: 'adres', q: (m?.[0] ?? pcs[0]).replace(/\s+/g, ' ').trim(), page: at };
     }
+    const arch = ARCHIEF.get(res.page); if (arch && res.ok) Object.assign(res, { ok: arch, archief: arch }); // gelezen uit een kopie: die datum telt
   } catch (e) {
     res.note = `fout: ${e.message ?? e.name}`;
     // Echt weg (domein bestaat niet meer, of 404/410), niet even onbereikbaar: onthoud sinds wanneer. Een vorige fout telt als eerste keer.

@@ -48,7 +48,11 @@ function entry(m) {
 export function parseHoursNL(text) {
   // Gewone woorden voor dagen: "werkdagen" = ma t/m vr, "tm" = t/m, "zon- en feestdagen gesloten" = zondag dicht (+ PH off, zie onder).
   text = text.replace(/^werkdagen\b/gim, 'maandag t/m vrijdag').replace(/\btm\b/gi, 't/m')
-    .replace(/\bzon-?\s*en feestdagen\s*:?\s*(gesloten|dicht)/gi, 'zondag gesloten\nOp feestdagen gesloten');
+    .replace(/\bzon-?\s*en feestdagen\s*:?\s*(gesloten|dicht)/gi, 'zondag gesloten\nOp feestdagen gesloten')
+    // "10 : 00 – 17 : 00" (It Fean) en open/dicht zonder streepje: "Dinsdag\n10:00\n17:30" (Van Roon), "wo t/m zo 11:00 17:00" (1001 Lampen).
+    // Niet tussen twee al complete tijden ("10:00-12:00\n13:00-17:00" = ochtend en middag).
+    .replace(/\b(\d{1,2}) : (\d{2})\b/g, '$1:$2')
+    .replace(/(?<![-–]\s*)\b(\d{1,2}[:.]\d{2})(?:\s*uur)?[ \t]*\n?[ \t]*(\d{1,2}[:.]\d{2})\b(?!\s*(?:uur\s*)?[-–])/g, '$1-$2');
   // Engelse site (Outfit Library LESS): dagen en "to"/"closed" naar Nederlands, de rest van de parser blijft gelijk. ponytail: alleen volle dagnamen en Mon-Sun.
   const EN = { mon: 'maandag', tue: 'dinsdag', wed: 'woensdag', thu: 'donderdag', fri: 'vrijdag', sat: 'zaterdag', sun: 'zondag' };
   text = text.replace(/\b(mon|tue|wed|thu|fri|sat|sun)(?:day|sday|nesday|rsday|urday)?\b(?=\s*(?::|-|–|to\b|through\b|\d))/gi, (_, d) => EN[d.toLowerCase()])
@@ -187,7 +191,10 @@ export function hoursFromHtml(html, addr = '') {
   const ats = street.length > 5 && low.includes(street) ? find(street.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')) : pc ? find(`\\b${pc.slice(0, 4)}\\s?${pc.slice(-2).toLowerCase()}\\b`) : [];
   // Volgende postcode = volgende vestiging; de eigen postcode (vlak na de straat: Terre des Hommes Oosterhout) telt niet.
   const block = at => { const nx = [...text.slice(at + 12).matchAll(/\b([1-9]\d{3})\s?[A-Z]{2}\b/g)].find(m => m[1] !== pc?.slice(0, 4))?.index; return parseHoursNL(text.slice(at, at + 12 + (nx ?? 1500))); };
-  return parseHoursNL(text) ?? ats.reduce((r, at) => r ?? block(at), null) ?? hoursLD(html);
+  // Microdata (itemprop="openingHours" content/datetime="Mo 10:00-17:00", It Fean): zelfde controle als JSON-LD.
+  const micro = [...html.matchAll(/itemprop=["']openingHours["'][^>]*?(?:content|datetime)=["']([^"']+)["']|(?:content|datetime)=["']([^"']+)["'][^>]*?itemprop=["']openingHours["']/gi)].map(m => m[1] ?? m[2]);
+  const microLD = micro.length ? hoursLD(`<script type="application/ld+json">${JSON.stringify({ openingHours: micro })}</script>`) : null;
+  return parseHoursNL(text) ?? ats.reduce((r, at) => r ?? block(at), null) ?? hoursLD(html) ?? microLD;
 }
 
 /** Sleutel voor de cache: host + pad, zonder www en slash. Winkels van één keten op één pagina delen hem. */
