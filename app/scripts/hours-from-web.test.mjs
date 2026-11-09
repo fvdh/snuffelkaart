@@ -168,6 +168,7 @@ describe('tijdelijk gesloten (J. Brunekreef)', () => {
     const { byAppointment, hoursFromHtml } = await import('./hours-from-web.mjs');
     expect(byAppointment('Bezoek winkel:\nWij hebben geen vaste openingstijden en adviseren een afspraak te maken')).toBe(true);
     expect(byAppointment('Showroom alleen op afspraak')).toBe(true);
+    expect(byAppointment('*Open by appointment only*')).toBe(true); // Old Goods
     expect(byAppointment('Wilt u iets brengen? Maak een afspraak.')).toBe(false);
     // Eigen postcode vlak na de straat beëindigt het blok niet; die van het hoofdkantoor in de voet telt niet mee.
     const tdh = '<p>Adres<br>Tempelierstraat 26<br>4902 XJ Oosterhout</p><p>Openingstijden<br>Maandag<br>Gesloten<br>Dinsdag<br>10.00 – 17.00<br>Zaterdag<br>10.00 – 13.00</p><footer>2511 BH Den Haag Openingstijden Maandag t/m vrijdag 9.00 - 17.00 uur</footer>';
