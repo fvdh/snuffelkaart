@@ -342,7 +342,7 @@ export function Dekking({ d, p }: { d: Data; p: P }) {
   const shops = [...d.info.values()].filter(x => x.t === 'k'), n = shops.length || 1;
   const web = shops.filter(x => x.h && x.hs === 'web').length, bez = shops.filter(x => x.h && x.hs === 'bezoeker').length, osm = shops.filter(x => x.h && !x.hs).length, dicht = shops.filter(x => !x.h && x.dicht).length, met = web + bez + osm;
   const seen = new Map<string, number>(); for (const r of p.c.filter(p.cur)) seen.set(r.item_id, (seen.get(r.item_id) ?? 0) + r.n); for (const r of p.tm('pagina').filter(p.cur)) seen.set(r.key, (seen.get(r.key) ?? 0) + r.n);
-  const zonder = shops.filter(x => !x.h).map(x => ({ x, n: seen.get(x.id) ?? 0, why: x.dicht ? 'tijdelijk gesloten' : !x.website ? 'geen website' : reason(byKey.get(siteKey(x.website))) })).sort((a, b) => b.n - a.n).slice(0, 25);
+  const zonder = shops.filter(x => !x.h).map(x => ({ x, n: seen.get(x.id) ?? 0, page: x.website ? byKey.get(siteKey(x.website))?.[3] : null, why:x.dicht ? 'tijdelijk gesloten' : !x.website ? 'geen website' : reason(byKey.get(siteKey(x.website))) })).sort((a, b) => b.n - a.n).slice(0, 25);
   const plaatsen = Object.entries(shops.reduce<Record<string, [number, number]>>((a, x) => { const k = x.place ?? '?'; (a[k] ??= [0, 0])[0]++; if (x.h) a[k][1]++; return a; }, {})).filter(([, [t]]) => t >= 12).sort((a, b) => b[1][0] - a[1][0]).slice(0, 12);
   return <>
     <Card title="Dekking openingstijden" sub={`${nl(shops.length)} winkels`} span={5}>
@@ -352,7 +352,8 @@ export function Dekking({ d, p }: { d: Data; p: P }) {
     <Card title="Grootste plaatsen" sub="met tijden / totaal" span={7}><Bars rows={plaatsen.map(([k, [t, h]]) => [`${k} · ${h}/${t}`, pct(h, t)] as [string, number])} unit="%" /></Card>
     <Card title="Zonder tijden, meest bekeken" sub={`laatste ${p.days} dagen · pak deze eerst op`} flush>
       <table className="tbl"><thead><tr><th>Winkel</th><th>Waarom geen tijden</th><th className="r">Bekeken</th><th /></tr></thead>
-        <tbody>{zonder.map(({ x, n, why }) => <tr key={x.id}><td className="nm"><b>{x.name}</b><small>{x.addr ?? x.place}</small></td><td><span className={`tag ${/geblokkeerd|onbereikbaar/.test(why) ? 'bad' : why === 'geen website' || why === 'nog niet gelezen' ? '' : 'warn'}`}>{why}</span></td><td className="r">{nl(n)}</td>
+        <tbody>{zonder.map(({ x, n, why, page }) => <tr key={x.id}><td className="nm"><b>{x.name}</b><small>{x.addr ?? x.place}</small>
+          {x.website && <small><a href={/^https?:/i.test(x.website) ? x.website : `https://${x.website}`} target="_blank" rel="noopener">{siteKey(x.website)}</a>{page && siteKey(page) !== siteKey(x.website) && <> · <a href={page} target="_blank" rel="noopener">gelezen pagina</a></>}</small>}</td><td><span className={`tag ${/geblokkeerd|onbereikbaar/.test(why) ? 'bad' : why === 'geen website' || why === 'nog niet gelezen' ? '' : 'warn'}`}>{why}</span></td><td className="r">{nl(n)}</td>
           <td className="r"><a className="btn" href={`/kaart/?open=${encodeURIComponent(x.id)}&tijden=1`} target="_blank" rel="noopener">Tijden invullen</a></td></tr>)}</tbody></table></Card>
   </>;
 }
