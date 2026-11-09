@@ -48,6 +48,22 @@ import Tekst from '../layouts/Tekst.astro';
     <p>We bewaren dit tot je je account verwijdert; dan verdwijnen ook je reviews, foto's en schermnaam (foto's binnen een dag). Daarna staan ze nog hooguit 30 dagen in onze versleutelde back-up, die alleen bedoeld is om na een storing alles terug te zetten; daarna zijn ze ook daar weg. Dat doe je zelf onder <b>Jij</b> in de app, met <b>Account verwijderen</b>. Daar kun je ook <b>Mijn gegevens downloaden</b>. Wat op je apparaat staat, blijft daar staan tot je het zelf wist.</p>
   </section>
 
+  <section id="kaartmaker">
+    <h2>Als je een markt op de kaart zet</h2>
+    <p>Met de <a href="/kaartmaker/">kaartmaker</a> zet je als organisator een markt of garagesale op de kaart. Daarvoor log je in met je e-mailadres. We bewaren:</p>
+    <ul>
+      <li><b>Wat je over de markt invult</b>: naam, organisator, plaats, plek, datum, tijden, entree, toelichting en website. Dat is openbaar: het staat op de kaart, op een eigen pagina en in zoekmachines.</li>
+      <li><b>Je e-mailadres bij de markt</b>, zodat wij je iets kunnen vragen over je markt. Bezoekers zien het nooit. Verwijder je je account, dan halen we je e-mailadres bij de markt weg; de markt zelf blijft staan tot de datum voorbij is.</li>
+    </ul>
+  </section>
+
+  <section id="garagesale">
+    <h2>Als je je adres op een garagesale zet</h2>
+    <p>Doe je mee aan een garagesale, dan zet je zelf je adres op de pagina van die garagesale, zonder account. We bewaren alleen <b>je adres</b> (straat, huisnummer en plaats, zoals het Kadaster het kent), <b>wat je verkoopt</b> als je dat invult, en wanneer je het instuurde. Niet je naam, niet je e-mailadres en niet je IP-adres.</p>
+    <p>We kijken elk adres eerst na. Daarna is het voor iedereen te zien, alleen op de kaart en in de lijst van die ene garagesale, tot en met de dag zelf. Het staat niet in de tekst van de pagina en niet in onze open data, dus zoekmachines vinden het niet. <b>De dag na de garagesale wissen we alle adressen</b>, ook die we niet goedkeurden. Wil je je adres eerder weg hebben, mail ons dan.</p>
+    <p>Om te controleren of het adres bestaat en bij de garagesale in de buurt ligt, sturen we het naar PDOK (Kadaster).</p>
+  </section>
+
   <section id="mail">
     <h2>Mail van ons</h2>
     <p>Je kunt je aanmelden voor <b>de markten van het weekend</b> (elke donderdag) of voor <b>één mail als de kaartmaker klaar is</b>. Daarvoor bewaren we:</p>
@@ -63,9 +79,9 @@ import Tekst from '../layouts/Tekst.astro';
     <h2>Welke diensten we gebruiken</h2>
     <ul>
       <li><b>Cloudflare</b>: de website en de bezoekerstelling (zie boven). Zoals elke webserver ziet Cloudflare je IP-adres.</li>
-      <li><b>Supabase</b> (servers in Ierland): accounts, favorieten, bijdragen en foto's, mail-aanmeldingen, en de actuele status van markten.</li>
+      <li><b>Supabase</b> (servers in Ierland): accounts, favorieten, bijdragen en foto's, mail-aanmeldingen, markten uit de kaartmaker met de adressen van garagesales, en de actuele status van markten.</li>
       <li><b>Resend</b>: verstuurt de inlogmail, de mails waarvoor je je aanmeldde, en de beheerders een overzicht van nieuwe meldingen.</li>
-      <li><b>PDOK</b> (Kadaster): als je een plaats of postcode zoekt of opgeeft voor de weekendmail, gaat die plaats of postcode daarheen (niet je e-mailadres).</li>
+      <li><b>PDOK</b> (Kadaster): als je een plaats of postcode zoekt of opgeeft voor de weekendmail, gaat die plaats of postcode daarheen (niet je e-mailadres). Bij de kaartmaker gaat de plek van je markt daarheen, en bij een garagesale je adres.</li>
       <li><b>OpenFreeMap</b>: de kaartafbeeldingen. Zij zien welk stuk kaart je bekijkt, niet wie je bent.</li>
     </ul>
     <p>Lettertypen en code staan op onze eigen server; we laden niets van Google.</p>
@@ -74,6 +90,6 @@ import Tekst from '../layouts/Tekst.astro';
   <section>
     <h2>Je rechten</h2>
     <p>Je mag je gegevens inzien, laten verbeteren of laten verwijderen, en ze meenemen. Het meeste kan je zelf in de app; voor de rest mail je ons. We reageren binnen een maand, meestal veel sneller. Ben je het niet eens met hoe we met je gegevens omgaan, dan kun je een klacht indienen bij de <a href="https://autoriteitpersoonsgegevens.nl">Autoriteit Persoonsgegevens</a>.</p>
-    <p style="font-size:.875rem;color:var(--fg-3)">Laatst bijgewerkt: 6 november 2026.</p>
+    <p style="font-size:.875rem;color:var(--fg-3)">Laatst bijgewerkt: 9 november 2026.</p>
   </section>
 </Tekst>

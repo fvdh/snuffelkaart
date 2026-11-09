@@ -4,7 +4,7 @@ project_id = "snuffelkaart"
 [auth]
 # Waar een inloglink (app en /beheer) naartoe mag terugsturen.
 site_url = "https://snuffelkaart.nl"
-additional_redirect_urls = ["https://snuffelkaart.nl/beheer", "https://www.snuffelkaart.nl", "https://www.snuffelkaart.nl/beheer", "https://snuffelkaart.ironfront-relay.workers.dev/beheer", "http://localhost:4321/beheer", "http://localhost:4321"]
+additional_redirect_urls = ["https://snuffelkaart.nl/beheer", "https://www.snuffelkaart.nl", "https://www.snuffelkaart.nl/beheer", "https://snuffelkaart.ironfront-relay.workers.dev/beheer", "http://localhost:4321/beheer", "http://localhost:4321", "https://snuffelkaart.nl/kaartmaker/", "https://www.snuffelkaart.nl/kaartmaker/", "http://localhost:4321/kaartmaker/"]
 
 # Mail via Resend, vanaf inloggen@snuffelkaart.nl (domein geverifieerd in Resend, EU). De sleutel staat in app/.env als RESEND_API_KEY:
 #   set -a; . app/.env; set +a; npx supabase config push --yes

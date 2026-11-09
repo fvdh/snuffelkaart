@@ -3,6 +3,7 @@
 // Secret GITHUB_TOKEN: fine-grained token, alleen fvdh/snuffelkaart, Actions: read and write. Zonder token doet de klok niets.
 // De site zelf blijft statisch: elk verzoek gaat naar de bestanden in dist/ (ASSETS), behalve / (oude kaartlinks) en /api/ (mail-aanmeldingen).
 import { api } from './mail.js';
+import { garage } from './garage.js';
 
 const REPO = 'fvdh/snuffelkaart', DEEP = /[?&](open|plek|org|dag|s|plan|nu)=/;
 
@@ -44,6 +45,7 @@ export default {
     // De kaart woonde op / tot de homepage kwam (nov 2026): oude links (?open=, ?plek=, ?dag=, gedeelde rondjes) naar /kaart/ met dezelfde vraag.
     const u = new URL(req.url);
     if (u.pathname === '/api/herlees' && req.method === 'POST') return herlees(req, env);
+    if (u.pathname === '/api/garagesale' && req.method === 'POST') return garage(req, env); // adressen van buren (worker/garage.js)
     if (u.pathname.startsWith('/api/')) return api(req, env); // mail-aanmeldingen (worker/mail.js)
     if (u.pathname === '/' && DEEP.test(u.search)) return Response.redirect(`${u.origin}/kaart/${u.search}`, 302);
     return env.ASSETS.fetch(req);

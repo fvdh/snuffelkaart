@@ -6,6 +6,7 @@ import Tekst from '../../layouts/Tekst.astro';
 import ItemRow from '../../components/ItemRow.astro';
 import KaartBlok from '../../components/KaartBlok.astro';
 import PlekDock from '../../components/PlekDock.astro';
+import Buren from '../../components/Buren.astro';
 import '../../styles/plek.css';
 import type { Market, Place } from '../../lib/model';
 import { dLong, hm, km, dayStart, DAYS_LONG, cap, catOf } from '../../lib/model';
@@ -22,7 +23,7 @@ const nm = seriesName(nx.name), h1 = `${nm}${venue && !slugify(nm).includes(slug
 const timeOf = (m: Market) => (m.timeKnown === false ? 'tijden bij de organisator' : m.end ? `${hm(m.start)}–${hm(m.end)}` : `vanaf ${hm(m.start)}`);
 const dateOf = (iso: string) => `${dLong(iso)}${iso.slice(0, 4) !== from.slice(0, 4) ? ` ${iso.slice(0, 4)}` : ''}`;
 const fee = (m: Market) => (m.entree && m.entree !== 'onbekend' ? m.entree : null);
-const where = nx.addr ?? (venue ? `${venue}, ${nx.place}` : nx.place), cityUrl = ix.cityUrl(nx.place), orgUrl = ix.orgUrl(nx.org);
+const where = nx.addr ?? (venue ? `${venue}, ${nx.place}` : nx.place), cityUrl = ix.cityUrl(nx.place), eigen = nx.id.startsWith('km-'), orgUrl = eigen ? null : ix.orgUrl(nx.org); // km: uit de kaartmaker, organisator zelf getypt
 const STATUS: Record<string, string> = { org: 'bevestigd door de organisator', chk: 'gecontroleerd', unconf: 'nog niet bevestigd', cancel: 'afgelast' };
 const statusLine = nx.status === 'org' ? `${nx.org} heeft deze datum zelf opgegeven.` : nx.status === 'chk' ? `Datum en tijden nagekeken${nx.checked ? ` op ${dLong(nx.checked).toLowerCase()}` : ''} bij ${nx.org}. We lezen hun agenda elke nacht; afgelast staat er de volgende ochtend op.`
   : nx.status === 'unconf' ? 'Nog niet bevestigd: check de datum bij de organisator voordat je gaat.' : `Afgelast${nx.cancelWhy ? `: ${nx.cancelWhy}` : ''}.`;
@@ -33,7 +34,7 @@ const openThatDay = nearShops.filter(p => openOn(p).length).slice(0, 5);
 const ivTxt = (iv: [number, number][]) => iv.map(([a, b]) => `${hm(a)}–${hm(b % 1440)}`).join(' en ');
 const kmTxt = (k: number) => (k < 1 ? `${Math.max(50, Math.round(k * 20) * 50)} m` : `${k.toFixed(1).replace('.', ',')} km`);
 const ids = new Set(ms.map(m => m.id));
-const orgNext = [...ix.series.values()].filter(s => s[0].org === nx.org && !s.some(m => ids.has(m.id))).map(s => s.find(m => m.status !== 'cancel') ?? s[0]).sort((a, b) => a.date.localeCompare(b.date)).slice(0, 6);
+const orgNext = eigen ? [] : [...ix.series.values()].filter(s => s[0].org === nx.org && !s.some(m => ids.has(m.id))).map(s => s.find(m => m.status !== 'cancel') ?? s[0]).sort((a, b) => a.date.localeCompare(b.date)).slice(0, 6);
 const others = near(nx, markets, from, 15, 10).filter(m => !ids.has(m.id) && m.org !== nx.org).slice(0, 5);
 const years = [...new Set(ms.map(m => m.date.slice(0, 4)))].join('–');
 const title = `${h1} ${years}: data, tijden en entree`;
@@ -76,7 +77,9 @@ const practical = [['Kramen', nx.kramen ? `±${nx.kramen}` : null], ['Kraam hure
     <p class="pl-src" id="status" data-id={nx.id} data-st={nx.status}>{statusLine}</p>
   </div>
 
-  <KaartBlok items={[nx, ...nearShops.slice(0, 20)]} hl={nx.id} href={kaart} label={`Markt en ${Math.min(20, nearShops.length)} winkels in de buurt`} />
+  {nx.info && <p class="pl-quote">{nx.info}</p>}
+  {nx.adressen && nx.status !== 'cancel' ? <Buren m={nx} shops={nearShops.filter(p => km(nx, p) < 3).slice(0, 15)} />
+    : <KaartBlok items={[nx, ...nearShops.slice(0, 20)]} hl={nx.id} href={kaart} label={`Markt en ${Math.min(20, nearShops.length)} winkels in de buurt`} />}
 
   <section aria-labelledby="h-data">
     <h2 class="pl-h" id="h-data">{ms.length > 1 ? `Alle data van ${nm}` : `Datum en tijden`}</h2>

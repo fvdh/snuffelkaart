@@ -266,13 +266,8 @@ section{padding-block:clamp(56px,8vw,104px)}
 .org figure{margin:0}
 .org figure img{display:block;width:100%;aspect-ratio:900/520;object-fit:cover;border-radius:16px;background:var(--surface-2)}
 .org p.tekst{margin-top:14px;color:var(--fg-2);max-width:34em}
-.aanmeld{margin-top:22px;display:grid;gap:12px;max-width:480px}
-.aanmeld .rij2v{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-areas:"l1 l2" "i1 i2";gap:6px 12px;align-items:end}
-@media (max-width:520px){.aanmeld .rij2v{grid-template-columns:minmax(0,1fr);grid-template-areas:"l1" "i1" "l2" "i2"}.aanmeld .rij2v label[for=waar]{margin-top:10px}}
-.aanmeld label.lbl{font-weight:600;font-size:.9375rem}
-.aanmeld label.lbl small{font-weight:400;color:var(--fg-2)}
-.aanmeld input{box-sizing:border-box;height:48px;width:100%;margin:0;padding:0 14px;border-radius:12px;border:1.5px solid var(--ui-border);background:var(--surface);color:var(--fg);font:500 1rem var(--font)}
-.aanmeld .btn{min-height:48px;justify-self:start}
+.org-cta{margin-top:22px;display:grid;gap:12px;justify-items:start}
+.org-cta .btn{min-height:48px}
 .badge{margin-top:32px;padding-top:24px;border-top:1px solid var(--line);display:flex;gap:16px;align-items:center;flex-wrap:wrap;color:var(--fg-2);font-size:.9375rem}
 .badge svg{flex:none}
 .badge span{flex:1 1 240px}

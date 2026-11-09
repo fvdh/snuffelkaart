@@ -36,6 +36,8 @@ export interface Market {
   venue?: string | null; addr?: string | null; url?: string; kraamhuur?: string; exact?: boolean;
   /** false = de organisator noemt geen tijden; start is dan alleen een plek om mee te rekenen. */
   timeKnown?: boolean;
+  /** Kaartmaker (id km-…): toelichting van de organisator, en bij een garagesale true = buren zetten hun adres op de pagina. */
+  info?: string; adressen?: true;
 }
 
 export type Item = Place | Market;

@@ -157,6 +157,9 @@ async function exportFiles() {
   const extra = toExtra(await req('contributions?select=*&status=eq.goed'), names, from, `${process.env.SUPABASE_URL}/storage/v1/object/public/fotos`);
   fs.writeFileSync(FILE('extra'), JSON.stringify(extra));
   await cleanPhotos();
+  // Adressen van buren: de dag na hun garagesale weg (migratie kaartmaker). Mislukt het, dan niet de hele kaart tegenhouden:
+  // garage_kaart() toont ze na de datum toch al niet meer. Wel luid melden.
+  await req('rpc/garage_opruimen', { method: 'POST', body: '{}' }).catch(e => console.error(`::warning::garage-adressen opruimen mislukt: ${e.message}`));
   if (f.places.places.length < 1000 || !f.markets.markets.length) throw new Error(`Export te klein (${f.places.places.length} winkels, ${f.markets.markets.length} markten). Niets geschreven.`);
   fs.writeFileSync(FILE('places'), JSON.stringify(f.places, (k, v) => (v === null ? undefined : v)));
   fs.writeFileSync(FILE('markets'), JSON.stringify(f.markets));

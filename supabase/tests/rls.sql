@@ -42,6 +42,10 @@ begin
   begin insert into reports (item_id, name, what) values ('x', 'x', 'dicht'); raise exception 'gast schreef direct in reports'; exception when insufficient_privilege then null; when raise_exception then raise; end;
   begin perform report('bestaat-niet', 'dicht'); raise exception 'melding over onbekend item geaccepteerd'; exception when invalid_parameter_value then null; when raise_exception then raise; end;
   begin perform report(pid, 'hack'); raise exception 'melding met onbekende soort geaccepteerd'; exception when check_violation then null; when raise_exception then raise; end;
+  -- Kaartmaker: gast maakt niets en ziet geen adressen of organisatoren.
+  begin perform kaartmaker_maak('Vrijmarkt', 'rls test', 'rls', 'Utrecht', null, current_date + 7, 600, 900, 52.09, 5.12); raise exception 'gast kon een markt maken'; exception when insufficient_privilege then null; when raise_exception then raise; end;
+  select count(*) into n from garage_adressen; if n <> 0 then raise exception 'gast ziet % garage-adressen', n; end if;
+  select count(*) into n from kaartmakers; if n <> 0 then raise exception 'gast ziet % kaartmakers', n; end if;
   reset role;
   select count(*) into n from reports where note = 'rls-test' and name <> ''; if n <> 1 then raise exception 'melding van gast niet opgeslagen'; end if;
 
@@ -77,6 +81,22 @@ begin
   select count(*) into n from contributions where data->>'text' = 'rls-test-b'; if n <> 0 then raise exception 'gebruiker ziet de bijdrage van een ander'; end if;
   update contributions set data = '{"stars":5,"month":"2026-10"}' where data->>'text' = 'rls-test-b'; get diagnostics n = row_count; if n <> 0 then raise exception 'gebruiker wijzigde de review van een ander'; end if;
   select count(*) into n from profiles; if n <> 1 then raise exception 'gebruiker ziet % profielen (verwacht alleen het eigen)', n; end if;
+  -- Kaartmaker: een markt gaat via de functie (meteen live), een garagesale wacht; onzin wordt geweigerd; adressen pas na keuring zichtbaar.
+  begin perform kaartmaker_maak('Vrijmarkt', 'rls test', 'rls', 'Utrecht', null, current_date - 1, 600, 900, 52.09, 5.12); raise exception 'markt in het verleden geaccepteerd'; exception when invalid_parameter_value then null; when raise_exception then raise; end;
+  begin perform kaartmaker_maak('Vrijmarkt', 'rls test', 'rls', 'Parijs', null, current_date + 7, 600, 900, 48.85, 2.35); raise exception 'markt buiten Nederland geaccepteerd'; exception when invalid_parameter_value then null; when raise_exception then raise; end;
+  pid := kaartmaker_maak('Garagesale', 'rls garagesale', 'rls', 'Utrecht', null, current_date + 7, 600, 900, 52.09, 5.12);
+  perform kaartmaker_maak('Vrijmarkt', 'rls vrijmarkt', 'rls', 'Utrecht', null, current_date + 7, 600, 900, 52.09, 5.12);
+  select count(*) into n from json_array_elements(mijn_markten()); if n <> 2 then raise exception 'mijn_markten geeft % (verwacht 2)', n; end if;
+  begin insert into garage_adressen (market_id, adres, lat, lon) values (pid, 'Stiekem 1, Utrecht', 52.09, 5.12); raise exception 'gebruiker schreef direct een adres'; exception when insufficient_privilege then null; when raise_exception then raise; end;
+  reset role;
+  select status into pid from markets where data ->> 'name' = 'rls garagesale'; if pid <> 'wacht' then raise exception 'garagesale staat meteen op %', pid; end if;
+  select status into pid from markets where data ->> 'name' = 'rls vrijmarkt'; if pid <> 'org' then raise exception 'vrijmarkt staat op %', pid; end if;
+  select id into pid from markets where data ->> 'name' = 'rls garagesale';
+  update markets set status = 'org' where id = pid;
+  insert into garage_adressen (market_id, adres, lat, lon, status) values (pid, 'Nog niet 1, Utrecht', 52.09, 5.12, 'nieuw'), (pid, 'Wel goed 2, Utrecht', 52.09, 5.12, 'goed');
+  set local role anon;
+  select count(*) into n from garage_kaart(pid); if n <> 1 then raise exception 'garage_kaart geeft % adressen (verwacht alleen het goedgekeurde)', n; end if;
+  begin perform garage_opruimen(); raise exception 'gast mag garage_opruimen uitvoeren'; exception when insufficient_privilege then null; when raise_exception then raise; end;
   reset role;
   select count(*) into n from favorites where user_id = a and item_id = 'rls-test-eigen'; if n <> 1 then raise exception 'eigen favoriet niet aan de gebruiker gekoppeld'; end if;
 

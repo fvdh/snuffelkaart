@@ -1,0 +1,35 @@
+---
+// Kaartmaker: organisatoren zetten zelf hun vrijmarkt, buurtmarkt of garagesale op de kaart (components/Kaartmaker.tsx).
+// noindex: dit is een werkpagina; de markten zelf krijgen een vindbare pagina onder /markt/.
+import Tekst from '../layouts/Tekst.astro';
+import Kaartmaker from '../components/Kaartmaker.tsx';
+---
+<Tekst title="Kaartmaker" description="Zet je vrijmarkt, buurtmarkt of garagesale gratis op Snuffelkaart.">
+  <meta slot="head" name="robots" content="noindex" />
+  <h1>Zet je markt op de kaart</h1>
+  <p class="lede">Organiseer je de vrijmarkt op Koningsdag, een buurtmarkt of een garagesale? Zet hem hier in een paar minuten op Snuffelkaart, gratis. Bezoekers vinden hem op de kaart, op de pagina van je plaats en in Google, met de kringlopen in de buurt erbij.</p>
+  <ul class="km-hoe">
+    <li><b>Markt op één plek of vrijmarkt</b>: staat binnen een kwartier op de kaart.</li>
+    <li><b>Garagesale</b>: wij kijken hem eerst na. Daarna zetten buren zelf hun adres op de kaart van de garagesale, zonder account. Elk adres kijken we na, en de dag na de garagesale wissen we alle adressen.</li>
+  </ul>
+  <div class="km"><Kaartmaker client:only="react" /></div>
+  <noscript><p>De kaartmaker werkt alleen met JavaScript aan.</p></noscript>
+  <style is:global>
+    .km { margin-top: 22px; display: flex; flex-direction: column; gap: 22px }
+    .tp .km-hoe { margin-top: 14px }
+    .km h2 { font-size: 1.125rem; font-weight: 700; margin: 0 }
+    .km-box, .km-form { padding: 22px 0 0; border-top: 1px solid var(--line); display: flex; flex-direction: column; gap: 16px }
+    .km .field small { font-weight: 400; color: var(--fg-3) }
+    .km .radios label span { display: flex; flex-direction: column; gap: 2px } .km .radios small { font-size: .8125rem; color: var(--fg-2); font-weight: 400 }
+    .km .radios input { width: 20px; height: 20px; accent-color: var(--ink); flex: none }
+    .km-zoek { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px }
+    .km .help { font-size: .8125rem; color: var(--fg-3); display: block; margin: 0 } .km .help svg { width: 14px; height: 14px; vertical-align: -2px; margin-right: 4px; color: var(--open-ink) }
+    .km .issue.bad { color: var(--bad-ink) }
+    .km-mijn { list-style: none; padding: 0 !important; margin: 10px 0 0; gap: 0 !important }
+    .km-mijn li { display: flex; justify-content: space-between; align-items: flex-start; gap: 14px; padding: 12px 0; border-top: 1px solid var(--line) }
+    .km-mijn li > div { display: flex; flex-direction: column; gap: 2px; min-width: 0; overflow-wrap: anywhere }
+    .km-mijn span { font-size: .9375rem; color: var(--fg-2) }
+    .km-st { font-weight: 650 } .km-st.org, .km-st.chk, .km-st.unconf { color: var(--open-ink) } .km-st.wacht { color: var(--warn-ink) } .km-st.cancel, .km-st.afgewezen { color: var(--bad-ink) }
+    .km .muted { color: var(--fg-3) }
+  </style>
+</Tekst>

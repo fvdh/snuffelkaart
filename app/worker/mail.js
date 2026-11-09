@@ -9,7 +9,7 @@ export const geldigAdres = e => e.length <= 254 && /^[^@\s]+@[^@\s]+\.[^@\s.]{2,
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
 const naar = (origin, q) => Response.redirect(`${origin}/aanmelden/?${new URLSearchParams(q)}`, 303);
 
-const sb = async (env, path, init = {}) => {
+export const sb = async (env, path, init = {}) => {
   const r = await fetch(`${env.SUPABASE_URL}/rest/v1/${path}`, { ...init, headers: { apikey: env.SUPABASE_SERVICE_ROLE_KEY, Authorization: `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`, 'Content-Type': 'application/json', Prefer: 'return=representation', ...init.headers } });
   if (!r.ok) throw new Error(`supabase ${r.status} ${await r.text()}`);
   return r.status === 204 ? [] : r.json();

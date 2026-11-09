@@ -79,3 +79,11 @@ it('weekmail: weekend, markten binnen de straal, afgelast niet; mail met afmeldk
   expect(m.html).toContain('zaterdag 7 nov · 9:00–16:00');
   expect(m.html).toContain('/kaart/?plek=Haarlem&amp;lat=52.3874&amp;lon=4.6383&amp;markten=za,zo'.replace(/&amp;/g, '&'));
 });
+
+it('kaartmaker klaar: één mail met de link, notitie veilig in de html', async () => {
+  const { klaarMail } = await import('../scripts/kaartmaker-mail.mjs');
+  const m = klaarMail({ email: 'a@b.nl', notitie: 'Breda <b>juni</b>' });
+  expect(m.to).toBe('a@b.nl');
+  expect(m.html).toContain('https://snuffelkaart.nl/kaartmaker/');
+  expect(m.html).toContain('&lt;b&gt;juni');
+});

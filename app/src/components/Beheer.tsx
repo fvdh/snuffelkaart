@@ -3,7 +3,7 @@
 // Inloggen met een link per e-mail (Supabase Auth); wat je mag, bepaalt RLS (tabel admins). Wat je hier zet, komt in `locked`:
 // een import overschrijft het niet meer. Sessie en REST: lib/auth.ts.
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { CATS, dLong, type Cat } from '../lib/model';
+import { CATS, dLong, km, type Cat } from '../lib/model';
 import { queue, alerts, parseLatLon, type MRow, type Judged, type Run } from '../lib/beheer';
 import { CAT, Ic } from './ui';
 import { SB, KEY, readSession, sendLink, logout, fresh, api as authApi, type Session } from '../lib/auth';
@@ -53,17 +53,17 @@ function Login() {
   </form></main>);
 }
 
-type View = 'overzicht' | 'live' | 'verkeer' | 'gedrag' | 'inhoud' | 'regios' | 'wachtrij' | 'kandidaten' | 'week' | 'bijdragen' | 'meldingen' | 'dekking' | 'lezer' | 'winkels' | 'bronnen' | 'fouten' | 'log';
+type View = 'overzicht' | 'live' | 'verkeer' | 'gedrag' | 'inhoud' | 'regios' | 'wachtrij' | 'kandidaten' | 'week' | 'bijdragen' | 'meldingen' | 'kaartmaker' | 'dekking' | 'lezer' | 'winkels' | 'bronnen' | 'fouten' | 'log';
 // Indeling volgens het ontwerp (ontwerp/beheer/index.html): groepen in de zijbalk, bovenbalk met periode, ⌘K en licht/donker.
 const NAV: [string, [View, string, string][]][] = [
   ['Overzicht', [['overzicht', 'Overzicht', 'home'], ['live', 'Live', 'live']]],
   ['Inzicht', [['verkeer', 'Verkeer', 'chart'], ['gedrag', 'Gedrag', 'route'], ['inhoud', 'Inhoud', 'box'], ['regios', "Regio's", 'pin']]],
-  ['Werk', [['wachtrij', 'Wachtrij', 'inbox'], ['kandidaten', 'Kandidaten', 'check'], ['week', 'Markten deze week', 'cal'], ['bijdragen', 'Bijdragen', 'gift'], ['meldingen', 'Meldingen', 'flag']]],
+  ['Werk', [['wachtrij', 'Wachtrij', 'inbox'], ['kandidaten', 'Kandidaten', 'check'], ['week', 'Markten deze week', 'cal'], ['bijdragen', 'Bijdragen', 'gift'], ['meldingen', 'Meldingen', 'flag'], ['kaartmaker', 'Kaartmaker', 'pin']]],
   ['Data', [['dekking', 'Dekking', 'shop'], ['lezer', 'Websitelezer', 'read'], ['winkels', 'Winkels', 'search'], ['bronnen', 'Bronnen', 'db']]],
   ['Systeem', [['fouten', 'Fouten', 'bug'], ['log', 'Log', 'log']]],
 ];
 const VIEWS = NAV.flatMap(([g, it]) => it.map(([k, l]) => [k, g, l] as const));
-const PERIOD = new Set<View>(['overzicht', 'verkeer', 'gedrag', 'inhoud', 'regios', 'dekking']), WORK = new Set<View>(['wachtrij', 'kandidaten', 'week', 'bijdragen', 'meldingen', 'winkels']);
+const PERIOD = new Set<View>(['overzicht', 'verkeer', 'gedrag', 'inhoud', 'regios', 'dekking']), WORK = new Set<View>(['wachtrij', 'kandidaten', 'week', 'bijdragen', 'meldingen', 'kaartmaker', 'winkels']);
 const STATUS: Record<string, string> = { org: 'Bevestigd door organisator', chk: 'Gecontroleerd', unconf: 'Nog niet bevestigd', cancel: 'Afgelast', kandidaat: 'Kandidaat', afgewezen: 'Afgewezen' };
 const Bi = ({ n }: { n: string }) => <svg className="bi" aria-hidden="true"><use href={`#b-${n}`} /></svg>;
 const fromHash = (): View => { const h = location.hash.slice(1) as View; return VIEWS.some(v => v[0] === h) ? h : 'overzicht'; };
@@ -101,14 +101,16 @@ function Panel({ s, out }: { s: Session; out: () => void }) {
   useEffect(() => { api(s, 'reports?select=*&done_at=is.null&order=created_at').then(setReps).catch(() => {}); }, []);
   const [nBij, setNBij] = useState(0);
   useEffect(() => { api(s, 'contributions?select=id&status=eq.nieuw').then(r => setNBij(r.length)).catch(() => {}); }, [view]);
+  const [nAdr, setNAdr] = useState(0); // adressen van buren bij een garagesale (kaartmaker), nog te keuren
+  useEffect(() => { api(s, 'garage_adressen?select=id&status=eq.nieuw').then(r => setNAdr(r.length)).catch(() => {}); }, [view]);
   useEffect(() => { api(s, 'import_runs?select=*&order=at.desc&limit=30').then(setRuns).catch(() => {}); }, []);
   const warn = alerts(runs, new Date());
   const qu = useMemo(() => rows ? queue(rows, today()) : [], [rows]);
   const week = useMemo(() => (rows ?? []).filter(r => r.date <= plusDays(7) && STATUS[r.status] && !['kandidaat', 'afgewezen'].includes(r.status)), [rows]);
   const cands = useMemo(() => (rows ?? []).filter(r => r.status === 'kandidaat' || r.status === 'afgewezen'), [rows]);
   const fout24 = data.fouten.filter(f => Date.now() - Date.parse(f.at) < 864e5).length;
-  const count: Partial<Record<View, number>> = { wachtrij: qu.length, kandidaten: cands.filter(r => r.status === 'kandidaat').length, week: week.length, meldingen: reps.length, bijdragen: nBij, fouten: fout24 };
-  const hot = new Set<View>(['wachtrij', 'meldingen', 'bijdragen']);
+  const count: Partial<Record<View, number>> = { wachtrij: qu.length, kandidaten: cands.filter(r => r.status === 'kandidaat').length, week: week.length, meldingen: reps.length, bijdragen: nBij, kaartmaker: (rows ?? []).filter(r => r.status === 'wacht').length + nAdr, fouten: fout24 };
+  const hot = new Set<View>(['wachtrij', 'meldingen', 'bijdragen', 'kaartmaker']);
   const crit = qu.filter(j => j.urgent).length;
 
   const att = <ul className="att">
@@ -139,6 +141,7 @@ function Panel({ s, out }: { s: Session; out: () => void }) {
     : view === 'week' ? <Markets key="w" title="Markten deze week" items={week.map(row => ({ row }))} save={save}
         filters={[['Alles', () => true], ...(['org', 'chk', 'unconf', 'cancel'] as const).map(k => [STATUS[k].replace(' door organisator', ''), (i: Item) => i.row.status === k] as Filter)]} empty="Geen markten de komende 7 dagen." />
     : view === 'bijdragen' ? <Contribs s={s} setUndo={setUndo} />
+    : view === 'kaartmaker' ? <KmBeheer s={s} rows={rows ?? []} save={save} setUndo={setUndo} />
     : view === 'meldingen' ? <Reports s={s} reps={reps} setReps={setReps} rows={rows ?? []} />
     : view === 'winkels' ? <Shops s={s} />
     : view === 'bronnen' ? <Sources runs={runs} warn={warn} rows={rows ?? []} />
@@ -400,6 +403,85 @@ function Contribs({ s, setUndo }: { s: Session; setUndo: (u: Undo) => void }) {
         <button className="btn" onClick={() => setRejecting(true)}>Afwijzen <span className="kbd">R</span></button>
         <a className="btn" href={`/kaart/?open=${encodeURIComponent(c.item_id)}`} target="_blank" rel="noopener">Bekijk winkel <Ic n="ext" /></a></div>}
       <p className="src"><Ic n="info" /><span>Goedgekeurd staat na de volgende publicatie op de kaart (±15 minuten).</span></p>
+    </aside> : <aside className="adm-detail" />}
+  </>);
+}
+
+type Adr = { id: number; market_id: string; adres: string; lat: number; lon: number; wat: string | null; created_at: string };
+type KmItem = { key: string; row?: MRow; a?: Adr };
+
+/** Kaartmaker: garagesales die op keuring wachten, adressen van buren, en wat organisatoren zelf op de kaart zetten (om weg te halen).
+ *  Markten gaan via save() (zelfde ongedaan maken als elders); adressen hebben geen reden nodig (we kunnen de buurman niet bereiken). */
+function KmBeheer({ s, rows, save, setUndo }: { s: Session; rows: MRow[]; save: (r: Row, b: Partial<Row>) => Promise<void>; setUndo: (u: Undo) => void }) {
+  const [own, setOwn] = useState<Record<string, string> | null>(null), [adr, setAdr] = useState<Adr[]>([]), [f, setF] = useState(0), [selKey, setSelKey] = useState(''), [why, setWhy] = useState(''), [rejecting, setRejecting] = useState(false), [err, setErr] = useState('');
+  useEffect(() => {
+    api(s, 'kaartmakers?select=market_id,email').then((r: { market_id: string; email: string }[]) => setOwn(Object.fromEntries(r.map(x => [x.market_id, x.email])))).catch(e => setErr(e.message));
+    api(s, 'garage_adressen?select=id,market_id,adres,lat,lon,wat,created_at&status=eq.nieuw&order=created_at').then(setAdr).catch(e => setErr(e.message));
+  }, []);
+  const mine = rows.filter(r => own && r.id in own), byId = new Map(rows.map(r => [r.id, r]));
+  const lists: [string, KmItem[]][] = [
+    ['Te keuren', [...mine.filter(r => r.status === 'wacht').map(row => ({ key: row.id, row })), ...adr.map(a => ({ key: `a${a.id}`, a, row: byId.get(a.market_id) }))]],
+    ['Op de kaart', mine.filter(r => ['org', 'chk', 'unconf'].includes(r.status)).map(row => ({ key: row.id, row }))],
+  ];
+  const list = lists[f][1], cur = list.find(i => i.key === selKey) ?? list[0], idx = cur ? list.indexOf(cur) : -1;
+  useEffect(() => { setRejecting(false); setWhy(''); }, [cur?.key]);
+  const next = () => setSelKey(list[idx + 1]?.key ?? list[idx - 1]?.key ?? '');
+  const adres = async (a: Adr, status: 'goed' | 'afgewezen') => {
+    try {
+      await api(s, `garage_adressen?id=eq.${a.id}`, { method: 'PATCH', body: JSON.stringify({ status }) });
+      next(); setAdr(xs => xs.filter(x => x !== a)); setErr('');
+      setUndo({ what: `${a.adres}: ${status === 'goed' ? 'goedgekeurd' : 'afgewezen'}`, revert: async () => { await api(s, `garage_adressen?id=eq.${a.id}`, { method: 'PATCH', body: JSON.stringify({ status: 'nieuw' }) }); setAdr(xs => [...xs, a]); } });
+    } catch (e) { setErr((e as Error).message); }
+  };
+  const approve = () => { if (!cur) return; if (cur.a) adres(cur.a, 'goed'); else if (cur.row!.status === 'wacht') { next(); save(cur.row!, { status: 'org', locked: lock(cur.row!, 'status') }); } };
+  const reject = () => { if (!cur) return; if (cur.a) return adres(cur.a, 'afgewezen'); if (!why.trim()) return setRejecting(true); next(); save(cur.row!, { status: 'afgewezen', data: { ...cur.row!.data, rejectWhy: why.trim() }, locked: lock(cur.row!, 'status', 'rejectWhy') }); };
+  useEffect(() => {
+    const k = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') return setRejecting(false);
+      if (typing(e) || e.metaKey || e.ctrlKey || e.altKey || rejecting) return;
+      if (e.key === 'j') setSelKey(list[Math.min(list.length - 1, idx + 1)]?.key ?? ''); else if (e.key === 'k') setSelKey(list[Math.max(0, idx - 1)]?.key ?? '');
+      else if (e.key === 'a') { e.preventDefault(); approve(); } else if (e.key === 'r') { e.preventDefault(); reject(); }
+    };
+    addEventListener('keydown', k); return () => removeEventListener('keydown', k);
+  });
+  const d = cur?.row?.data ?? {}, live = cur?.row && cur.row.status !== 'wacht' && !cur.a;
+  return (<>
+    <section className="adm-q" aria-label="Kaartmaker">
+      <header><h2>Kaartmaker</h2><div className="adm-filters">{lists.map(([l, xs], i) => <button key={l} className="chip" aria-pressed={f === i} onClick={() => { setF(i); setSelKey(''); }}>{l} · {xs.length}</button>)}</div></header>
+      {!own ? <p className="adm-empty">Laden…</p> : list.length ? <ul className="adm-list">{list.map(i => <li key={i.key}><button className={`adm-item${i === cur ? ' on' : ''}`} aria-current={i === cur} onClick={() => setSelKey(i.key)}>
+        <span className="tile"><Ic n={i.a ? 'pin' : 'kraam'} /></span>
+        <span><b>{i.a ? i.a.adres : i.row!.data.name}</b><span>{i.a ? `Adres bij ${i.row?.data.name ?? i.a.market_id}` : `${i.row!.data.kind} · ${i.row!.data.place} · ${i.row!.data.org}`}</span></span>
+        <time dateTime={i.row?.date}>{i.row ? day(i.row.date) : ''}</time></button></li>)}</ul>
+        : <p className="adm-empty">{f ? 'Nog niets van organisatoren op de kaart.' : 'Niets te keuren. Garagesales en adressen van buren komen hier binnen.'}</p>}
+    </section>
+    {cur ? <aside className="adm-detail" aria-label="Details">
+      <div><p className="eyebrow"><span className="tile"><Ic n={cur.a ? 'pin' : 'kraam'} /></span>{cur.a ? 'Adres van een buur' : `${d.kind} uit de kaartmaker`}</p>
+        <h3>{cur.a ? cur.a.adres : d.name}</h3>
+        {cur.row && <p className="adm-sub">{cur.a ? `${d.name} · ` : ''}{day(cur.row.date)} · {hm(d.start)}–{hm(d.end)} · {d.place}</p>}</div>
+      {cur.a ? <dl className="facts">
+        <dt>Verkoopt</dt><dd>{cur.a.wat ?? <span className="muted">niet ingevuld</span>}</dd>
+        <dt>Afstand</dt><dd>{cur.row ? `${(km(cur.a, cur.row.data as { lat: number; lon: number }) * 1000).toFixed(0)} m van het midden` : '?'} · <a href={osmAt(cur.a)} target="_blank" rel="noopener">bekijk <Ic n="ext" /></a></dd>
+        <dt>Ingestuurd</dt><dd>{new Date(cur.a.created_at).toLocaleString('nl-NL', { dateStyle: 'medium', timeStyle: 'short' })}</dd>
+      </dl> : <dl className="facts">
+        <dt>Organisator</dt><dd>{d.org}</dd>
+        <dt>Ingelogd als</dt><dd>{own?.[cur.row!.id] ? <a href={`mailto:${own[cur.row!.id]}`}>{own[cur.row!.id]}</a> : '?'}</dd>
+        <dt>Plek</dt><dd>{d.addr ?? <span className="muted">geen adres</span>} · <a href={osmAt(d)} target="_blank" rel="noopener">pin bekijken <Ic n="ext" /></a></dd>
+        <dt>Entree</dt><dd>{d.entree}</dd>
+        {d.url && <><dt>Website</dt><dd><a href={d.url} target="_blank" rel="noopener nofollow">{d.url} <Ic n="ext" /></a></dd></>}
+      </dl>}
+      {d.info && !cur.a && <blockquote className="adm-quote" tabIndex={0}>{d.info}</blockquote>}
+      <div className="aibox"><span className="ai doubt"><Ic n="info" />Let op</span><ul>{cur.a ? <><li>Ligt het in de buurt van de garagesale (hooguit 2 km, dat controleert de worker al)?</li><li>Geen reclame of onzin bij "verkoopt"?</li></>
+        : <><li>Echte markt of garagesale, met een naam die klopt? Geen reclame of een winkel.</li><li>Staat de pin op een logische plek?</li></>}</ul></div>
+      {err && <p className="bh-err">{err}</p>}
+      {rejecting ? <form className="adm-edit" onSubmit={e => { e.preventDefault(); reject(); }}>
+        <label>Waarom niet? <span className="muted">(de organisator ziet dit in de kaartmaker)</span><input className="input" required autoFocus value={why} onChange={e => setWhy(e.target.value)} maxLength={200} placeholder="Bijv. Dit is een winkel, geen markt." /></label>
+        <div className="adm-btns"><button className="btn primary bad" disabled={!why.trim()}>{live ? 'Van de kaart halen' : 'Afwijzen'}</button><button type="button" className="btn" onClick={() => setRejecting(false)}>Annuleren <span className="kbd">Esc</span></button></div>
+      </form> : <div className="adm-btns">
+        {!live && <button className="btn primary" onClick={approve}><Ic n="check" />Goedkeuren <span className="kbd">A</span></button>}
+        <button className="btn" onClick={reject}>{live ? 'Van de kaart halen' : 'Afwijzen'} <span className="kbd">R</span></button>
+        {live && <a className="btn" href={`/kaart/?open=${encodeURIComponent(cur.row!.id)}`} target="_blank" rel="noopener">Bekijk op de kaart <Ic n="ext" /></a>}
+      </div>}
+      <p className="src"><Ic n="info" /><span>{cur.a ? 'Goedgekeurd staat het adres meteen op de pagina van de garagesale; de dag erna wissen we het.' : 'Een markt of garagesale die je goedkeurt of weghaalt, is binnen ±15 minuten bijgewerkt op de kaart.'}</span></p>
     </aside> : <aside className="adm-detail" />}
   </>);
 }

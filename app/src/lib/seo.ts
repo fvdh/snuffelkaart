@@ -5,7 +5,7 @@ import { km, addDays, dayStart, DAYS_LONG, hm, cap, catOf } from './model';
 
 export const slugify = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/['’]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 /** Bestaande adressen in de root; een plaats met zo'n naam krijgt "-plaats" erachter. */
-const RESERVED = new Set(['kaart', 'aanmelden', 'api', 'beheer', 'privacy', 'hoe-we-controleren', 'plaatsen', 'markten', 'organisator', 'provincie', 'rommelmarkt-dit-weekend', 'kringloop-open-op-zondag', 'vlooienmarkten', 'rommelmarkten', 'kofferbakmarkten', 'colofon', 'voorwaarden', 'offline', '404', 'winkel', 'markt', 'data', 'fonts', 'icons', '_astro', 'sitemap', 'robots']);
+const RESERVED = new Set(['kaart', 'aanmelden', 'api', 'beheer', 'privacy', 'hoe-we-controleren', 'plaatsen', 'markten', 'organisator', 'provincie', 'rommelmarkt-dit-weekend', 'kringloop-open-op-zondag', 'kaartmaker','vlooienmarkten', 'rommelmarkten', 'kofferbakmarkten', 'colofon', 'voorwaarden', 'offline', '404', 'winkel', 'markt', 'data', 'fonts', 'icons', '_astro', 'sitemap', 'robots']);
 
 /** Uniek adres per item: eerst de mooie naam, bij een botsing het korte id erachter. Zelfde invoer → zelfde adressen. */
 function unique<T>(items: T[], base: (x: T) => string, id: (x: T) => string): Map<string, T> {
@@ -65,8 +65,9 @@ export function siteIndex(places: Place[], markets: Market[]) {
   cities.sort((a, b) => a.name.localeCompare(b.name, 'nl'));
   const citySlug = new Map(cities.map(c => [c.name, c.slug]));
   // Organisatoren met een eigen agenda (niet het Gemeenteblad: dat is een vergunning, geen organisator) krijgen een eigen pagina.
+  // Niet uit de kaartmaker (km-…): die naam typt iemand zelf, en zo kan niemand een markt op de pagina van een bestaande organisator zetten.
   const orgs = new Map<string, { name: string; markets: Market[] }>();
-  for (const m of markets) if (m.org && !/^Gemeenteblad/.test(m.org)) { const k = slugify(m.org); if (!orgs.has(k)) orgs.set(k, { name: m.org, markets: [] }); orgs.get(k)!.markets.push(m); }
+  for (const m of markets) if (m.org && !/^Gemeenteblad/.test(m.org) && !m.id.startsWith('km-')) { const k = slugify(m.org); if (!orgs.has(k)) orgs.set(k, { name: m.org, markets: [] }); orgs.get(k)!.markets.push(m); }
   const orgSlug = new Map([...orgs].map(([k, o]) => [o.name, k]));
   return { shops, series, oldMarkets, cities, orgs, url: (id: string) => slugOf.get(id)!, cityUrl: (name: string | null | undefined) => (name && citySlug.has(name) ? `/${citySlug.get(name)}/` : null),
     orgUrl: (name: string | null | undefined) => (name && orgSlug.has(name) ? `/organisator/${orgSlug.get(name)}/` : null) };

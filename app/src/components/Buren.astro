@@ -1,0 +1,93 @@
+---
+// Garagesale uit de kaartmaker: de adressen van buren die meedoen, en een formulier om je eigen adres op te geven (worker/garage.js).
+// Adressen staan NIET in de HTML: de browser haalt de goedgekeurde op bij rpc/garage_kaart, en na de garagesale geeft die niets meer
+// (de dag erna wist de export ze). Zo komen woonadressen niet in Google of in een archief van de pagina.
+import type { Market, Place } from '../lib/model';
+interface Props { m: Market; shops: Place[] }
+const { m, shops } = Astro.props;
+const pts = shops.map(p => [+p.lon.toFixed(5), +p.lat.toFixed(5), p.name]);
+---
+<section id="garagesale" aria-labelledby="h-buren" data-id={m.id} data-ll={JSON.stringify([m.lon, m.lat])} data-shops={JSON.stringify(pts)}>
+  <h2 class="pl-h" id="h-buren">Wie doet er mee?</h2>
+  <p>Bij een garagesale verkopen buren elk bij hun eigen voordeur. Elke ronde stip is een adres dat meedoet; de vierkantjes zijn kringlopen in de buurt.</p>
+  <div class="bu-kaart" aria-hidden="true"></div>
+  <p class="bu-stand" role="status">Adressen laden…</p>
+  <ul class="bu-lijst" hidden></ul>
+
+  <form class="bu-form" novalidate>
+    <h3>Verkoop je ook?</h3>
+    <p>Zet je adres erop, zonder account. We kijken elk adres na voordat het hier staat. Je naam of e-mailadres vragen we niet, en de dag na de garagesale wissen we je adres.</p>
+    <div class="field"><label for="bu-adres">Je straat en huisnummer</label><input class="input" id="bu-adres" name="adres" autocomplete="street-address" maxlength="120" required placeholder={`Dorpsstraat 12, ${m.place}`}></div>
+    <div class="field"><label for="bu-wat">Wat verkoop je? <small>(mag leeg)</small></label><input class="input" id="bu-wat" name="wat" maxlength="80" placeholder="Kinderkleding, boeken, gereedschap"></div>
+    <div class="hp" aria-hidden="true"><label>Laat dit leeg <input name="website" tabindex="-1" autocomplete="off"></label></div>
+    <button class="btn primary" type="submit">Zet mijn adres erop</button>
+    <p class="bu-msg" role="status"></p>
+    <p class="bu-klein">Je adres is voor iedereen te zien op deze pagina, tot en met de dag van de garagesale. <a href="/privacy/#garagesale">Privacy</a></p>
+  </form>
+</section>
+<style is:global>
+  #garagesale { gap: 12px }
+  .bu-kaart { height: 340px; border-radius: 14px; overflow: hidden; background: var(--surface-2) }
+  .tp .bu-stand { font-size: .9375rem; margin: 0 }
+  .tp .bu-lijst { list-style: none; padding: 0; gap: 0 } .bu-lijst li { padding: 8px 0; border-top: 1px solid var(--line); color: var(--fg) } .bu-lijst small { display: block; color: var(--fg-2); font-size: .875rem }
+  .bu-form { display: flex; flex-direction: column; gap: 14px; padding-top: 18px; margin-top: 8px; border-top: 1px solid var(--line); max-width: 30rem }
+  .bu-form h3 { font-size: 1.0625rem; font-weight: 700; margin: 0 }
+  .bu-form .field small { font-weight: 400; color: var(--fg-3) }
+  .bu-form .btn { align-self: flex-start }
+  .tp .bu-msg:empty { display: none } .tp .bu-msg { font-weight: 600; color: var(--fg) } .tp .bu-msg.bad { color: var(--bad-ink) }
+  .tp .bu-klein { font-size: .8125rem; color: var(--fg-3); margin: 0 }
+  .bu-form .hp { position: absolute; left: -9999px }
+</style>
+<script>
+  import 'maplibre-gl/dist/maplibre-gl.css';
+  import { token as rgb, paint } from '../lib/mapstyle';
+  declare const __SB_URL__: string, __SB_KEY__: string;
+  type Adres = { adres: string; lat: number; lon: number; wat: string | null };
+  const box = document.getElementById('garagesale')!, id = box.dataset.id!, mid: [number, number] = JSON.parse(box.dataset.ll!);
+  const shops: [number, number, string][] = JSON.parse(box.dataset.shops ?? '[]');
+  const stand = box.querySelector<HTMLElement>('.bu-stand')!, lijst = box.querySelector<HTMLUListElement>('.bu-lijst')!;
+
+  async function kaart(adressen: Adres[]) {
+    const [ml, style, worker] = await Promise.all([import('maplibre-gl'), fetch('https://tiles.openfreemap.org/styles/positron').then(r => r.json()), import('maplibre-gl/dist/maplibre-gl-worker.mjs?url')]);
+    ml.setWorkerUrl(worker.default);
+    const b = new ml.LngLatBounds(mid, mid); adressen.forEach(a => b.extend([a.lon, a.lat]));
+    // cooperativeGestures: op de telefoon scrol je gewoon door de pagina; met twee vingers beweeg je de kaart.
+    const map = new ml.Map({ container: box.querySelector<HTMLElement>('.bu-kaart')!, style, bounds: b, fitBoundsOptions: { padding: 40, maxZoom: 16 }, cooperativeGestures: true, attributionControl: { compact: true } });
+    map.on('load', () => {
+      paint(map);
+      const f = (x: number, y: number, label: string, m: number) => ({ type: 'Feature' as const, properties: { label, m }, geometry: { type: 'Point' as const, coordinates: [x, y] } });
+      map.addSource('p', { type: 'geojson', data: { type: 'FeatureCollection', features: [...shops.map(([x, y, n]) => f(x, y, n, 0)), ...adressen.map(a => f(a.lon, a.lat, a.wat ? `${a.adres}: ${a.wat}` : a.adres, 1))] } });
+      // Vierkant = winkel, rond = markt (DESIGN.md): winkels als symbool met een vierkantje, adressen als cirkel.
+      const sq = document.createElement('canvas'); sq.width = sq.height = 22; const c = sq.getContext('2d')!;
+      c.fillStyle = rgb('--surface'); c.beginPath(); c.roundRect(0, 0, 22, 22, 6); c.fill(); c.fillStyle = rgb('--kring'); c.beginPath(); c.roundRect(3, 3, 16, 16, 4); c.fill();
+      map.addImage('vk', c.getImageData(0, 0, 22, 22), { pixelRatio: 2 });
+      map.addLayer({ id: 'ws', type: 'symbol', source: 'p', filter: ['==', ['get', 'm'], 0], layout: { 'icon-image': 'vk', 'icon-allow-overlap': true } });
+      map.addLayer({ id: 'a', type: 'circle', source: 'p', filter: ['==', ['get', 'm'], 1], paint: { 'circle-radius': 7, 'circle-color': rgb('--markt'), 'circle-stroke-width': 2, 'circle-stroke-color': rgb('--surface') } });
+      for (const l of ['a', 'ws']) {
+        map.on('click', l, e => { const p = e.features?.[0]; if (p) new ml.Popup({ closeButton: false }).setLngLat((p.geometry as GeoJSON.Point).coordinates as [number, number]).setText(p.properties.label).addTo(map); });
+        map.on('mouseenter', l, () => { map.getCanvas().style.cursor = 'pointer'; }); map.on('mouseleave', l, () => { map.getCanvas().style.cursor = ''; });
+      }
+    });
+  }
+
+  // Ook als lijst onder de kaart (toetsenbord, schermlezer); net als de kaart alleen in de browser.
+  fetch(`${__SB_URL__}/rest/v1/rpc/garage_kaart`, { method: 'POST', headers: { apikey: __SB_KEY__, 'Content-Type': 'application/json' }, body: JSON.stringify({ markt: id }) })
+    .then(r => (r.ok ? r.json() : Promise.reject(r.status))).then((as: Adres[]) => {
+      stand.textContent = as.length ? `${as.length} ${as.length === 1 ? 'adres doet' : 'adressen doen'} mee.` : 'Nog geen adressen. Doe je zelf mee? Zet je adres hieronder erop.';
+      lijst.replaceChildren(...as.map(a => { const li = document.createElement('li'); li.textContent = a.adres; if (a.wat) { const s = document.createElement('small'); s.textContent = a.wat; li.append(s); } return li; }));
+      lijst.hidden = !as.length;
+      return kaart(as);
+    }).catch(() => { stand.textContent = 'De adressen laden nu niet. Probeer het straks opnieuw.'; kaart([]).catch(() => {}); });
+
+  const form = box.querySelector<HTMLFormElement>('.bu-form')!, msg = form.querySelector<HTMLElement>('.bu-msg')!, knop = form.querySelector<HTMLButtonElement>('button')!;
+  form.addEventListener('submit', async e => {
+    e.preventDefault(); knop.disabled = true; msg.className = 'bu-msg'; msg.textContent = '';
+    const d = Object.fromEntries(new FormData(form));
+    try {
+      const j = await (await fetch('/api/garagesale', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...d, markt: id }) })).json();
+      if (j.ok) { form.reset(); msg.textContent = `Dank je! We kijken ${j.adres ?? 'je adres'} na; meestal staat het er binnen een dag.`; }
+      else { msg.classList.add('bad'); msg.textContent = j.fout; }
+    } catch { msg.classList.add('bad'); msg.textContent = 'Versturen lukte niet. Heb je verbinding?'; }
+    knop.disabled = false;
+  });
+</script>
