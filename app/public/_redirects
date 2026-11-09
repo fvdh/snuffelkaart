@@ -88,3 +88,8 @@
 /s-hertogenbosch/ /den-bosch/ 301
 /driebergen/ /driebergen-rijsenburg/ 301
 /the-hague/ /den-haag/ 301
+
+# Marktreeksen met de datum in de naam (9 nov 2026): datum gaat er nu uit, één reeks per markt
+/markt/2-daagse-snuffelmarkt-gelredome-arnhem-13-14-feb/ /markt/2-daagse-snuffelmarkt-gelredome-arnhem/ 301
+/markt/verzamel-jaarbeurs-14-15-november-2026-utrecht/ /markt/verzamel-jaarbeurs-utrecht/ 301
+/markt/verzamel-jaarbeurs-24-25-april-2027-utrecht/ /markt/verzamel-jaarbeurs-utrecht/ 301

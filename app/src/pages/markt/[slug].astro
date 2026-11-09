@@ -9,7 +9,7 @@ import PlekDock from '../../components/PlekDock.astro';
 import '../../styles/plek.css';
 import type { Market, Place } from '../../lib/model';
 import { dLong, hm, km, dayStart, DAYS_LONG, cap, catOf } from '../../lib/model';
-import { near, niceVenue, slugify, weekIntervals } from '../../lib/seo';
+import { near, niceVenue, slugify, weekIntervals, seriesName } from '../../lib/seo';
 import { ix, markets, places, from, holidays, SITE } from '../../lib/sitedata';
 import { DAY_CATS } from '../../lib/plan';
 
@@ -18,7 +18,7 @@ export function getStaticPaths() {
 }
 const { ms } = Astro.props as { ms: Market[] };
 const nx = ms.find(m => m.status !== 'cancel') ?? ms[0], venue = niceVenue(nx.venue), url = ix.url(nx.id), kaart = `/kaart/?open=${encodeURIComponent(nx.id)}`;
-const h1 = `${nx.name}${venue && !slugify(nx.name).includes(slugify(venue)) ? `, ${venue}` : ''}`;
+const nm = seriesName(nx.name), h1 = `${nm}${venue && !slugify(nm).includes(slugify(venue)) ? `, ${venue}` : ''}`;
 const timeOf = (m: Market) => (m.timeKnown === false ? 'tijden bij de organisator' : m.end ? `${hm(m.start)}–${hm(m.end)}` : `vanaf ${hm(m.start)}`);
 const dateOf = (iso: string) => `${dLong(iso)}${iso.slice(0, 4) !== from.slice(0, 4) ? ` ${iso.slice(0, 4)}` : ''}`;
 const fee = (m: Market) => (m.entree && m.entree !== 'onbekend' ? m.entree : null);
@@ -79,7 +79,7 @@ const practical = [['Kramen', nx.kramen ? `±${nx.kramen}` : null], ['Kraam hure
   <KaartBlok items={[nx, ...nearShops.slice(0, 20)]} hl={nx.id} href={kaart} label={`Markt en ${Math.min(20, nearShops.length)} winkels in de buurt`} />
 
   <section aria-labelledby="h-data">
-    <h2 class="pl-h" id="h-data">{ms.length > 1 ? `Alle data van ${nx.name}` : `Datum en tijden`}</h2>
+    <h2 class="pl-h" id="h-data">{ms.length > 1 ? `Alle data van ${nm}` : `Datum en tijden`}</h2>
     <table class="pl-dates"><tbody>{ms.map(m => <tr id={m.date} class={`${m === nx ? 'next' : ''}${m.status === 'cancel' ? ' cancel' : ''}`}>
       <th scope="row">{dateOf(m.date)}</th><td class="hide-m">{timeOf(m)}</td><td>{fee(m) ?? ''}</td><td class={`r st-${m.status}`}>{STATUS[m.status]}</td></tr>)}</tbody></table>
     {(practical.length > 0 || nx.url) && <table class="pl-hours" style="margin-top:14px"><tbody>

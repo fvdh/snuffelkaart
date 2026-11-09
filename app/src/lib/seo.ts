@@ -26,13 +26,18 @@ export interface City { slug: string; name: string; lat: number; lon: number; sh
 export const niceVenue = (v?: string | null) => (v && v === v.toUpperCase() && /[A-Z]{4}/.test(v) ? v.toLowerCase().replace(/(^|[\s-])(\p{L})/gu, (_, a, b) => a + b.toUpperCase()) : v ?? '');
 /** Markten die bij elkaar horen (zelfde naam, plaats en zaal): één pagina per reeks, met alle data (SEO-kritiek 9 nov: losse
  *  datumpagina's met dezelfde titel lijken op dubbele pagina's). Naam + plaats als adres; zaal erbij als dat nodig is om te onderscheiden. */
+/** Naam zonder datum ("Verzamel Jaarbeurs 14 + 15 november 2026" → "Verzamel Jaarbeurs"): de datum staat al in de tabel, en zo
+ *  vallen de edities van dezelfde markt in één reeks. Blijft er niets over, dan de naam zoals hij was. */
+export const seriesName = (name: string) =>
+  name.replace(/\s*\b\d{1,2}(?:\s*(?:[-–+&]|en|t\/m)\s*\d{1,2})?\s*(?:jan|feb|mrt|maa|apr|mei|jun|jul|aug|sep|okt|nov|dec)[a-z]*\.?(?:\s*(?:19|20)\d{2})?/gi, '')
+    .replace(/\s*\b(?:19|20)\d{2}\b/g, '').replace(/[\s,–-]+$/, '').trim() || name;
 export function marketSeries(markets: Market[]) {
   const groups = new Map<string, Market[]>();
   for (const m of [...markets].sort((a, b) => a.date.localeCompare(b.date) || a.start - b.start)) {
-    const k = `${slugify(m.name)}|${slugify(m.place)}|${slugify(m.venue ?? '')}`;
+    const k = `${slugify(seriesName(m.name))}|${slugify(m.place)}|${slugify(m.venue ?? '')}`;
     if (!groups.has(k)) groups.set(k, []); groups.get(k)!.push(m);
   }
-  const named = (ms: Market[]) => slugify(slugify(ms[0].name).includes(slugify(ms[0].place)) ? ms[0].name : `${ms[0].name} ${ms[0].place}`);
+  const named = (ms: Market[]) => { const n = seriesName(ms[0].name); return slugify(slugify(n).includes(slugify(ms[0].place)) ? n : `${n} ${ms[0].place}`); };
   const clash = new Map<string, number>(); for (const ms of groups.values()) clash.set(named(ms), (clash.get(named(ms)) ?? 0) + 1);
   const withVenue = (ms: Market[]) => (clash.get(named(ms))! > 1 && ms[0].venue ? `${named(ms)}-${slugify(niceVenue(ms[0].venue)).split('-').slice(0, 3).join('-')}` : named(ms));
   return unique([...groups.values()], withVenue, ms => ms[0].id);

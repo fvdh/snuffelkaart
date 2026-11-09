@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest';
-import { slugify, siteIndex, weekHours, near, marketSeries, fmtTel, splitAddr, niceVenue } from './seo';
+import { slugify, siteIndex, weekHours, near, marketSeries, fmtTel, splitAddr, niceVenue, seriesName } from './seo';
 import type { Place, Market } from './model';
 
 const P = (id: string, name: string, place: string | null, lat = 52, lon = 5) => ({ id, t: 'k', kind: 'kringloop', name, place, lat, lon, h: null } as unknown as Place);
@@ -50,4 +50,12 @@ test('telefoon en adres netjes', () => {
   expect(fmtTel('+32 3 123 45 67')).toBe('+32 3 123 45 67');
   expect(splitAddr('Rieteweg 13, 8041AJ Zwolle')).toEqual({ street: 'Rieteweg 13', pc: '8041 AJ', town: 'Zwolle' });
   expect(splitAddr(null, 'Ede')).toEqual({ street: null, pc: null, town: 'Ede' });
+});
+
+test("seriesName haalt de datum uit de marktnaam", () => {
+  expect(seriesName("Verzamel Jaarbeurs 14 + 15 november 2026")).toBe("Verzamel Jaarbeurs");
+  expect(seriesName("2 Daagse Snuffelmarkt Gelredome Arnhem 13-14 Feb.")).toBe("2 Daagse Snuffelmarkt Gelredome Arnhem");
+  expect(seriesName("Rommelmarkt 2027")).toBe("Rommelmarkt");
+  expect(seriesName("Vlooienmarkt Zwolle")).toBe("Vlooienmarkt Zwolle");
+  expect(seriesName("Markt 40-45")).toBe("Markt 40-45");
 });

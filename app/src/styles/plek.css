@@ -68,6 +68,16 @@
 @media (min-width: 721px) { .pl-dock { display: none } }
 @media (prefers-reduced-motion: reduce) { .pl-dock { transition: none } }
 
+/* stadspagina: per winkel de tijden van vandaag, open = groen met stip */
+.pl-stad thead th, .pl-stad thead td { border-top: 0; padding-bottom: 4px; font-size: .8125rem; font-weight: 600; color: var(--fg-3) }
+.tp .pl-week.pl-wk { font-size: 1.125rem; font-weight: 400 } .pl-wk b { font-weight: 700 }
+.pl-what .pl-shape { align-self: flex-start; margin-top: .3em }
+.pl-stad td.unk { color: var(--fg-3) }
+.pl-stad tbody th small { display: block; font-weight: 400; font-size: .8125rem; color: var(--fg-3) }
+@media (max-width: 720px) { .pl-stad th { grid-column: 1 } .pl-stad th.pl-dag { grid-column: 2 } .pl-stad thead tr { border-top: 0; padding-bottom: 0 } }
+.tp .pl-stad td.open { color: var(--open-ink); font-weight: 700 }
+.pl-stad td.open::before { content: ""; display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--open); margin-right: 7px; vertical-align: 1px }
+
 /* kruimelpad: ook op de telefoon zichtbaar (Google indexeert de mobiele pagina) */
 .tp .pl-crumbs { display: flex; flex-wrap: wrap; gap: 2px 6px; list-style: none; margin: 0; padding: 0 !important; font-size: .8125rem; color: var(--fg-3) }
 .tp .pl-crumbs li { color: var(--fg-3); line-height: 1.4 } .tp .pl-crumbs li + li::before { content: "›"; margin-right: 6px }

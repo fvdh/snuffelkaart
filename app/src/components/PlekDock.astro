@@ -21,6 +21,25 @@ const { href, label } = Astro.props;
         if (txt) { nu.textContent = txt; nu.classList.toggle('open', !!cur); nu.hidden = false; }
       }
     }
+    // Stadspagina: kolom "vandaag" en "nu open" per winkel, en bovenaan hoeveel er nu open zijn.
+    let open = 0, first = true;
+    document.querySelectorAll('.pl-stad[data-from]').forEach(t => {
+      const [y, m, d] = t.dataset.from.split('-').map(Number), i0 = Math.round((today - new Date(y, m - 1, d)) / 864e5);
+      if (i0 < 0 || i0 > 7) return;
+      t.querySelector('.pl-dag').textContent = 'Vandaag';
+      t.querySelectorAll('tr[data-h]').forEach(tr => {
+        const iv = JSON.parse(tr.dataset.h)[i0] ?? [], td = tr.lastElementChild, cur = iv.some(([a, b]) => min >= a && min < b);
+        td.textContent = iv.length ? iv.map(([a, b]) => `${hm(a)}–${hm(b)}`).join(' en ') : 'dicht';
+        td.classList.toggle('open', cur); if (cur && first) open++;
+      });
+      first = false;
+    });
+    const sn = document.getElementById('pl-stad-nu');
+    if (sn && document.querySelector('.pl-stad .pl-dag')?.textContent === 'Vandaag') {
+      const w = sn.dataset.kring ? ['kringloop', 'kringlopen'] : ['winkel', 'winkels'];
+      sn.textContent = open ? `Nu open: ${open} ${open === 1 ? w[0] : w[1]}` : `Nu is er geen ${w[0]} open`;
+      sn.classList.toggle('open', open > 0); sn.hidden = false;
+    }
     document.querySelectorAll(`.pl-hours tr[data-wd="${now.getDay()}"]`).forEach(tr => tr.classList.add('vandaag'));
     // Markt: over hoeveel dagen
     const af = document.getElementById('pl-aftel');
