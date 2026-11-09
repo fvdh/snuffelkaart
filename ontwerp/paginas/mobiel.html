@@ -1,0 +1,10 @@
+<!DOCTYPE html>
+<html lang="nl"><meta charset="utf-8"><title>Ontwerp v2 op mobiel (375px)</title>
+<style>body{margin:0;background:oklch(0.88 0.006 85);font:14px system-ui}div{display:flex;gap:16px;padding:16px}figure{margin:0}figcaption{padding:0 0 6px 4px;color:oklch(0.4 0.01 260)}iframe{width:375px;height:2000px;border:0;border-radius:18px;background:white}</style>
+<div>
+  <figure><figcaption>Kringloop</figcaption><iframe src="kringloop.html"></iframe></figure>
+  <figure><figcaption>Tweedehands</figcaption><iframe src="tweedehands.html"></iframe></figure>
+  <figure><figcaption>Markt</figcaption><iframe src="markt.html"></iframe></figure>
+  <figure><figcaption>Organisator</figcaption><iframe src="organisator.html"></iframe></figure>
+</div>
+<script>document.querySelectorAll('iframe').forEach(f => f.onload = () => { const p = f.contentDocument.querySelector('.proto'); if (p) p.style.display = 'none'; });</script>
