@@ -46,8 +46,11 @@ const ld = ms.slice(0, 20).map(m => ({ '@context': 'https://schema.org', '@type'
   eventStatus: `https://schema.org/${m.status === 'cancel' ? 'EventCancelled' : 'EventScheduled'}`, eventAttendanceMode: 'https://schema.org/OfflineEventAttendanceMode',
   description: `${m.kind}${m.indoor ? ', binnen' : m.indoor === false ? ', buiten' : ''}${venue ? ` in ${venue}` : ''}, ${m.place}.${fee(m) ? ` Entree: ${fee(m)}.` : ''}`,
   location: { '@type': 'Place', name: venue || m.place, address: { '@type': 'PostalAddress', streetAddress: m.addr ?? undefined, addressLocality: m.place, addressCountry: 'NL' }, geo: { '@type': 'GeoCoordinates', latitude: m.lat, longitude: m.lon } },
+  image: `${SITE}/og.png`, // ponytail: algemene deelafbeelding; eigen foto per markt als die er komt
   organizer: { '@type': 'Organization', name: m.org, ...(m.url ? { url: m.url } : {}) },
-  ...(price(m) ? { offers: { '@type': 'Offer', price: price(m), priceCurrency: 'EUR', ...(m.url ? { url: m.url } : {}), availability: 'https://schema.org/InStock' } } : {}),
+  performer: { '@type': 'Organization', name: m.org }, // rommelmarkt heeft geen artiest; de organisator is wat Google hier het best kan tonen
+  // entree betaal je aan de deur: geldig vanaf de marktdag. Onbekende entree = geen offers, niets verzinnen.
+  ...(price(m) ? { offers: { '@type': 'Offer', price: price(m), priceCurrency: 'EUR', validFrom: off(m.date, 0), ...(m.url ? { url: m.url } : {}), availability: 'https://schema.org/InStock' } } : {}),
   ...(m.entree === 'gratis' ? { isAccessibleForFree: true } : {}) }));
 const crumbLd = { '@context': 'https://schema.org', '@type': 'BreadcrumbList', itemListElement: crumbs.map(([n, u], i) => ({ '@type': 'ListItem', position: i + 1, name: n, item: SITE + u })) };
 const practical = [['Kramen', nx.kramen ? `±${nx.kramen}` : null], ['Kraam huren', nx.kraamhuur], ['Schema', nx.schema]].filter(([, v]) => v) as [string, string][];

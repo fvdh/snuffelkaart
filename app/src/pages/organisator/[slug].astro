@@ -30,8 +30,8 @@ const title = `Markten van ${name} ${years}: data, tijden en entree`;
 const description = `${next ? `Volgende: ${next.name}, ${dLong(next.date).toLowerCase()}${timeOf(next) ? `, ${timeOf(next)}` : ''}. ` : ''}${ms.length} ${ms.length === 1 ? 'markt' : 'markten'} in ${places.slice(0, 4).join(', ')}${places.length > 4 ? ` en nog ${places.length - 4} plaatsen` : ''}, met tijden en entree. Elke nacht gecontroleerd.`;
 const snippet = `<a href="${SITE}${url}?via=badge"><img src="${SITE}/badge.svg" alt="Onze markten staan op Snuffelkaart" width="200" height="48"></a>`;
 const crumbs: [string, string][] = [['Snuffelkaart', '/'], ['Markten', '/markten/'], [name, url]];
-const ld = { '@context': 'https://schema.org', '@type': 'Organization', name, url: SITE + url, ...(site ? { sameAs: [site] } : {}),
-  event: ms.slice(0, 50).map(m => ({ '@type': 'Event', name: m.name, url: SITE + ix.url(m.id), startDate: m.date, eventStatus: `https://schema.org/${m.status === 'cancel' ? 'EventCancelled' : 'EventScheduled'}`, location: { '@type': 'Place', name: niceVenue(m.venue) || m.place, address: m.addr ?? m.place } })) };
+// Geen events hier: de volledige Event-schema's staan op de marktpagina's; kale kopieën gaven Search Console-meldingen.
+const ld = { '@context': 'https://schema.org', '@type': 'Organization', name, url: SITE + url, ...(site ? { sameAs: [site] } : {}) };
 const crumbLd = { '@context': 'https://schema.org', '@type': 'BreadcrumbList', itemListElement: crumbs.map(([n, u], i) => ({ '@type': 'ListItem', position: i + 1, name: n, item: SITE + u })) };
 ---
 <Tekst title={title} description={description} tel={`org:${slug}`} mail wide>
