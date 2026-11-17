@@ -30,7 +30,7 @@ export default function MapView(p: MapProps) {
   const marks = useRef(new Map<string, { m: ML.Marker; el: HTMLDivElement; at: [number, number]; leaves?: string[] }>());
   const shownIndex = useRef<unknown>(null), stacked = useRef(new Map<string, number>());
   const meMark = useRef<ML.Marker | null>(null), routeShown = useRef(false);
-  const [ready, setReady] = useState(false), [tick, setTick] = useState(0);
+  const [ready, setReady] = useState(false), [tick, setTick] = useState(0), [noGl, setNoGl] = useState(false);
   const cb = useRef(p); cb.current = p;
 
   useEffect(() => {
@@ -41,6 +41,8 @@ export default function MapView(p: MapProps) {
       // MapLibre 6 zoekt zijn worker naast zijn eigen bestand; na bundelen staat die er niet, dus wijzen we hem aan.
       maplibregl.setWorkerUrl(worker.default);
       if (gone || !box.current) return;
+      // Zonder WebGL2 (oude videokaart, uitgezette hardwareversnelling) gooit MapLibre: dan een zin in plaats van een lege kaart.
+      try { const c = document.createElement('canvas').getContext('webgl2'); if (!c) throw 0; } catch { setNoGl(true); return; }
       map = new maplibregl.Map({ container: box.current, style, center: [(p.home ?? DEFAULT_CENTER).lon, (p.home ?? DEFAULT_CENTER).lat], zoom: 11.5, attributionControl: false, pitchWithRotate: false, dragRotate: false });
       map.touchZoomRotate.disableRotation();
       map.addControl(new maplibregl.AttributionControl({ compact: true }), 'top-left'); // bovenin: onderin ligt het paneel
@@ -159,6 +161,7 @@ export default function MapView(p: MapProps) {
   const zoom = (d: number) => mapRef.current?.easeTo({ zoom: mapRef.current.getZoom() + d, duration: reduced() ? 0 : 250 });
   return (<>
     <div className="map" ref={box} role="region" aria-label="Kaart" />
+    {noGl && <p className="map-nogl">Je browser kan deze kaart niet tekenen (WebGL staat uit). De lijst werkt wel. Zet in je browserinstellingen hardwareversnelling aan, of probeer een andere browser.</p>}
     <div className="map-ctrl"><button onClick={() => zoom(1)} aria-label="Inzoomen"><svg className="i" aria-hidden="true"><use href="#i-plus" /></svg></button>
       <button onClick={() => zoom(-1)} aria-label="Uitzoomen"><svg className="i" aria-hidden="true"><use href="#i-minus" /></svg></button>
       <button onClick={p.onLocate} aria-label="Naar mijn locatie" aria-pressed={!!p.me}><svg className="i" aria-hidden="true"><use href="#i-loc" /></svg></button></div>
