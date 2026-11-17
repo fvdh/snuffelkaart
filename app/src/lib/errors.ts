@@ -1,6 +1,7 @@
 // M6 monitoring: JavaScript-fouten bij bezoekers anoniem naar Supabase (rpc log_error), te zien in /beheer → Bronnen.
 // ponytail: hooguit 3 per paginabezoek en elke melding één keer; geen bibliotheek (Sentry e.d.) zolang dit genoeg zegt.
 import { SB, KEY } from './auth';
+import { BOT } from './ev';
 
 let sent = 0;
 const seen = new Set<string>();
@@ -14,6 +15,8 @@ export function report(msg: string, src = '') {
 
 export function watchErrors() {
   if (import.meta.env.DEV || typeof window === 'undefined') return; // niet tijdens ontwikkelen of bij het bouwen op de server
+  // Crawlers zonder WebGL2 (meta-externalagent: 1000× "WebGL2 is required" op 13–17 nov) zijn geen fouten bij bezoekers.
+  if (navigator.webdriver || BOT.test(navigator.userAgent)) return;
   addEventListener('error', e => report(e.message || String(e.error), e.filename ? `${e.filename.split('/').pop()}:${e.lineno}` : ''));
   addEventListener('unhandledrejection', e => report(`Promise: ${e.reason?.message ?? String(e.reason)}`));
 }
