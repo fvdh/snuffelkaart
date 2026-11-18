@@ -126,7 +126,7 @@ function Panel({ s, out }: { s: Session; out: () => void }) {
   const content = view === 'overzicht' ? <Overzicht d={data} p={p} att={att} />
     : view === 'live' ? <Live d={data} />
     : view === 'verkeer' ? <Verkeer p={p} s={s} />
-    : view === 'gedrag' ? <Gedrag p={p} />
+    : view === 'gedrag' ? <Gedrag p={p} info={data.info} />
     : view === 'inhoud' ? <Inhoud d={data} p={p} q={q} setQ={setQ} />
     : view === 'regios' ? <Regios d={data} p={p} />
     : view === 'dekking' ? <Dekking d={data} p={p} />

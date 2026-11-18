@@ -230,7 +230,18 @@ export function Verkeer({ p, s }: { p: P; s: Session }) {
   </>;
 }
 
-export function Gedrag({ p }: { p: P }) {
+/** Sleutel van een pagina (lib/klik, Tekst.astro) → wat een mens leest: winkel- of marktnaam, "organisator: …". */
+export function pageLabel(k: string, info: Map<string, Info>) {
+  const it = info.get(k), m = /^(org|prov|stad):(.+)$/.exec(k);
+  if (it) return `${it.name}${it.place ? ` (${it.place})` : ''}`;
+  if (m) return `${{ org: 'organisator', prov: 'provincie', stad: 'stad' }[m[1]]}: ${m[2].replace(/-/g, ' ')}`;
+  return /-\d{4}-\d{2}-\d{2}$/.test(k) ? `markt: ${k.replace(/-\d{4}-\d{2}-\d{2}$/, '').replace(/-/g, ' ')}` : k; // markt die al geweest is: niet meer in markets.json
+}
+
+// Tellers van vóór 9 nov telden crawlers mee (op 30 okt bekeek "iemand" 1.135 pagina's); vanaf EV_START niet meer.
+const echt = (r: { day: string }) => r.day >= EV_START;
+
+export function Gedrag({ p, info }: { p: P; info: Map<string, Info> }) {
   const heat = Array.from({ length: 7 }, () => Array(24).fill(0) as number[]);
   for (const r of p.tm('uur').filter(p.cur)) { const [w, h] = r.key.split('-').map(Number); if (heat[w] && h >= 0 && h < 24) heat[w][h] += r.n; }
   const hmax = Math.max(1, ...heat.flat()), order = [1, 2, 3, 4, 5, 6, 0];
@@ -245,13 +256,13 @@ export function Gedrag({ p }: { p: P }) {
     <Card title="Veelgelopen routes" sub="per bezoek" span={7}>{routes.length ? <div className="routes">{routes.map(([r, n]) => <div key={r}><div className="path">{r.split(' → ').map((s, i) => <span key={i}>{i ? <span className="ar">→</span> : null}<span className={`step${i === 0 ? ' k' : GOAL.has(s) ? ' g' : ''}`}>{s}</span></span>)}</div><span className="mono">{n}</span></div>)}</div> : <Empty>Nog geen bezoeken met meer dan één stap.</Empty>}</Card>
     <Card title="Zoeken zonder resultaat" sub="wat ontbreekt op de kaart" span={5} flush>{zoek.length ? <table className="tbl"><tbody>{zoek.map(([q, n]) => <tr key={q}><td>“{q}”</td><td className="r">{n}</td></tr>)}</tbody></table>
       : <div className="bc-b"><Empty>Nog geen zoekopdrachten zonder resultaat (sinds 9 nov met de woorden erbij; daarvoor {nl(sum(p.tm('zoekleeg').filter(p.cur).map(r => r.n)))} keer zonder woorden).</Empty></div>}</Card>
-    <Card title="Filters" sub="welke worden aangezet" span={4}><Bars rows={group(p.tm('filter').filter(p.cur), k => k.replace(/^type:m$/, 'alleen markten').replace(/^type:k$/, 'alleen winkels').replace(/^cat:/, 'soort: ')).slice(0, 8)} /></Card>
+    <Card title="Filters" sub="welke worden aangezet" span={4}><Bars rows={group(p.tm('filter').filter(p.cur).filter(echt), k => k.replace(/^type:m$/, 'alleen markten').replace(/^type:k$/, 'alleen winkels').replace(/^cat:/, 'soort: ')).slice(0, 8)} /></Card>
     <Card title="Gekozen plaatsen" span={4}><Bars rows={group(p.tm('plaats').filter(p.cur)).slice(0, 8)} tone="m" /></Card>
     <Card title="Dagplannen" span={4}>
       <div className="facts3"><div><span className="lbl">gestart of route</span><b>{nl(pn)}</b></div><div><span className="lbl">gem. stops</span><b>{pn ? (plans.reduce((a, x) => a + x.st * x.n, 0) / pn).toFixed(1).replace('.', ',') : '–'}</b></div><div><span className="lbl">met markt</span><b>{pct(sum(plans.filter(x => x.markt === 'ja').map(x => x.n)), pn)}%</b></div></div>
       <Bars rows={DAG.map(x => [x, sum(plans.filter(y => y.dag === x).map(y => y.n))] as [string, number]).filter(r => r[1])} tone="m" /></Card>
-    <Card title="Hoe ver weg" sub="afstand van de gekozen plek tot wat geopend wordt" span={6}><Bars rows={AFST.map(a => [`${a} km`, sum(p.tm('afstand').filter(p.cur).filter(r => r.key.endsWith(`|${a}`)).map(r => r.n))] as [string, number])} /></Card>
-    <Card title="Van pagina naar kaart" sub="welke pagina's brengen mensen naar de app" span={6}><Bars rows={group(p.tm('naarkaart').filter(p.cur)).slice(0, 8)} tone="m" /></Card>
+    <Card title="Hoe ver weg" sub="afstand van de gekozen plek tot wat geopend wordt" span={6}><Bars rows={AFST.map(a => [`${a} km`, sum(p.tm('afstand').filter(p.cur).filter(echt).filter(r => r.key.endsWith(`|${a}`)).map(r => r.n))] as [string, number])} /></Card>
+    <Card title="Van pagina naar kaart" sub="welke pagina's brengen mensen naar de app" span={6}><Bars rows={group(p.tm('naarkaart').filter(p.cur).filter(echt), k => pageLabel(k, info)).slice(0, 8)} tone="m" /></Card>
   </>;
 }
 
