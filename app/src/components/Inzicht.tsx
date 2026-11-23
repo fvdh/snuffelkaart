@@ -235,7 +235,9 @@ export function pageLabel(k: string, info: Map<string, Info>) {
   const it = info.get(k), m = /^(org|prov|stad):(.+)$/.exec(k);
   if (it) return `${it.name}${it.place ? ` (${it.place})` : ''}`;
   if (m) return `${{ org: 'organisator', prov: 'provincie', stad: 'stad' }[m[1]]}: ${m[2].replace(/-/g, ' ')}`;
-  return /-\d{4}-\d{2}-\d{2}$/.test(k) ? `markt: ${k.replace(/-\d{4}-\d{2}-\d{2}$/, '').replace(/-/g, ' ')}` : k; // markt die al geweest is: niet meer in markets.json
+  // Markt die al geweest is (niet meer in markets.json) of verborgen winkel: iets leesbaars uit het id.
+  if (/-\d{4}-\d{2}-\d{2}/.test(k)) return `markt: ${k.replace(/-?\d{4}-\d{2}-\d{2}-?/, ' ').replace(/^mdv\s*/, '').replace(/-/g, ' ').trim()}`;
+  return /^(ov|osm)-/.test(k) ? `winkel (niet meer op de kaart)` : k;
 }
 
 // Tellers van vóór 9 nov telden crawlers mee (op 30 okt bekeek "iemand" 1.135 pagina's); vanaf EV_START niet meer.

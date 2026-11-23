@@ -26,7 +26,9 @@ function visit(): { s: string; fresh: boolean } {
 export function source(ref: string, search: string): string {
   if (new URLSearchParams(search).get('via') === 'badge') return 'badge';
   let h = ''; try { h = new URL(ref).hostname.replace(/^www\./, ''); } catch { return 'direct'; }
-  if (!h || h === location.hostname.replace(/^www\./, '')) return 'direct';
+  if (!h) return 'direct';
+  // Eigen site als verwijzer = een nieuw tabblad vanaf Snuffelkaart (sessionStorage is per tab), geen nieuwe bezoeker.
+  if (h === location.hostname.replace(/^www\./, '')) return 'intern';
   const m = /(google|bing|duckduckgo|ecosia|facebook|instagram|chatgpt|perplexity|yahoo)\./.exec(h + '.');
   return m ? m[1] : h.slice(0, 60);
 }
