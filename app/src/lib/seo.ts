@@ -1,7 +1,7 @@
 // Statische pagina's voor zoekmachines (§3.1, ontwerp §08): per plaats, per winkel en per markt, elke nacht opnieuw gebouwd
 // uit dezelfde kaartdata als de app. Hier alleen de logica (adressen, wie een pagina krijgt, tijden per week); de opmaak staat in src/pages.
 import type { Place, Market } from './model';
-import { km, addDays, dayStart, DAYS_LONG, hm, cap, catOf } from './model';
+import { km, addDays, dayStart, DAYS_LONG, MON_LONG, hm, cap, catOf } from './model';
 
 export const slugify = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/['’]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 /** Bestaande adressen in de root; een plaats met zo'n naam krijgt "-plaats" erachter. */
@@ -127,6 +127,13 @@ export function splitAddr(addr?: string | null, place?: string | null) {
 /** Dunne plaatspagina: minder dan twee winkels of markten die meer zeggen dan "bestaat misschien niet meer". Niet in Google, niet in de sitemap. */
 export const cityThin = (c: City, markets: Market[], today: string) => c.shops.filter(p => !thin(p)).length + near(c, markets, today, 15, 10).length < 2;
 export const thin = (p: Place) => (p.src === 'overture' && !p.h && !p.website && !p.phone) || ['schroot', 'pandjeshuis'].includes(catOf(p));
+/** Markten per maand (/markten/december/): vaste adressen voor "rommelmarkt december", steeds de eerstvolgende december.
+ *  Minder dan drie markten = dun: wel de pagina, niet in Google. `markets` begint al bij vandaag. */
+export const monthPages = (markets: Market[], from: string) => MON_LONG.map((name, i) => {
+  const mm = String(i + 1).padStart(2, '0'), y = +from.slice(0, 4) + (mm < from.slice(5, 7) ? 1 : 0);
+  const ym = `${y}-${mm}`, ms = markets.filter(m => m.date.startsWith(ym));
+  return { slug: name, name, ym, year: y, ms, thin: ms.length < 3 };
+});
 
 /** Provincies (naam zoals PDOK hem geeft → naam waarop mensen zoeken, en het adres). */
 export const PROVINCES = [['Groningen', 'Groningen'], ['Fryslân', 'Friesland'], ['Drenthe', 'Drenthe'], ['Overijssel', 'Overijssel'], ['Flevoland', 'Flevoland'], ['Gelderland', 'Gelderland'],

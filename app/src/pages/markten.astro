@@ -2,12 +2,13 @@
 // Alle rommel- en vlooienmarkten van de komende weken: dit weekend voorop, daarna per maand. Voor "rommelmarkt dit weekend" en "vlooienmarkt".
 import Tekst from '../layouts/Tekst.astro';
 import MarktAgenda from '../components/MarktAgenda.astro';
-import { PROVINCES, MARKET_KINDS } from '../lib/seo';
+import { PROVINCES, MARKET_KINDS, monthPages } from '../lib/seo';
 import { weekendOf, dayStart, dShort } from '../lib/model';
 import { ix, markets, from, SITE } from '../lib/sitedata';
 
 const [sat, sun] = weekendOf(dayStart(from));
 const all = markets.filter(m => m.date >= from).sort((a, b) => a.date.localeCompare(b.date) || a.start - b.start || a.name.localeCompare(b.name));
+const months = monthPages(markets, from).filter(m => !m.thin).sort((a, b) => a.ym.localeCompare(b.ym));
 const weekend = all.filter(m => m.date === sat || m.date === sun);
 const places = new Set(all.map(m => m.place)).size;
 const title = 'Rommelmarkten en vlooienmarkten in Nederland';
@@ -20,6 +21,7 @@ const ld = { '@context': 'https://schema.org', '@type': 'ItemList', name: title,
   <h1>{title}</h1>
   <p class="lede">{description} Of <a href="/kaart/">bekijk ze op de kaart</a>, samen met de kringlopen in de buurt.</p>
   <p>Dit weekend: <a href="/rommelmarkt-dit-weekend/">alle markten per provincie</a>. Per soort: {MARKET_KINDS.map((k, i) => <>{i ? ' · ' : ''}<a href={`/${k.slug}/`}>{k.title.toLowerCase()}</a></>)}.</p>
+  <p>Per maand: {months.map((m, i) => <>{i ? ' · ' : ''}<a href={`/markten/${m.slug}/`}>{m.name}</a></>)}</p>
   <p>Per provincie: {PROVINCES.map((p, i) => <>{i ? ' · ' : ''}<a href={`/provincie/${p.slug}/`}>{p.name}</a></>)}</p>
   <MarktAgenda markets={all} />
   <section>
